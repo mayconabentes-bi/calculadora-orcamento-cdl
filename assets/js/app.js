@@ -723,12 +723,28 @@ function adicionarNovoFuncionario() {
         return;
     }
     
+    // Validar valores numéricos
+    const horaNormalNum = parseFloat(horaNormal);
+    const he50Num = parseFloat(he50);
+    const he100Num = parseFloat(he100);
+    const valeTransporteNum = parseFloat(valeTransporte);
+    
+    if (isNaN(horaNormalNum) || isNaN(he50Num) || isNaN(he100Num) || isNaN(valeTransporteNum)) {
+        alert('Por favor, insira valores numéricos válidos!');
+        return;
+    }
+    
+    if (horaNormalNum < 0 || he50Num < 0 || he100Num < 0 || valeTransporteNum < 0) {
+        alert('Os valores não podem ser negativos!');
+        return;
+    }
+    
     const novoFuncionario = {
         nome,
-        horaNormal: parseFloat(horaNormal),
-        he50: parseFloat(he50),
-        he100: parseFloat(he100),
-        valeTransporte: parseFloat(valeTransporte)
+        horaNormal: horaNormalNum,
+        he50: he50Num,
+        he100: he100Num,
+        valeTransporte: valeTransporteNum
     };
     
     dataManager.adicionarFuncionario(novoFuncionario);
@@ -768,12 +784,28 @@ function editarFuncionario(id) {
     const valeTransporte = prompt('Vale Transporte (R$/dia):', func.valeTransporte);
     if (valeTransporte === null) return;
     
+    // Validar valores numéricos
+    const horaNormalNum = parseFloat(horaNormal);
+    const he50Num = parseFloat(he50);
+    const he100Num = parseFloat(he100);
+    const valeTransporteNum = parseFloat(valeTransporte);
+    
+    if (isNaN(horaNormalNum) || isNaN(he50Num) || isNaN(he100Num) || isNaN(valeTransporteNum)) {
+        alert('Por favor, insira valores numéricos válidos!');
+        return;
+    }
+    
+    if (horaNormalNum < 0 || he50Num < 0 || he100Num < 0 || valeTransporteNum < 0) {
+        alert('Os valores não podem ser negativos!');
+        return;
+    }
+    
     dataManager.atualizarFuncionario(id, {
         nome: nome.trim(),
-        horaNormal: parseFloat(horaNormal),
-        he50: parseFloat(he50),
-        he100: parseFloat(he100),
-        valeTransporte: parseFloat(valeTransporte)
+        horaNormal: horaNormalNum,
+        he50: he50Num,
+        he100: he100Num,
+        valeTransporte: valeTransporteNum
     });
     
     carregarListaFuncionarios();
