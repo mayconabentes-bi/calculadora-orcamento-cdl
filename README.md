@@ -1,6 +1,6 @@
 # 🏢 Calculadora de Orçamento CDL/UTV v5.0
 
-Sistema profissional de cálculo de orçamentos para locação de espaços da CDL (Câmara de Dirigentes Lojistas) e UTV (Universidade Técnica de Vendas) em Manaus.
+Sistema profissional de cálculo de orçamentos para locação de espaços da CDL  e UTV em Manaus.
 
 ![Version](https://img.shields.io/badge/version-5.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
