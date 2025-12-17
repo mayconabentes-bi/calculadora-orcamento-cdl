@@ -219,16 +219,22 @@ function renderizarHorarios() {
 }
 
 /**
+ * Converte horário em formato HH:MM para minutos
+ */
+function parseTimeToMinutes(timeString) {
+    const [hora, minuto] = timeString.split(':').map(Number);
+    return hora * 60 + minuto;
+}
+
+/**
  * Calcula o total de horas de todos os horários
  */
 function calcularTotalHorasPorDia() {
     let totalHoras = 0;
     
     for (const horario of horarios) {
-        const [horaInicio, minutoInicio] = horario.inicio.split(':').map(Number);
-        const [horaFim, minutoFim] = horario.fim.split(':').map(Number);
-        const minutosInicio = horaInicio * 60 + minutoInicio;
-        const minutosFim = horaFim * 60 + minutoFim;
+        const minutosInicio = parseTimeToMinutes(horario.inicio);
+        const minutosFim = parseTimeToMinutes(horario.fim);
         
         if (minutosInicio < minutosFim) {
             totalHoras += (minutosFim - minutosInicio) / 60;
@@ -243,23 +249,14 @@ function calcularTotalHorasPorDia() {
  */
 function validarHorarios() {
     for (const horario of horarios) {
-        const [horaInicio, minutoInicio] = horario.inicio.split(':').map(Number);
-        const [horaFim, minutoFim] = horario.fim.split(':').map(Number);
-        const minutosInicio = horaInicio * 60 + minutoInicio;
-        const minutosFim = horaFim * 60 + minutoFim;
+        const minutosInicio = parseTimeToMinutes(horario.inicio);
+        const minutosFim = parseTimeToMinutes(horario.fim);
         
         if (minutosInicio >= minutosFim) {
             return false;
         }
     }
     return true;
-}
-
-/**
- * Formata horários para exibição
- */
-function formatarHorariosParaExibicao() {
-    return horarios.map((h, i) => `${h.inicio} às ${h.fim}`).join(', ');
 }
 
 // ========== FIM GERENCIAMENTO DE HORÁRIOS ==========
