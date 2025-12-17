@@ -10,10 +10,19 @@ Para ficar online, você precisa fazer 2 passos simples (leva 2 minutos):
 
 **Por que?** O código está na branch do PR, mas precisa estar em `main` para o GitHub Pages funcionar.
 
+**📍 Onde está o botão?**
+- Role até o **FINAL** da página do PR (depois dos comentários)
+- Procure um **botão VERDE** escrito "Merge pull request"
+- Fica abaixo de todos os comentários da conversa
+
+**Como fazer:**
 1. Vá para: https://github.com/mayconabentes-bi/calculadora-orcamento-cdl/pulls
-2. Abra o PR "Initial project setup - CDL/UTV Budget Calculator v5.0"
-3. Clique em **"Merge pull request"** (botão verde)
-4. Confirme clicando em **"Confirm merge"**
+2. Clique no PR "Initial project setup..."
+3. **Role até o final da página** ⬇️
+4. Clique em **"Merge pull request"** (botão verde 🟢)
+5. Clique em **"Confirm merge"**
+
+**❓ Não vê o botão?** Veja GUIA_VISUAL.md para troubleshooting
 
 ---
 
@@ -21,9 +30,19 @@ Para ficar online, você precisa fazer 2 passos simples (leva 2 minutos):
 
 **Por que?** Precisa ativar o GitHub Pages no repositório.
 
-1. Vá em: https://github.com/mayconabentes-bi/calculadora-orcamento-cdl/settings/pages
-2. Em **"Source"**, selecione: **GitHub Actions** (não "Deploy from a branch")
-3. Salve (se houver botão de salvar)
+**📍 Onde está?**
+- Clique em **"Settings"** (aba no topo do repositório ⚙️)
+- No menu lateral esquerdo, procure **"Pages"** (está perto do final)
+- Clique em "Pages"
+
+**Como fazer:**
+1. **Link direto**: https://github.com/mayconabentes-bi/calculadora-orcamento-cdl/settings/pages
+2. Ou: Repositório → Settings (topo) → Pages (menu esquerdo)
+3. Em **"Source"**, clique no dropdown
+4. Selecione: **"GitHub Actions"** (NÃO "Deploy from a branch")
+5. Salva automaticamente ✅
+
+**❓ Não vê Settings ou Pages?** Veja GUIA_VISUAL.md para troubleshooting
 
 ---
 
