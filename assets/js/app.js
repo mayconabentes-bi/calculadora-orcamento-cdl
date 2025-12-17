@@ -235,7 +235,7 @@ function carregarListaFuncionarios() {
     }
     
     // Contador de funcionários ativos
-    const funcionariosAtivos = funcionarios.filter(f => f.ativo).length;
+    const funcionariosAtivos = dataManager.obterFuncionariosAtivos().length;
     const infoHeader = document.createElement('div');
     infoHeader.style.cssText = 'padding: 10px; margin-bottom: 15px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;';
     infoHeader.innerHTML = `
@@ -466,6 +466,9 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
     // Calcular economia (desconto)
     const economia = valorDesconto;
     
+    // Calcular total de custos dos funcionários
+    const totalCustosFuncionarios = custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao;
+    
     return {
         horasTotais,
         horasPorMes,
@@ -488,7 +491,8 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
         economia,
         margemPercent: margem * 100,
         descontoPercent: desconto * 100,
-        quantidadeFuncionarios: custos.quantidadeFuncionarios || 1
+        quantidadeFuncionarios: custos.quantidadeFuncionarios || 1,
+        totalCustosFuncionarios
     };
 }
 
@@ -512,8 +516,7 @@ function exibirResultados(resultado) {
     if (resultado.quantidadeFuncionarios > 0) {
         document.getElementById('funcionarios-info-line').style.display = 'flex';
         document.getElementById('quantidade-funcionarios').textContent = resultado.quantidadeFuncionarios;
-        const totalCustosFuncionarios = resultado.custoMaoObraTotal + resultado.custoValeTransporte + resultado.custoTransporteApp + resultado.custoRefeicao;
-        document.getElementById('total-custos-funcionarios').textContent = formatarMoeda(totalCustosFuncionarios);
+        document.getElementById('total-custos-funcionarios').textContent = formatarMoeda(resultado.totalCustosFuncionarios);
     } else {
         document.getElementById('funcionarios-info-line').style.display = 'none';
     }

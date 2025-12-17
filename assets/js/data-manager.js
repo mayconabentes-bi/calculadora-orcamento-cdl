@@ -339,7 +339,7 @@ class DataManager {
 
     /**
      * Obtém o funcionário ativo (usado nos cálculos)
-     * @deprecated Use obterFuncionariosAtivos() para suportar múltiplos funcionários
+     * @deprecated Desde v5.0 - Use obterFuncionariosAtivos() para suportar múltiplos funcionários ativos
      */
     obterFuncionarioAtivo() {
         const ativo = this.dados.funcionarios.find(func => func.ativo === true);
@@ -449,7 +449,7 @@ class DataManager {
 
     /**
      * Obtém custos agregados de todos os funcionários ativos
-     * @deprecated Use obterFuncionariosAtivos() ao invés
+     * @deprecated Desde v5.0 - Este método retorna custos agregados. Para dados individuais, use obterFuncionariosAtivos()
      */
     obterCustosFuncionario() {
         const funcionariosAtivos = this.obterFuncionariosAtivos();
