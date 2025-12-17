@@ -587,7 +587,7 @@ function exibirResultados(resultado) {
     // Valores principais
     document.getElementById('valor-total').textContent = formatarMoeda(resultado.valorFinal);
     document.getElementById('valor-hora').textContent = formatarMoeda(resultado.valorPorHora);
-    document.getElementById('total-horas').textContent = resultado.horasTotais;
+    document.getElementById('total-horas').textContent = resultado.horasTotais.toFixed(1);
     
     const sala = dataManager.obterSalaPorId(document.getElementById('espaco').value);
     document.getElementById('custo-hora').textContent = formatarMoeda(sala.custoBase);
