@@ -25,7 +25,7 @@ class DataManager {
         try {
             const stored = localStorage.getItem(this.storageKey);
             if (stored) {
-                const dados = JSON.parse(stored);
+                let dados = JSON.parse(stored);
                 // Validar estrutura básica
                 if (dados.salas && dados.extras) {
                     // Migração de dados antigos: converter custosFuncionario para funcionarios
@@ -353,10 +353,6 @@ class DataManager {
      */
     obterFuncionariosAtivos() {
         const ativos = this.dados.funcionarios.filter(func => func.ativo === true);
-        // Se nenhum estiver ativo, retorna o primeiro como fallback
-        if (ativos.length === 0 && this.dados.funcionarios.length > 0) {
-            return [this.dados.funcionarios[0]];
-        }
         return ativos;
     }
 
