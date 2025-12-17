@@ -1,6 +1,6 @@
-# 🏢 Calculadora de Orçamento CDL/UTV v5.0
+# Calculadora de Orçamento CDL/UTV v5.0
 
-Sistema profissional de cálculo de orçamentos para locação de espaços da CDL  e UTV em Manaus.
+Sistema de cálculo de orçamentos para locação de espaços da CDL  e UTV em Manaus.
 
 ![Version](https://img.shields.io/badge/version-5.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -8,13 +8,13 @@ Sistema profissional de cálculo de orçamentos para locação de espaços da CD
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
 
-## 🌐 Acesso Online
+## Acesso Online
 
-**🔗 Acesse o sistema:** [https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)
+** Acesse o sistema:** [https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)
 
 O sistema está hospedado no GitHub Pages e pode ser acessado diretamente pelo navegador, sem necessidade de instalação.
 
-## 📋 Sobre o Projeto
+##  Sobre o Projeto
 
 Sistema web completo para calcular orçamentos de locação de espaços, considerando múltiplos fatores como:
 - ✅ Custos operacionais base por espaço
@@ -26,26 +26,26 @@ Sistema web completo para calcular orçamentos de locação de espaços, conside
 - ✅ Descontos por fidelidade
 - ✅ Geração de PDFs profissionais (cliente e superintendência)
 
-## 🚀 Funcionalidades
+##  Funcionalidades
 
 ### Para Usuários
-- 📊 **Calculadora Intuitiva**: Interface amigável com cálculo automático
-- 🏛️ **Gestão de Espaços**: CRUD completo de salas/espaços
-- 💰 **Configuração de Custos**: Ajuste de custos base por espaço
-- 🎁 **Itens Extras**: Adicione e gerencie itens adicionais
-- 📄 **Exportação de PDFs**: Propostas comerciais e análises gerenciais
-- 💾 **Backup/Restore**: Exportação e importação de dados
-- 📱 **Responsivo**: Funciona em desktop, tablet e mobile
+- **Calculadora Intuitiva**: Interface amigável com cálculo automático
+- **Gestão de Espaços**: CRUD completo de salas/espaços
+- **Configuração de Custos**: Ajuste de custos base por espaço
+- **Itens Extras**: Adicione e gerencie itens adicionais
+- **Exportação de PDFs**: Propostas comerciais e análises gerenciais
+- **Backup/Restore**: Exportação e importação de dados
+- **Responsivo**: Funciona em desktop, tablet e mobile
 
 ### Para Desenvolvedores
-- 🏗️ **Arquitetura Modular**: Código separado por responsabilidade
-- 📦 **Zero Dependências Backend**: 100% frontend
-- 💾 **Persistência Local**: LocalStorage para dados
-- 🎨 **CSS Customizável**: Variáveis CSS para fácil personalização
-- 📚 **Bem Documentado**: Manuais técnico e do usuário completos
-- 🔧 **Fácil Manutenção**: Código limpo e comentado
+- **Arquitetura Modular**: Código separado por responsabilidade
+- **Zero Dependências Backend**: 100% frontend
+- **Persistência Local**: LocalStorage para dados
+- **CSS Customizável**: Variáveis CSS para fácil personalização
+- **Bem Documentado**: Manuais técnico e do usuário completos
+- **Fácil Manutenção**: Código limpo e comentado
 
-## 📁 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 calculadora-orcamento-cdl/
@@ -72,7 +72,7 @@ calculadora-orcamento-cdl/
     └── exemplo-orcamento.json # Exemplo de dados exportados
 ```
 
-## 🛠️ Tecnologias Utilizadas
+##  Tecnologias Utilizadas
 
 | Tecnologia | Versão | Uso |
 |------------|--------|-----|
@@ -83,16 +83,16 @@ calculadora-orcamento-cdl/
 | html2canvas | 1.4.1 | Captura de elementos |
 | LocalStorage | - | Persistência |
 
-## 📦 Instalação e Uso
+## Instalação e Uso
 
-### 🌐 Opção 1: Acesso Online (Mais Rápido)
+### Opção 1: Acesso Online (Mais Rápido)
 
 **Simplesmente acesse o link:**
-👉 **[https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)**
+ **[https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)**
 
 O sistema está hospedado no GitHub Pages e funciona diretamente no navegador!
 
-## 🔮 Roadmap
+##  Roadmap
 
 ### Versão 5.1 (Planejada)
 - [ ] Modo escuro
