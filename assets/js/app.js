@@ -234,6 +234,16 @@ function carregarListaFuncionarios() {
         return;
     }
     
+    // Contador de funcionários ativos
+    const funcionariosAtivos = dataManager.obterFuncionariosAtivos().length;
+    const infoHeader = document.createElement('div');
+    infoHeader.style.cssText = 'padding: 10px; margin-bottom: 15px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;';
+    infoHeader.innerHTML = `
+        <strong style="color: #0284c7;">👥 Funcionários Selecionados: ${funcionariosAtivos}</strong>
+        <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #6b7280;">Selecione um ou mais funcionários para incluir nos cálculos</p>
+    `;
+    container.appendChild(infoHeader);
+    
     funcionarios.forEach(func => {
         const div = document.createElement('div');
         div.className = 'funcionario-item';
@@ -243,7 +253,12 @@ function carregarListaFuncionarios() {
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <strong style="font-size: 1.1em; color: #1e3c72;">${func.nome}</strong>
+                        <input type="checkbox" 
+                               id="func-ativo-${func.id}" 
+                               ${func.ativo ? 'checked' : ''} 
+                               onchange="alternarFuncionarioAtivo(${func.id})"
+                               style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="func-ativo-${func.id}" style="cursor: pointer; font-size: 1.1em; color: #1e3c72; font-weight: bold;">${func.nome}</label>
                         ${func.ativo ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold;">ATIVO</span>' : ''}
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.9em; color: #6b7280;">
@@ -256,7 +271,6 @@ function carregarListaFuncionarios() {
                     </div>
                 </div>
                 <div style="display: flex; gap: 5px; margin-left: 15px;">
-                    ${!func.ativo ? `<button class="btn-small btn-success" onclick="ativarFuncionario(${func.id})" title="Usar nos cálculos">✓</button>` : ''}
                     <button class="btn-small btn-edit" onclick="editarFuncionario(${func.id})" title="Editar">✏️</button>
                     ${funcionarios.length > 1 ? `<button class="btn-small btn-delete" onclick="removerFuncionario(${func.id})" title="Remover">🗑️</button>` : ''}
                 </div>
@@ -452,6 +466,9 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
     // Calcular economia (desconto)
     const economia = valorDesconto;
     
+    // Calcular total de custos dos funcionários
+    const totalCustosFuncionarios = custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao;
+    
     return {
         horasTotais,
         horasPorMes,
@@ -473,7 +490,9 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
         valorPorHora,
         economia,
         margemPercent: margem * 100,
-        descontoPercent: desconto * 100
+        descontoPercent: desconto * 100,
+        quantidadeFuncionarios: custos.quantidadeFuncionarios || 1,
+        totalCustosFuncionarios
     };
 }
 
@@ -492,6 +511,16 @@ function exibirResultados(resultado) {
     
     // Detalhamento
     document.getElementById('custo-base').textContent = formatarMoeda(resultado.custoOperacionalBase);
+    
+    // Informações dos funcionários
+    if (resultado.quantidadeFuncionarios > 0) {
+        document.getElementById('funcionarios-info-line').style.display = 'flex';
+        document.getElementById('quantidade-funcionarios').textContent = resultado.quantidadeFuncionarios;
+        document.getElementById('total-custos-funcionarios').textContent = formatarMoeda(resultado.totalCustosFuncionarios);
+    } else {
+        document.getElementById('funcionarios-info-line').style.display = 'none';
+    }
+    
     document.getElementById('mao-obra-normal').textContent = formatarMoeda(resultado.custoMaoObraNormal);
     document.getElementById('mao-obra-he50').textContent = formatarMoeda(resultado.custoMaoObraHE50);
     document.getElementById('mao-obra-he100').textContent = formatarMoeda(resultado.custoMaoObraHE100);
@@ -874,12 +903,17 @@ function removerFuncionario(id) {
 }
 
 /**
- * Ativa um funcionário (define como usado nos cálculos)
+ * Alterna o estado ativo de um funcionário
  */
-function ativarFuncionario(id) {
-    dataManager.definirFuncionarioAtivo(id);
+function alternarFuncionarioAtivo(id) {
+    dataManager.alternarFuncionarioAtivo(id);
     carregarListaFuncionarios();
-    mostrarNotificacao('Funcionário ativado! Este será usado nos cálculos.');
+    const funcionario = dataManager.obterFuncionarioPorId(id);
+    if (funcionario && funcionario.ativo) {
+        mostrarNotificacao('Funcionário adicionado aos cálculos!');
+    } else {
+        mostrarNotificacao('Funcionário removido dos cálculos!');
+    }
 }
 
 // ========== BACKUP E DADOS ==========
