@@ -21,7 +21,7 @@ function inicializarAplicacao() {
     carregarTabelaEspacos();
     carregarTabelaCustos();
     carregarExtrasConfig();
-    carregarCustosFuncionario();
+    carregarListaFuncionarios();
     configurarEventListeners();
     
     mostrarNotificacao('Sistema carregado com sucesso!');
@@ -55,6 +55,7 @@ function configurarNavegacaoAbas() {
                 carregarTabelaCustos();
             } else if (targetTab === 'config') {
                 carregarExtrasConfig();
+                carregarListaFuncionarios();
             }
         });
     });
@@ -220,15 +221,47 @@ function carregarExtrasConfig() {
 }
 
 /**
- * Carrega os custos do funcionário
+ * Carrega a lista de funcionários
  */
-function carregarCustosFuncionario() {
-    const custos = dataManager.obterCustosFuncionario();
+function carregarListaFuncionarios() {
+    const container = document.getElementById('funcionarios-list');
+    const funcionarios = dataManager.obterFuncionarios();
     
-    document.getElementById('func-normal').value = custos.horaNormal;
-    document.getElementById('func-he50').value = custos.he50;
-    document.getElementById('func-he100').value = custos.he100;
-    document.getElementById('func-vt').value = custos.valeTransporte;
+    container.innerHTML = '';
+    
+    if (funcionarios.length === 0) {
+        container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">Nenhum funcionário cadastrado.</p>';
+        return;
+    }
+    
+    funcionarios.forEach(func => {
+        const div = document.createElement('div');
+        div.className = 'funcionario-item';
+        div.style.cssText = 'padding: 15px; margin-bottom: 15px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid ' + (func.ativo ? '#10b981' : '#6b7280');
+        
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <strong style="font-size: 1.1em; color: #1e3c72;">${func.nome}</strong>
+                        ${func.ativo ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold;">ATIVO</span>' : ''}
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.9em; color: #6b7280;">
+                        <div>💵 Hora Normal: <strong>R$ ${formatarMoeda(func.horaNormal)}</strong></div>
+                        <div>📈 HE 50%: <strong>R$ ${formatarMoeda(func.he50)}</strong></div>
+                        <div>📊 HE 100%: <strong>R$ ${formatarMoeda(func.he100)}</strong></div>
+                        <div>🎫 Vale Transporte: <strong>R$ ${formatarMoeda(func.valeTransporte)}</strong></div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 5px; margin-left: 15px;">
+                    ${!func.ativo ? `<button class="btn-small btn-success" onclick="ativarFuncionario(${func.id})" title="Usar nos cálculos">✓</button>` : ''}
+                    <button class="btn-small btn-edit" onclick="editarFuncionario(${func.id})" title="Editar">✏️</button>
+                    ${funcionarios.length > 1 ? `<button class="btn-small btn-delete" onclick="removerFuncionario(${func.id})" title="Remover">🗑️</button>` : ''}
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
 }
 
 // ========== EVENT LISTENERS ==========
@@ -256,8 +289,8 @@ function configurarEventListeners() {
     // Configurações - Extras
     document.getElementById('adicionar-item').addEventListener('click', adicionarNovoExtra);
     
-    // Configurações - Funcionário
-    document.getElementById('salvar-funcionario').addEventListener('click', salvarCustosFuncionario);
+    // Configurações - Funcionários
+    document.getElementById('adicionar-funcionario').addEventListener('click', adicionarNovoFuncionario);
     
     // Configurações - Backup
     document.getElementById('exportar-dados').addEventListener('click', exportarDados);
@@ -673,30 +706,136 @@ function removerExtra(id) {
     mostrarNotificacao('Item extra removido com sucesso!');
 }
 
-// ========== CUSTOS DO FUNCIONÁRIO ==========
+// ========== GERENCIAMENTO DE FUNCIONÁRIOS ==========
 
 /**
- * Salva os custos do funcionário
+ * Adiciona um novo funcionário
  */
-function salvarCustosFuncionario() {
-    const horaNormal = parseFloat(document.getElementById('func-normal').value);
-    const he50 = parseFloat(document.getElementById('func-he50').value);
-    const he100 = parseFloat(document.getElementById('func-he100').value);
-    const valeTransporte = parseFloat(document.getElementById('func-vt').value);
+function adicionarNovoFuncionario() {
+    const nome = document.getElementById('novo-func-nome').value.trim();
+    const horaNormal = document.getElementById('novo-func-normal').value;
+    const he50 = document.getElementById('novo-func-he50').value;
+    const he100 = document.getElementById('novo-func-he100').value;
+    const valeTransporte = document.getElementById('novo-func-vt').value;
     
-    if (isNaN(horaNormal) || isNaN(he50) || isNaN(he100) || isNaN(valeTransporte)) {
-        alert('Por favor, insira valores válidos!');
+    if (!nome || !horaNormal || !he50 || !he100 || !valeTransporte) {
+        alert('Por favor, preencha todos os campos!');
         return;
     }
     
-    dataManager.atualizarCustosFuncionario({
-        horaNormal,
-        he50,
-        he100,
-        valeTransporte
+    // Validar valores numéricos
+    const horaNormalNum = parseFloat(horaNormal);
+    const he50Num = parseFloat(he50);
+    const he100Num = parseFloat(he100);
+    const valeTransporteNum = parseFloat(valeTransporte);
+    
+    if (isNaN(horaNormalNum) || isNaN(he50Num) || isNaN(he100Num) || isNaN(valeTransporteNum)) {
+        alert('Por favor, insira valores numéricos válidos!');
+        return;
+    }
+    
+    if (horaNormalNum < 0 || he50Num < 0 || he100Num < 0 || valeTransporteNum < 0) {
+        alert('Os valores não podem ser negativos!');
+        return;
+    }
+    
+    const novoFuncionario = {
+        nome,
+        horaNormal: horaNormalNum,
+        he50: he50Num,
+        he100: he100Num,
+        valeTransporte: valeTransporteNum
+    };
+    
+    dataManager.adicionarFuncionario(novoFuncionario);
+    
+    // Limpar campos
+    document.getElementById('novo-func-nome').value = '';
+    document.getElementById('novo-func-normal').value = '';
+    document.getElementById('novo-func-he50').value = '';
+    document.getElementById('novo-func-he100').value = '';
+    document.getElementById('novo-func-vt').value = '';
+    
+    // Atualizar interface
+    carregarListaFuncionarios();
+    
+    mostrarNotificacao('Funcionário adicionado com sucesso!');
+}
+
+/**
+ * Edita um funcionário existente
+ */
+function editarFuncionario(id) {
+    const func = dataManager.obterFuncionarioPorId(id);
+    if (!func) return;
+    
+    const nome = prompt('Nome do funcionário:', func.nome);
+    if (nome === null) return;
+    
+    const horaNormal = prompt('Hora Normal (R$/h):', func.horaNormal);
+    if (horaNormal === null) return;
+    
+    const he50 = prompt('HE 50% (R$/h):', func.he50);
+    if (he50 === null) return;
+    
+    const he100 = prompt('HE 100% (R$/h):', func.he100);
+    if (he100 === null) return;
+    
+    const valeTransporte = prompt('Vale Transporte (R$/dia):', func.valeTransporte);
+    if (valeTransporte === null) return;
+    
+    // Validar valores numéricos
+    const horaNormalNum = parseFloat(horaNormal);
+    const he50Num = parseFloat(he50);
+    const he100Num = parseFloat(he100);
+    const valeTransporteNum = parseFloat(valeTransporte);
+    
+    if (isNaN(horaNormalNum) || isNaN(he50Num) || isNaN(he100Num) || isNaN(valeTransporteNum)) {
+        alert('Por favor, insira valores numéricos válidos!');
+        return;
+    }
+    
+    if (horaNormalNum < 0 || he50Num < 0 || he100Num < 0 || valeTransporteNum < 0) {
+        alert('Os valores não podem ser negativos!');
+        return;
+    }
+    
+    dataManager.atualizarFuncionario(id, {
+        nome: nome.trim(),
+        horaNormal: horaNormalNum,
+        he50: he50Num,
+        he100: he100Num,
+        valeTransporte: valeTransporteNum
     });
     
-    mostrarNotificacao('Custos do funcionário atualizados!');
+    carregarListaFuncionarios();
+    
+    mostrarNotificacao('Funcionário atualizado com sucesso!');
+}
+
+/**
+ * Remove um funcionário
+ */
+function removerFuncionario(id) {
+    if (!confirm('Deseja realmente remover este funcionário?')) {
+        return;
+    }
+    
+    if (dataManager.removerFuncionario(id)) {
+        carregarListaFuncionarios();
+        mostrarNotificacao('Funcionário removido com sucesso!');
+    } else {
+        alert('Não é possível remover o único funcionário do sistema!');
+    }
+}
+
+/**
+ * Ativa um funcionário (define como usado nos cálculos)
+ */
+function ativarFuncionario(id) {
+    dataManager.definirFuncionarioAtivo(id);
+    carregarListaFuncionarios();
+    mostrarNotificacao('Funcionário ativado! Este será usado nos cálculos.');
 }
 
 // ========== BACKUP E DADOS ==========
@@ -734,7 +873,7 @@ function importarDados(event) {
             carregarTabelaEspacos();
             carregarTabelaCustos();
             carregarExtrasConfig();
-            carregarCustosFuncionario();
+            carregarListaFuncionarios();
             
             mostrarNotificacao('Dados importados com sucesso!');
         } else {
@@ -763,7 +902,7 @@ function resetarDados() {
     carregarTabelaEspacos();
     carregarTabelaCustos();
     carregarExtrasConfig();
-    carregarCustosFuncionario();
+    carregarListaFuncionarios();
     
     mostrarNotificacao('Dados restaurados para o padrão!');
 }

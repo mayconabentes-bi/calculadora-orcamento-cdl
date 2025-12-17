@@ -27,8 +27,23 @@ class DataManager {
             if (stored) {
                 const dados = JSON.parse(stored);
                 // Validar estrutura básica
-                if (dados.salas && dados.extras && dados.custosFuncionario) {
-                    return dados;
+                if (dados.salas && dados.extras) {
+                    // Migração de dados antigos: converter custosFuncionario para funcionarios
+                    if (dados.custosFuncionario && !dados.funcionarios) {
+                        dados.funcionarios = [{
+                            id: 1,
+                            nome: "Funcionário Padrão",
+                            horaNormal: dados.custosFuncionario.horaNormal,
+                            he50: dados.custosFuncionario.he50,
+                            he100: dados.custosFuncionario.he100,
+                            valeTransporte: dados.custosFuncionario.valeTransporte,
+                            ativo: true
+                        }];
+                        delete dados.custosFuncionario;
+                    }
+                    if (dados.funcionarios) {
+                        return dados;
+                    }
                 }
             }
         } catch (error) {
@@ -144,12 +159,17 @@ class DataManager {
                 { id: 4, nome: "Transmissão ao Vivo", custo: 120.00 },
                 { id: 5, nome: "Flip Chart Extra", custo: 5.00 }
             ],
-            custosFuncionario: {
-                horaNormal: 13.04,
-                he50: 19.56,
-                he100: 26.08,
-                valeTransporte: 12.00
-            },
+            funcionarios: [
+                {
+                    id: 1,
+                    nome: "Funcionário Padrão",
+                    horaNormal: 13.04,
+                    he50: 19.56,
+                    he100: 26.08,
+                    valeTransporte: 12.00,
+                    ativo: true
+                }
+            ],
             multiplicadoresTurno: {
                 manha: 1.00,
                 tarde: 1.15,
@@ -281,27 +301,139 @@ class DataManager {
         return false;
     }
 
-    // ========== MÉTODOS DE GESTÃO DE CUSTOS ==========
+    // ========== MÉTODOS DE GESTÃO DE FUNCIONÁRIOS ==========
 
     /**
-     * Obtém custos do funcionário
+     * Obtém todos os funcionários
      */
-    obterCustosFuncionario() {
-        return this.dados.custosFuncionario;
+    obterFuncionarios() {
+        return this.dados.funcionarios || [];
     }
 
     /**
-     * Atualiza custos do funcionário
+     * Obtém um funcionário por ID
+     */
+    obterFuncionarioPorId(id) {
+        return this.dados.funcionarios.find(func => func.id === parseInt(id));
+    }
+
+    /**
+     * Obtém o funcionário ativo (usado nos cálculos)
+     */
+    obterFuncionarioAtivo() {
+        const ativo = this.dados.funcionarios.find(func => func.ativo === true);
+        return ativo || this.dados.funcionarios[0] || null;
+    }
+
+    /**
+     * Adiciona um novo funcionário
+     */
+    adicionarFuncionario(funcionario) {
+        const novoId = Math.max(...this.dados.funcionarios.map(f => f.id), 0) + 1;
+        const novoFuncionario = {
+            id: novoId,
+            nome: funcionario.nome,
+            horaNormal: parseFloat(funcionario.horaNormal),
+            he50: parseFloat(funcionario.he50),
+            he100: parseFloat(funcionario.he100),
+            valeTransporte: parseFloat(funcionario.valeTransporte),
+            ativo: false
+        };
+        this.dados.funcionarios.push(novoFuncionario);
+        this.salvarDados();
+        return novoFuncionario;
+    }
+
+    /**
+     * Atualiza um funcionário existente
+     */
+    atualizarFuncionario(id, dadosAtualizados) {
+        const index = this.dados.funcionarios.findIndex(func => func.id === parseInt(id));
+        if (index !== -1) {
+            this.dados.funcionarios[index] = {
+                ...this.dados.funcionarios[index],
+                ...dadosAtualizados
+            };
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Define qual funcionário está ativo (usado nos cálculos)
+     */
+    definirFuncionarioAtivo(id) {
+        // Desativa todos
+        this.dados.funcionarios.forEach(func => func.ativo = false);
+        // Ativa o selecionado
+        const funcionario = this.obterFuncionarioPorId(id);
+        if (funcionario) {
+            funcionario.ativo = true;
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove um funcionário
+     */
+    removerFuncionario(id) {
+        const index = this.dados.funcionarios.findIndex(func => func.id === parseInt(id));
+        if (index !== -1) {
+            // Não permite remover se for o único funcionário
+            if (this.dados.funcionarios.length === 1) {
+                return false;
+            }
+            
+            const funcionario = this.dados.funcionarios[index];
+            this.dados.funcionarios.splice(index, 1);
+            
+            // Se o funcionário removido era o ativo, ativa o primeiro
+            if (funcionario.ativo && this.dados.funcionarios.length > 0) {
+                this.dados.funcionarios[0].ativo = true;
+            }
+            
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Obtém custos do funcionário (mantido para compatibilidade)
+     * @deprecated Use obterFuncionarioAtivo() ao invés
+     */
+    obterCustosFuncionario() {
+        const funcionarioAtivo = this.obterFuncionarioAtivo();
+        if (funcionarioAtivo) {
+            return {
+                horaNormal: funcionarioAtivo.horaNormal,
+                he50: funcionarioAtivo.he50,
+                he100: funcionarioAtivo.he100,
+                valeTransporte: funcionarioAtivo.valeTransporte
+            };
+        }
+        // Fallback para evitar erros
+        return {
+            horaNormal: 13.04,
+            he50: 19.56,
+            he100: 26.08,
+            valeTransporte: 12.00
+        };
+    }
+
+    /**
+     * Atualiza custos do funcionário (mantido para compatibilidade)
+     * @deprecated Use atualizarFuncionario() ao invés
      */
     atualizarCustosFuncionario(custos) {
-        this.dados.custosFuncionario = {
-            horaNormal: parseFloat(custos.horaNormal),
-            he50: parseFloat(custos.he50),
-            he100: parseFloat(custos.he100),
-            valeTransporte: parseFloat(custos.valeTransporte)
-        };
-        this.salvarDados();
-        return true;
+        const funcionarioAtivo = this.obterFuncionarioAtivo();
+        if (funcionarioAtivo) {
+            return this.atualizarFuncionario(funcionarioAtivo.id, custos);
+        }
+        return false;
     }
 
     /**
@@ -327,7 +459,23 @@ class DataManager {
         try {
             const dados = JSON.parse(jsonString);
             // Validar estrutura básica
-            if (!dados.salas || !dados.extras || !dados.custosFuncionario) {
+            if (!dados.salas || !dados.extras) {
+                throw new Error('Estrutura de dados inválida');
+            }
+            // Migração de dados antigos
+            if (dados.custosFuncionario && !dados.funcionarios) {
+                dados.funcionarios = [{
+                    id: 1,
+                    nome: "Funcionário Padrão",
+                    horaNormal: dados.custosFuncionario.horaNormal,
+                    he50: dados.custosFuncionario.he50,
+                    he100: dados.custosFuncionario.he100,
+                    valeTransporte: dados.custosFuncionario.valeTransporte,
+                    ativo: true
+                }];
+                delete dados.custosFuncionario;
+            }
+            if (!dados.funcionarios) {
                 throw new Error('Estrutura de dados inválida');
             }
             this.dados = dados;
