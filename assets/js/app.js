@@ -5,6 +5,8 @@
 
 // ========== VARIÁVEIS GLOBAIS ==========
 let ultimoCalculoRealizado = null;
+let horariosCount = 0;
+let horarios = [];
 
 // ========== INICIALIZAÇÃO ==========
 document.addEventListener('DOMContentLoaded', function() {
@@ -22,6 +24,7 @@ function inicializarAplicacao() {
     carregarTabelaCustos();
     carregarExtrasConfig();
     carregarListaFuncionarios();
+    inicializarHorarios();
     configurarEventListeners();
     
     mostrarNotificacao('Sistema carregado com sucesso!');
@@ -132,6 +135,134 @@ function carregarExtrasCheckboxes() {
         container.appendChild(div);
     });
 }
+
+// ========== GERENCIAMENTO DE HORÁRIOS ==========
+
+/**
+ * Inicializa o gerenciamento de horários múltiplos
+ */
+function inicializarHorarios() {
+    horarios = [];
+    horariosCount = 0;
+    adicionarNovoHorario('08:00', '17:00');
+}
+
+/**
+ * Adiciona um novo horário
+ */
+function adicionarNovoHorario(inicio = '08:00', fim = '17:00') {
+    const id = horariosCount++;
+    horarios.push({ id, inicio, fim });
+    renderizarHorarios();
+}
+
+/**
+ * Remove um horário
+ */
+function removerHorario(id) {
+    horarios = horarios.filter(h => h.id !== id);
+    renderizarHorarios();
+    if (horarios.length === 0) {
+        adicionarNovoHorario();
+    }
+}
+
+/**
+ * Atualiza um horário
+ */
+function atualizarHorario(id, campo, valor) {
+    const horario = horarios.find(h => h.id === id);
+    if (horario) {
+        horario[campo] = valor;
+    }
+}
+
+/**
+ * Renderiza a lista de horários
+ */
+function renderizarHorarios() {
+    const container = document.getElementById('horarios-container');
+    container.innerHTML = '';
+    
+    horarios.forEach((horario, index) => {
+        const div = document.createElement('div');
+        div.className = 'horario-item';
+        div.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: end;';
+        
+        div.innerHTML = `
+            <div class="form-group" style="flex: 1;">
+                <label for="horario-inicio-${horario.id}">Início ${index + 1}:</label>
+                <input type="time" 
+                       id="horario-inicio-${horario.id}" 
+                       class="form-control" 
+                       value="${horario.inicio}"
+                       onchange="atualizarHorario(${horario.id}, 'inicio', this.value)">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="horario-fim-${horario.id}">Fim ${index + 1}:</label>
+                <input type="time" 
+                       id="horario-fim-${horario.id}" 
+                       class="form-control" 
+                       value="${horario.fim}"
+                       onchange="atualizarHorario(${horario.id}, 'fim', this.value)">
+            </div>
+            ${horarios.length > 1 ? `
+                <button type="button" 
+                        class="btn-small btn-delete" 
+                        onclick="removerHorario(${horario.id})"
+                        style="margin-bottom: 0;">🗑️</button>
+            ` : ''}
+        `;
+        
+        container.appendChild(div);
+    });
+}
+
+/**
+ * Calcula o total de horas de todos os horários
+ */
+function calcularTotalHorasPorDia() {
+    let totalHoras = 0;
+    
+    for (const horario of horarios) {
+        const [horaInicio, minutoInicio] = horario.inicio.split(':').map(Number);
+        const [horaFim, minutoFim] = horario.fim.split(':').map(Number);
+        const minutosInicio = horaInicio * 60 + minutoInicio;
+        const minutosFim = horaFim * 60 + minutoFim;
+        
+        if (minutosInicio < minutosFim) {
+            totalHoras += (minutosFim - minutosInicio) / 60;
+        }
+    }
+    
+    return totalHoras;
+}
+
+/**
+ * Valida todos os horários
+ */
+function validarHorarios() {
+    for (const horario of horarios) {
+        const [horaInicio, minutoInicio] = horario.inicio.split(':').map(Number);
+        const [horaFim, minutoFim] = horario.fim.split(':').map(Number);
+        const minutosInicio = horaInicio * 60 + minutoInicio;
+        const minutosFim = horaFim * 60 + minutoFim;
+        
+        if (minutosInicio >= minutosFim) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Formata horários para exibição
+ */
+function formatarHorariosParaExibicao() {
+    return horarios.map((h, i) => `${h.inicio} às ${h.fim}`).join(', ');
+}
+
+// ========== FIM GERENCIAMENTO DE HORÁRIOS ==========
 
 /**
  * Carrega a tabela de espaços
@@ -295,6 +426,9 @@ function configurarEventListeners() {
     document.getElementById('margem').addEventListener('input', atualizarRangeValue);
     document.getElementById('desconto').addEventListener('input', atualizarRangeValue);
     
+    // Horários
+    document.getElementById('adicionar-horario').addEventListener('click', () => adicionarNovoHorario());
+    
     // Exportação e impressão
     document.getElementById('exportar-pdf-cliente').addEventListener('click', exportarPDFCliente);
     document.getElementById('exportar-pdf-super').addEventListener('click', exportarPDFSuperintendencia);
@@ -370,27 +504,14 @@ function calcularOrcamento() {
         return;
     }
     
-    // Coletar horários
-    const horarioInicio = document.getElementById('horario-inicio').value;
-    const horarioFim = document.getElementById('horario-fim').value;
-    
-    if (!horarioInicio || !horarioFim) {
-        alert('Por favor, informe os horários de início e fim!');
-        return;
-    }
-    
     // Validar horários
-    const [horaInicio, minutoInicio] = horarioInicio.split(':').map(Number);
-    const [horaFim, minutoFim] = horarioFim.split(':').map(Number);
-    const minutosInicio = horaInicio * 60 + minutoInicio;
-    const minutosFim = horaFim * 60 + minutoFim;
-    
-    if (minutosInicio >= minutosFim) {
-        alert('O horário de início deve ser anterior ao horário de fim!');
+    if (!validarHorarios()) {
+        alert('Verifique os horários! Cada horário de início deve ser anterior ao horário de fim.');
         return;
     }
     
-    const horasPorDia = (minutosFim - minutosInicio) / 60;
+    // Calcular total de horas por dia
+    const horasPorDia = calcularTotalHorasPorDia();
     
     // Calcular horas e custos
     const resultado = calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto);
@@ -401,8 +522,7 @@ function calcularOrcamento() {
         duracao,
         duracaoTipo,
         diasSelecionados,
-        horarioInicio,
-        horarioFim,
+        horarios: [...horarios],
         horasPorDia,
         margem,
         desconto,
@@ -1164,7 +1284,13 @@ function exportarPDFCliente() {
     doc.text(`Dias: ${diasSelecionadosTexto}`, 20, y);
     y += 6;
     
-    if (calculo.horarioInicio && calculo.horarioFim) {
+    if (calculo.horarios && calculo.horarios.length > 0) {
+        if (calculo.horarios.length === 1) {
+            doc.text(`Horário: ${calculo.horarios[0].inicio} às ${calculo.horarios[0].fim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
+        } else {
+            doc.text(`Horários: ${calculo.horarios.map(h => `${h.inicio}-${h.fim}`).join(', ')} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
+        }
+    } else if (calculo.horarioInicio && calculo.horarioFim) {
         doc.text(`Horário: ${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
     } else {
         const turnos = [];
@@ -1277,7 +1403,13 @@ function exportarPDFSuperintendencia() {
     doc.text(`Duração: ${calculo.duracao} ${calculo.duracaoTipo || 'meses'} | Dias: ${diasTexto} | Total de horas: ${resultado.horasTotais.toFixed(1)}h`, 20, y);
     y += 5;
     
-    if (calculo.horarioInicio && calculo.horarioFim) {
+    if (calculo.horarios && calculo.horarios.length > 0) {
+        if (calculo.horarios.length === 1) {
+            doc.text(`Horário: ${calculo.horarios[0].inicio} às ${calculo.horarios[0].fim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
+        } else {
+            doc.text(`Horários: ${calculo.horarios.map(h => `${h.inicio}-${h.fim}`).join(', ')} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
+        }
+    } else if (calculo.horarioInicio && calculo.horarioFim) {
         doc.text(`Horário: ${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
     } else if (calculo.turnos) {
         const turnos = [];
@@ -1442,7 +1574,13 @@ function imprimirOrcamento() {
         `${calculo.diasSemana || 0} dias/semana`;
     
     let horarioTexto = '';
-    if (calculo.horarioInicio && calculo.horarioFim) {
+    if (calculo.horarios && calculo.horarios.length > 0) {
+        if (calculo.horarios.length === 1) {
+            horarioTexto = `<tr><td>Horário:</td><td>${calculo.horarios[0].inicio} às ${calculo.horarios[0].fim} (${calculo.horasPorDia.toFixed(1)}h/dia)</td></tr>`;
+        } else {
+            horarioTexto = `<tr><td>Horários:</td><td>${calculo.horarios.map(h => `${h.inicio}-${h.fim}`).join(', ')} (${calculo.horasPorDia.toFixed(1)}h/dia)</td></tr>`;
+        }
+    } else if (calculo.horarioInicio && calculo.horarioFim) {
         horarioTexto = `<tr><td>Horário:</td><td>${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)</td></tr>`;
     } else if (calculo.turnos) {
         const turnos = [];
