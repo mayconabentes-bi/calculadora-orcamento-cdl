@@ -339,10 +339,23 @@ class DataManager {
 
     /**
      * Obtém o funcionário ativo (usado nos cálculos)
+     * @deprecated Use obterFuncionariosAtivos() para suportar múltiplos funcionários
      */
     obterFuncionarioAtivo() {
         const ativo = this.dados.funcionarios.find(func => func.ativo === true);
         return ativo || this.dados.funcionarios[0] || null;
+    }
+
+    /**
+     * Obtém todos os funcionários ativos (usados nos cálculos)
+     */
+    obterFuncionariosAtivos() {
+        const ativos = this.dados.funcionarios.filter(func => func.ativo === true);
+        // Se nenhum estiver ativo, retorna o primeiro como fallback
+        if (ativos.length === 0 && this.dados.funcionarios.length > 0) {
+            return [this.dados.funcionarios[0]];
+        }
+        return ativos;
     }
 
     /**
@@ -384,14 +397,25 @@ class DataManager {
 
     /**
      * Define qual funcionário está ativo (usado nos cálculos)
+     * Permite múltiplos funcionários ativos
      */
-    definirFuncionarioAtivo(id) {
-        // Desativa todos
-        this.dados.funcionarios.forEach(func => func.ativo = false);
-        // Ativa o selecionado
+    definirFuncionarioAtivo(id, ativo = true) {
         const funcionario = this.obterFuncionarioPorId(id);
         if (funcionario) {
-            funcionario.ativo = true;
+            funcionario.ativo = ativo;
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Alterna o estado ativo de um funcionário
+     */
+    alternarFuncionarioAtivo(id) {
+        const funcionario = this.obterFuncionarioPorId(id);
+        if (funcionario) {
+            funcionario.ativo = !funcionario.ativo;
             this.salvarDados();
             return true;
         }
@@ -424,30 +448,45 @@ class DataManager {
     }
 
     /**
-     * Obtém custos do funcionário (mantido para compatibilidade)
-     * @deprecated Use obterFuncionarioAtivo() ao invés
+     * Obtém custos agregados de todos os funcionários ativos
+     * @deprecated Use obterFuncionariosAtivos() ao invés
      */
     obterCustosFuncionario() {
-        const funcionarioAtivo = this.obterFuncionarioAtivo();
-        if (funcionarioAtivo) {
+        const funcionariosAtivos = this.obterFuncionariosAtivos();
+        if (funcionariosAtivos.length === 0) {
+            // Fallback para evitar erros
             return {
-                horaNormal: funcionarioAtivo.horaNormal,
-                he50: funcionarioAtivo.he50,
-                he100: funcionarioAtivo.he100,
-                valeTransporte: funcionarioAtivo.valeTransporte,
-                transporteApp: funcionarioAtivo.transporteApp || 0,
-                refeicao: funcionarioAtivo.refeicao || 0
+                horaNormal: 13.04,
+                he50: 19.56,
+                he100: 26.08,
+                valeTransporte: 12.00,
+                transporteApp: 0.00,
+                refeicao: 0.00,
+                quantidadeFuncionarios: 1
             };
         }
-        // Fallback para evitar erros
-        return {
-            horaNormal: 13.04,
-            he50: 19.56,
-            he100: 26.08,
-            valeTransporte: 12.00,
-            transporteApp: 0.00,
-            refeicao: 0.00
-        };
+        
+        // Soma os custos de todos os funcionários ativos
+        const custosAgregados = funcionariosAtivos.reduce((total, func) => ({
+            horaNormal: total.horaNormal + func.horaNormal,
+            he50: total.he50 + func.he50,
+            he100: total.he100 + func.he100,
+            valeTransporte: total.valeTransporte + func.valeTransporte,
+            transporteApp: total.transporteApp + (func.transporteApp || 0),
+            refeicao: total.refeicao + (func.refeicao || 0)
+        }), {
+            horaNormal: 0,
+            he50: 0,
+            he100: 0,
+            valeTransporte: 0,
+            transporteApp: 0,
+            refeicao: 0
+        });
+        
+        // Adiciona a quantidade de funcionários
+        custosAgregados.quantidadeFuncionarios = funcionariosAtivos.length;
+        
+        return custosAgregados;
     }
 
     /**
