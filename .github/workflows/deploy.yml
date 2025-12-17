@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - copilot/create-project-structure
   workflow_dispatch:
 
 permissions:
