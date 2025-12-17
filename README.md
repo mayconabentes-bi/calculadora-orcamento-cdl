@@ -8,6 +8,12 @@ Sistema profissional de cálculo de orçamentos para locação de espaços da CD
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
 
+## 🌐 Acesso Online
+
+**🔗 Acesse o sistema:** [https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)
+
+O sistema está hospedado no GitHub Pages e pode ser acessado diretamente pelo navegador, sem necessidade de instalação.
+
 ## 📋 Sobre o Projeto
 
 Sistema web completo para calcular orçamentos de locação de espaços, considerando múltiplos fatores como:
@@ -79,7 +85,14 @@ calculadora-orcamento-cdl/
 
 ## 📦 Instalação e Uso
 
-### Opção 1: Usar Diretamente (Recomendado)
+### 🌐 Opção 1: Acesso Online (Mais Rápido)
+
+**Simplesmente acesse o link:**
+👉 **[https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)**
+
+O sistema está hospedado no GitHub Pages e funciona diretamente no navegador!
+
+### 💻 Opção 2: Uso Local
 
 1. **Clone o repositório**:
 ```bash
@@ -103,13 +116,17 @@ npx http-server -p 8000
 
 3. **Acesse**: http://localhost:8000
 
-### Opção 2: Deploy em Produção
+### 🚀 Opção 3: Deploy Próprio
 
-#### GitHub Pages
-```bash
-# Já está pronto! Apenas ative nas configurações
-Settings → Pages → Source: main branch
-```
+#### GitHub Pages (Já Configurado)
+O sistema já está configurado com GitHub Actions para deploy automático! 
+
+**Acesso atual**: [https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)
+
+Para seu próprio fork:
+1. Vá em Settings → Pages
+2. Source: GitHub Actions
+3. O workflow `.github/workflows/deploy.yml` fará o deploy automaticamente
 
 #### Netlify
 ```bash
