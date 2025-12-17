@@ -50,33 +50,61 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="duracao">Duração do Contrato (meses):</label>
-                        <input type="number" id="duracao" class="form-control" min="1" max="24" value="6">
+                        <label for="duracao">Duração do Contrato:</label>
+                        <div class="input-group">
+                            <input type="number" id="duracao" class="form-control" min="1" max="730" value="6">
+                            <select id="duracao-tipo" class="form-control">
+                                <option value="meses">Meses</option>
+                                <option value="dias">Dias</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="dias">Dias por Semana:</label>
-                        <select id="dias" class="form-control">
-                            <option value="1">1 dia (Sábado)</option>
-                            <option value="2">2 dias (Sábado e Domingo)</option>
-                            <option value="5">5 dias (Segunda a Sexta)</option>
-                            <option value="7">7 dias (Todos os dias)</option>
-                        </select>
+                        <label>Dias da Semana:</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-seg" value="1">
+                                <label for="dia-seg">Segunda-feira</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-ter" value="2">
+                                <label for="dia-ter">Terça-feira</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-qua" value="3">
+                                <label for="dia-qua">Quarta-feira</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-qui" value="4">
+                                <label for="dia-qui">Quinta-feira</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-sex" value="5">
+                                <label for="dia-sex">Sexta-feira</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-sab" value="6">
+                                <label for="dia-sab">🌟 Sábado (HE 50%)</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-dom" value="0">
+                                <label for="dia-dom">🌟 Domingo (HE 100%)</label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label>Horários de Uso:</label>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="manha" checked>
-                            <label for="manha">☀️ Manhã (8h às 12h - 4 horas)</label>
-                        </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="tarde" checked>
-                            <label for="tarde">🌤️ Tarde (13h às 17h - 4 horas)</label>
-                        </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="noite">
-                            <label for="noite">🌙 Noite (18h às 22h - 4 horas)</label>
+                        <div class="input-group">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="horario-inicio">Início:</label>
+                                <input type="time" id="horario-inicio" class="form-control" value="08:00">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="horario-fim">Fim:</label>
+                                <input type="time" id="horario-fim" class="form-control" value="17:00">
+                            </div>
                         </div>
                     </div>
 
@@ -138,10 +166,17 @@
                             <span>Custo Operacional Base</span>
                             <span>R$ <span id="custo-base">0,00</span></span>
                         </div>
-                        <div class="breakdown-item" id="funcionarios-info-line" style="display:none; background: #e0f2fe; font-weight: bold; color: #0284c7;">
-                            <span>👥 Funcionários Selecionados: <span id="quantidade-funcionarios">0</span></span>
-                            <span>Total: R$ <span id="total-custos-funcionarios">0,00</span></span>
+                        
+                        <!-- Detalhamento de Funcionários -->
+                        <div id="funcionarios-detalhamento" style="display:none; margin: 15px 0; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0284c7;">
+                            <h4 style="margin: 0 0 10px 0; color: #0284c7; font-size: 1em;">👥 Funcionários Selecionados: <span id="quantidade-funcionarios">0</span></h4>
+                            <div id="funcionarios-detalhamento-lista" style="font-size: 0.9em;"></div>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #0284c7; font-weight: bold; color: #0284c7;">
+                                <span>Total Consolidado:</span>
+                                <span style="float: right;">R$ <span id="total-custos-funcionarios">0,00</span></span>
+                            </div>
                         </div>
+                        
                         <div class="breakdown-item">
                             <span>Mão de Obra - Horas Normais</span>
                             <span>R$ <span id="mao-obra-normal">0,00</span></span>
@@ -284,6 +319,11 @@
                         <div class="form-group">
                             <label>Nome do Funcionário:</label>
                             <input type="text" id="novo-func-nome" class="form-control" placeholder="Ex: João Silva" style="margin-bottom: 10px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Data da Escala (opcional):</label>
+                            <input type="date" id="novo-func-data-escala" class="form-control" style="margin-bottom: 10px;">
+                            <small style="color: #6b7280; font-size: 0.85em;">Se não informada, será aplicado ao período completo do contrato</small>
                         </div>
                         <div class="input-group">
                             <div class="form-group">

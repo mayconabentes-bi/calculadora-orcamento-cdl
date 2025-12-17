@@ -249,6 +249,9 @@ function carregarListaFuncionarios() {
         div.className = 'funcionario-item';
         div.style.cssText = 'padding: 15px; margin-bottom: 15px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid ' + (func.ativo ? '#10b981' : '#6b7280');
         
+        const dataEscalaInfo = func.dataEscala ? 
+            `<div style="grid-column: span 2; padding: 5px 0; border-top: 1px solid #d1d5db; margin-top: 5px; color: #0284c7;">📅 Data da Escala: <strong>${new Date(func.dataEscala + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></div>` : '';
+        
         div.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div style="flex: 1;">
@@ -268,6 +271,7 @@ function carregarListaFuncionarios() {
                         <div>🎫 Vale Transporte: <strong>R$ ${formatarMoeda(func.valeTransporte)}</strong></div>
                         <div>🚗 Transporte App: <strong>R$ ${formatarMoeda(func.transporteApp || 0)}</strong></div>
                         <div>🍽️ Refeição: <strong>R$ ${formatarMoeda(func.refeicao || 0)}</strong></div>
+                        ${dataEscalaInfo}
                     </div>
                 </div>
                 <div style="display: flex; gap: 5px; margin-left: 15px;">
@@ -335,7 +339,7 @@ function calcularOrcamento() {
     // Coletar dados do formulário
     const salaId = document.getElementById('espaco').value;
     const duracao = parseInt(document.getElementById('duracao').value);
-    const diasSemana = parseInt(document.getElementById('dias').value);
+    const duracaoTipo = document.getElementById('duracao-tipo').value;
     const margem = parseFloat(document.getElementById('margem').value) / 100;
     const desconto = parseFloat(document.getElementById('desconto').value) / 100;
     
@@ -351,25 +355,55 @@ function calcularOrcamento() {
         return;
     }
     
-    // Verificar turnos selecionados
-    const manha = document.getElementById('manha').checked;
-    const tarde = document.getElementById('tarde').checked;
-    const noite = document.getElementById('noite').checked;
+    // Coletar dias da semana selecionados
+    const diasSelecionados = [];
+    const diasIds = ['dia-seg', 'dia-ter', 'dia-qua', 'dia-qui', 'dia-sex', 'dia-sab', 'dia-dom'];
+    diasIds.forEach(id => {
+        const checkbox = document.getElementById(id);
+        if (checkbox && checkbox.checked) {
+            diasSelecionados.push(parseInt(checkbox.value));
+        }
+    });
     
-    if (!manha && !tarde && !noite) {
-        alert('Por favor, selecione pelo menos um turno!');
+    if (diasSelecionados.length === 0) {
+        alert('Por favor, selecione pelo menos um dia da semana!');
         return;
     }
     
+    // Coletar horários
+    const horarioInicio = document.getElementById('horario-inicio').value;
+    const horarioFim = document.getElementById('horario-fim').value;
+    
+    if (!horarioInicio || !horarioFim) {
+        alert('Por favor, informe os horários de início e fim!');
+        return;
+    }
+    
+    // Validar horários
+    const [horaInicio, minutoInicio] = horarioInicio.split(':').map(Number);
+    const [horaFim, minutoFim] = horarioFim.split(':').map(Number);
+    const minutosInicio = horaInicio * 60 + minutoInicio;
+    const minutosFim = horaFim * 60 + minutoFim;
+    
+    if (minutosInicio >= minutosFim) {
+        alert('O horário de início deve ser anterior ao horário de fim!');
+        return;
+    }
+    
+    const horasPorDia = (minutosFim - minutosInicio) / 60;
+    
     // Calcular horas e custos
-    const resultado = calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem, desconto);
+    const resultado = calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto);
     
     // Armazenar para exportação
     ultimoCalculoRealizado = {
         sala,
         duracao,
-        diasSemana,
-        turnos: { manha, tarde, noite },
+        duracaoTipo,
+        diasSelecionados,
+        horarioInicio,
+        horarioFim,
+        horasPorDia,
         margem,
         desconto,
         resultado,
@@ -385,59 +419,106 @@ function calcularOrcamento() {
 /**
  * Realiza todos os cálculos do orçamento
  */
-function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem, desconto) {
-    const custos = dataManager.obterCustosFuncionario();
+function calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto) {
+    const funcionariosAtivos = dataManager.obterFuncionariosAtivos();
     const multiplicadores = dataManager.obterMultiplicadoresTurno();
     
-    // Calcular total de horas por mês
-    const horasPorDia = (manha ? 4 : 0) + (tarde ? 4 : 0) + (noite ? 4 : 0);
-    const diasPorMes = diasSemana * 4; // Aproximadamente 4 semanas por mês
-    const horasPorMes = horasPorDia * diasPorMes;
-    const horasTotais = horasPorMes * duracao;
-    
-    // Calcular custo operacional base (considerando multiplicadores de turno)
-    let custoOperacionalBase = 0;
-    if (manha) custoOperacionalBase += sala.custoBase * multiplicadores.manha * 4 * diasPorMes * duracao;
-    if (tarde) custoOperacionalBase += sala.custoBase * multiplicadores.tarde * 4 * diasPorMes * duracao;
-    if (noite) custoOperacionalBase += sala.custoBase * multiplicadores.noite * 4 * diasPorMes * duracao;
-    
-    // Calcular mão de obra
-    // Distribuição de horas por tipo baseada nos dias da semana
-    let horasNormais = 0;
-    let horasHE50 = 0; // Sábado
-    let horasHE100 = 0; // Domingo
-    
-    if (diasSemana === 1) {
-        // 1 dia (sábado)
-        horasHE50 = horasTotais;
-    } else if (diasSemana === 2) {
-        // 2 dias (sábado e domingo)
-        horasHE50 = horasTotais / 2;
-        horasHE100 = horasTotais / 2;
-    } else if (diasSemana === 5) {
-        // 5 dias (segunda a sexta)
-        horasNormais = horasTotais;
-    } else if (diasSemana === 7) {
-        // 7 dias
-        horasNormais = horasTotais * (5/7);
-        horasHE50 = horasTotais * (1/7);
-        horasHE100 = horasTotais * (1/7);
+    // Converter duração para dias
+    let duracaoEmDias = duracao;
+    if (duracaoTipo === 'meses') {
+        duracaoEmDias = duracao * 30; // Aproximadamente 30 dias por mês
     }
     
-    const custoMaoObraNormal = horasNormais * custos.horaNormal;
-    const custoMaoObraHE50 = horasHE50 * custos.he50;
-    const custoMaoObraHE100 = horasHE100 * custos.he100;
+    // Calcular total de dias trabalhados
+    const semanas = Math.floor(duracaoEmDias / 7);
+    const diasRestantes = duracaoEmDias % 7;
+    
+    let diasTrabalhadosPorTipo = {
+        normais: 0,  // Segunda a Sexta
+        sabado: 0,
+        domingo: 0
+    };
+    
+    // Contar dias por tipo nas semanas completas
+    diasSelecionados.forEach(dia => {
+        if (dia === 6) {
+            diasTrabalhadosPorTipo.sabado += semanas;
+        } else if (dia === 0) {
+            diasTrabalhadosPorTipo.domingo += semanas;
+        } else {
+            diasTrabalhadosPorTipo.normais += semanas;
+        }
+    });
+    
+    // Adicionar dias restantes (proporcional)
+    if (diasRestantes > 0) {
+        diasSelecionados.forEach(dia => {
+            const proporcao = diasRestantes / 7;
+            if (dia === 6) {
+                diasTrabalhadosPorTipo.sabado += proporcao;
+            } else if (dia === 0) {
+                diasTrabalhadosPorTipo.domingo += proporcao;
+            } else {
+                diasTrabalhadosPorTipo.normais += proporcao;
+            }
+        });
+    }
+    
+    const diasTotais = diasTrabalhadosPorTipo.normais + diasTrabalhadosPorTipo.sabado + diasTrabalhadosPorTipo.domingo;
+    
+    // Calcular horas por tipo
+    const horasNormais = diasTrabalhadosPorTipo.normais * horasPorDia;
+    const horasHE50 = diasTrabalhadosPorTipo.sabado * horasPorDia; // Sábado - HE 50%
+    const horasHE100 = diasTrabalhadosPorTipo.domingo * horasPorDia; // Domingo - HE 100%
+    const horasTotais = horasNormais + horasHE50 + horasHE100;
+    
+    // Calcular custo operacional base (usa média dos multiplicadores de turno)
+    const multiplicadorMedio = (multiplicadores.manha + multiplicadores.tarde + multiplicadores.noite) / 3;
+    const custoOperacionalBase = sala.custoBase * multiplicadorMedio * horasTotais;
+    
+    // Calcular custos de mão de obra para cada funcionário
+    const detalhamentoFuncionarios = [];
+    let custoMaoObraNormal = 0;
+    let custoMaoObraHE50 = 0;
+    let custoMaoObraHE100 = 0;
+    let custoValeTransporte = 0;
+    let custoTransporteApp = 0;
+    let custoRefeicao = 0;
+    
+    funcionariosAtivos.forEach(func => {
+        const custoFuncNormal = horasNormais * func.horaNormal;
+        const custoFuncHE50 = horasHE50 * func.he50;
+        const custoFuncHE100 = horasHE100 * func.he100;
+        const custoFuncVT = diasTotais * func.valeTransporte;
+        const custoFuncTransApp = diasTotais * (func.transporteApp || 0);
+        const custoFuncRefeicao = diasTotais * (func.refeicao || 0);
+        
+        const custoFuncTotal = custoFuncNormal + custoFuncHE50 + custoFuncHE100 + 
+                               custoFuncVT + custoFuncTransApp + custoFuncRefeicao;
+        
+        detalhamentoFuncionarios.push({
+            nome: func.nome,
+            horasNormais: horasNormais,
+            horasHE50: horasHE50,
+            horasHE100: horasHE100,
+            custoNormal: custoFuncNormal,
+            custoHE50: custoFuncHE50,
+            custoHE100: custoFuncHE100,
+            custoVT: custoFuncVT,
+            custoTransApp: custoFuncTransApp,
+            custoRefeicao: custoFuncRefeicao,
+            custoTotal: custoFuncTotal
+        });
+        
+        custoMaoObraNormal += custoFuncNormal;
+        custoMaoObraHE50 += custoFuncHE50;
+        custoMaoObraHE100 += custoFuncHE100;
+        custoValeTransporte += custoFuncVT;
+        custoTransporteApp += custoFuncTransApp;
+        custoRefeicao += custoFuncRefeicao;
+    });
+    
     const custoMaoObraTotal = custoMaoObraNormal + custoMaoObraHE50 + custoMaoObraHE100;
-    
-    // Calcular vale transporte (por dia trabalhado)
-    const diasTotais = diasPorMes * duracao;
-    const custoValeTransporte = diasTotais * custos.valeTransporte;
-    
-    // Calcular transporte por aplicativo (por dia trabalhado)
-    const custoTransporteApp = diasTotais * (custos.transporteApp || 0);
-    
-    // Calcular refeição (por dia trabalhado)
-    const custoRefeicao = diasTotais * (custos.refeicao || 0);
     
     // Calcular itens extras
     let custoExtras = 0;
@@ -471,8 +552,10 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
     
     return {
         horasTotais,
-        horasPorMes,
-        diasPorMes,
+        horasNormais,
+        horasHE50,
+        horasHE100,
+        diasTotais,
         custoOperacionalBase,
         custoMaoObraNormal,
         custoMaoObraHE50,
@@ -491,8 +574,9 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
         economia,
         margemPercent: margem * 100,
         descontoPercent: desconto * 100,
-        quantidadeFuncionarios: custos.quantidadeFuncionarios || 1,
-        totalCustosFuncionarios
+        quantidadeFuncionarios: funcionariosAtivos.length,
+        totalCustosFuncionarios,
+        detalhamentoFuncionarios
     };
 }
 
@@ -512,13 +596,39 @@ function exibirResultados(resultado) {
     // Detalhamento
     document.getElementById('custo-base').textContent = formatarMoeda(resultado.custoOperacionalBase);
     
-    // Informações dos funcionários
-    if (resultado.quantidadeFuncionarios > 0) {
-        document.getElementById('funcionarios-info-line').style.display = 'flex';
+    // Informações dos funcionários - Detalhamento completo
+    if (resultado.quantidadeFuncionarios > 0 && resultado.detalhamentoFuncionarios) {
+        document.getElementById('funcionarios-detalhamento').style.display = 'block';
         document.getElementById('quantidade-funcionarios').textContent = resultado.quantidadeFuncionarios;
         document.getElementById('total-custos-funcionarios').textContent = formatarMoeda(resultado.totalCustosFuncionarios);
+        
+        const listaDetalhamento = document.getElementById('funcionarios-detalhamento-lista');
+        listaDetalhamento.innerHTML = '';
+        
+        resultado.detalhamentoFuncionarios.forEach(func => {
+            const divFunc = document.createElement('div');
+            divFunc.style.cssText = 'padding: 10px; margin-bottom: 10px; background: white; border-radius: 6px; border-left: 3px solid #0ea5e9;';
+            divFunc.innerHTML = `
+                <div style="font-weight: bold; color: #0c4a6e; margin-bottom: 5px;">${func.nome}</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; font-size: 0.85em; color: #6b7280;">
+                    <div>⏰ Horas Normais: <strong>${func.horasNormais.toFixed(1)}h</strong></div>
+                    <div>💵 Custo: <strong>R$ ${formatarMoeda(func.custoNormal)}</strong></div>
+                    <div>📈 HE 50%: <strong>${func.horasHE50.toFixed(1)}h</strong></div>
+                    <div>💵 Custo: <strong>R$ ${formatarMoeda(func.custoHE50)}</strong></div>
+                    <div>📊 HE 100%: <strong>${func.horasHE100.toFixed(1)}h</strong></div>
+                    <div>💵 Custo: <strong>R$ ${formatarMoeda(func.custoHE100)}</strong></div>
+                    <div>🎫 Vale Transp.: <strong>R$ ${formatarMoeda(func.custoVT)}</strong></div>
+                    ${func.custoTransApp > 0 ? `<div>🚗 Transp. App: <strong>R$ ${formatarMoeda(func.custoTransApp)}</strong></div>` : ''}
+                    ${func.custoRefeicao > 0 ? `<div>🍽️ Refeição: <strong>R$ ${formatarMoeda(func.custoRefeicao)}</strong></div>` : ''}
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-weight: bold; color: #0284c7;">
+                    Total do Funcionário: R$ ${formatarMoeda(func.custoTotal)}
+                </div>
+            `;
+            listaDetalhamento.appendChild(divFunc);
+        });
     } else {
-        document.getElementById('funcionarios-info-line').style.display = 'none';
+        document.getElementById('funcionarios-detalhamento').style.display = 'none';
     }
     
     document.getElementById('mao-obra-normal').textContent = formatarMoeda(resultado.custoMaoObraNormal);
@@ -774,6 +884,7 @@ function adicionarNovoFuncionario() {
     const valeTransporte = document.getElementById('novo-func-vt').value;
     const transporteApp = document.getElementById('novo-func-transporte-app').value || '0';
     const refeicao = document.getElementById('novo-func-refeicao').value || '0';
+    const dataEscala = document.getElementById('novo-func-data-escala').value || null;
     
     if (!nome || !horaNormal || !he50 || !he100 || !valeTransporte) {
         alert('Por favor, preencha todos os campos obrigatórios!');
@@ -805,7 +916,8 @@ function adicionarNovoFuncionario() {
         he100: he100Num,
         valeTransporte: valeTransporteNum,
         transporteApp: transporteAppNum,
-        refeicao: refeicaoNum
+        refeicao: refeicaoNum,
+        dataEscala: dataEscala
     };
     
     dataManager.adicionarFuncionario(novoFuncionario);
@@ -818,6 +930,7 @@ function adicionarNovoFuncionario() {
     document.getElementById('novo-func-vt').value = '';
     document.getElementById('novo-func-transporte-app').value = '';
     document.getElementById('novo-func-refeicao').value = '';
+    document.getElementById('novo-func-data-escala').value = '';
     
     // Atualizar interface
     carregarListaFuncionarios();
@@ -1041,18 +1154,27 @@ function exportarPDFCliente() {
     y += 8;
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Duração: ${calculo.duracao} meses`, 20, y);
-    y += 6;
-    doc.text(`Dias por semana: ${calculo.diasSemana}`, 20, y);
+    doc.text(`Duração: ${calculo.duracao} ${calculo.duracaoTipo || 'meses'}`, 20, y);
     y += 6;
     
-    const turnos = [];
-    if (calculo.turnos.manha) turnos.push('Manhã');
-    if (calculo.turnos.tarde) turnos.push('Tarde');
-    if (calculo.turnos.noite) turnos.push('Noite');
-    doc.text(`Turnos: ${turnos.join(', ')}`, 20, y);
+    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const diasSelecionadosTexto = calculo.diasSelecionados ? 
+        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
+        `${calculo.diasSemana || 0} dias/semana`;
+    doc.text(`Dias: ${diasSelecionadosTexto}`, 20, y);
     y += 6;
-    doc.text(`Total de horas: ${resultado.horasTotais}h`, 20, y);
+    
+    if (calculo.horarioInicio && calculo.horarioFim) {
+        doc.text(`Horário: ${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
+    } else {
+        const turnos = [];
+        if (calculo.turnos && calculo.turnos.manha) turnos.push('Manhã');
+        if (calculo.turnos && calculo.turnos.tarde) turnos.push('Tarde');
+        if (calculo.turnos && calculo.turnos.noite) turnos.push('Noite');
+        doc.text(`Turnos: ${turnos.join(', ')}`, 20, y);
+    }
+    y += 6;
+    doc.text(`Total de horas: ${resultado.horasTotais.toFixed(1)}h`, 20, y);
     
     // Valores
     y += 12;
@@ -1146,13 +1268,24 @@ function exportarPDFSuperintendencia() {
     y += 7;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
-    doc.text(`Duração: ${calculo.duracao} meses | Dias/semana: ${calculo.diasSemana} | Total de horas: ${resultado.horasTotais}h`, 20, y);
+    
+    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const diasTexto = calculo.diasSelecionados ? 
+        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
+        `${calculo.diasSemana || 0} dias/semana`;
+    
+    doc.text(`Duração: ${calculo.duracao} ${calculo.duracaoTipo || 'meses'} | Dias: ${diasTexto} | Total de horas: ${resultado.horasTotais.toFixed(1)}h`, 20, y);
     y += 5;
-    const turnos = [];
-    if (calculo.turnos.manha) turnos.push('Manhã');
-    if (calculo.turnos.tarde) turnos.push('Tarde');
-    if (calculo.turnos.noite) turnos.push('Noite');
-    doc.text(`Turnos utilizados: ${turnos.join(', ')}`, 20, y);
+    
+    if (calculo.horarioInicio && calculo.horarioFim) {
+        doc.text(`Horário: ${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
+    } else if (calculo.turnos) {
+        const turnos = [];
+        if (calculo.turnos.manha) turnos.push('Manhã');
+        if (calculo.turnos.tarde) turnos.push('Tarde');
+        if (calculo.turnos.noite) turnos.push('Noite');
+        doc.text(`Turnos utilizados: ${turnos.join(', ')}`, 20, y);
+    }
     y += 5;
     doc.text(`Margem de lucro: ${resultado.margemPercent.toFixed(0)}% | Desconto: ${resultado.descontoPercent.toFixed(0)}%`, 20, y);
     
@@ -1303,10 +1436,21 @@ function imprimirOrcamento() {
     const sala = calculo.sala;
     const resultado = calculo.resultado;
     
-    const turnos = [];
-    if (calculo.turnos.manha) turnos.push('Manhã');
-    if (calculo.turnos.tarde) turnos.push('Tarde');
-    if (calculo.turnos.noite) turnos.push('Noite');
+    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const diasSelecionadosTexto = calculo.diasSelecionados ? 
+        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
+        `${calculo.diasSemana || 0} dias/semana`;
+    
+    let horarioTexto = '';
+    if (calculo.horarioInicio && calculo.horarioFim) {
+        horarioTexto = `<tr><td>Horário:</td><td>${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)</td></tr>`;
+    } else if (calculo.turnos) {
+        const turnos = [];
+        if (calculo.turnos.manha) turnos.push('Manhã');
+        if (calculo.turnos.tarde) turnos.push('Tarde');
+        if (calculo.turnos.noite) turnos.push('Noite');
+        horarioTexto = `<tr><td>Turnos:</td><td>${turnos.join(', ')}</td></tr>`;
+    }
     
     printSection.innerHTML = `
         <div class="pdf-content">
@@ -1327,10 +1471,10 @@ function imprimirOrcamento() {
             <div class="pdf-section">
                 <h2>📋 Detalhes do Contrato</h2>
                 <table class="pdf-table">
-                    <tr><td>Duração:</td><td>${calculo.duracao} meses</td></tr>
-                    <tr><td>Dias por semana:</td><td>${calculo.diasSemana}</td></tr>
-                    <tr><td>Turnos:</td><td>${turnos.join(', ')}</td></tr>
-                    <tr><td>Total de horas:</td><td>${resultado.horasTotais}h</td></tr>
+                    <tr><td>Duração:</td><td>${calculo.duracao} ${calculo.duracaoTipo || 'meses'}</td></tr>
+                    <tr><td>Dias:</td><td>${diasSelecionadosTexto}</td></tr>
+                    ${horarioTexto}
+                    <tr><td>Total de horas:</td><td>${resultado.horasTotais.toFixed(1)}h</td></tr>
                 </table>
             </div>
             

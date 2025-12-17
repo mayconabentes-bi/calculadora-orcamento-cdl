@@ -77,7 +77,8 @@ class DataManager {
             dados.funcionarios = dados.funcionarios.map(func => ({
                 ...func,
                 transporteApp: func.transporteApp !== undefined ? func.transporteApp : 0.00,
-                refeicao: func.refeicao !== undefined ? func.refeicao : 0.00
+                refeicao: func.refeicao !== undefined ? func.refeicao : 0.00,
+                dataEscala: func.dataEscala !== undefined ? func.dataEscala : null
             }));
         }
         return dados;
@@ -187,7 +188,8 @@ class DataManager {
                     valeTransporte: 12.00,
                     transporteApp: 0.00,
                     refeicao: 0.00,
-                    ativo: true
+                    ativo: true,
+                    dataEscala: null
                 }
             ],
             multiplicadoresTurno: {
@@ -372,7 +374,8 @@ class DataManager {
             valeTransporte: parseFloat(funcionario.valeTransporte),
             transporteApp: parseFloat(funcionario.transporteApp || 0),
             refeicao: parseFloat(funcionario.refeicao || 0),
-            ativo: false
+            ativo: false,
+            dataEscala: funcionario.dataEscala || null
         };
         this.dados.funcionarios.push(novoFuncionario);
         this.salvarDados();
