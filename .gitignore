@@ -1,0 +1,36 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.bak
+*~
+
+# Node (futuro)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build (futuro)
+dist/
+build/
+
+# Environment
+.env
+.env.local

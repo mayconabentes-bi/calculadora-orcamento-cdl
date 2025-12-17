@@ -1,0 +1,122 @@
+{
+  "salas": [
+    {
+      "id": 1,
+      "nome": "Auditório",
+      "unidade": "DJLM",
+      "capacidade": 120,
+      "area": 108,
+      "custoBase": 132.72
+    },
+    {
+      "id": 2,
+      "nome": "Auditório",
+      "unidade": "UTV",
+      "capacidade": 70,
+      "area": 63,
+      "custoBase": 77.6
+    },
+    {
+      "id": 3,
+      "nome": "Sala 2",
+      "unidade": "UTV",
+      "capacidade": 30,
+      "area": 27,
+      "custoBase": 35.69
+    },
+    {
+      "id": 4,
+      "nome": "Sala 3",
+      "unidade": "UTV",
+      "capacidade": 50,
+      "area": 45,
+      "custoBase": 55.19
+    },
+    {
+      "id": 5,
+      "nome": "Sala 4",
+      "unidade": "UTV",
+      "capacidade": 40,
+      "area": 36,
+      "custoBase": 43.92
+    },
+    {
+      "id": 6,
+      "nome": "Sala 7",
+      "unidade": "UTV",
+      "capacidade": 26,
+      "area": 25,
+      "custoBase": 29.53
+    },
+    {
+      "id": 7,
+      "nome": "Sala 8",
+      "unidade": "UTV",
+      "capacidade": 16,
+      "area": 14.4,
+      "custoBase": 17.74
+    },
+    {
+      "id": 8,
+      "nome": "Sala 9",
+      "unidade": "UTV",
+      "capacidade": 28,
+      "area": 25,
+      "custoBase": 30.52
+    },
+    {
+      "id": 9,
+      "nome": "Sala 12",
+      "unidade": "UTV",
+      "capacidade": 9,
+      "area": 8.1,
+      "custoBase": 10.02
+    },
+    {
+      "id": 10,
+      "nome": "Sala 13",
+      "unidade": "UTV",
+      "capacidade": 8,
+      "area": 7.2,
+      "custoBase": 8.86
+    }
+  ],
+  "extras": [
+    {
+      "id": 1,
+      "nome": "Coffee Break Premium",
+      "custo": 50
+    },
+    {
+      "id": 2,
+      "nome": "Serviço de Impressão",
+      "custo": 15
+    },
+    {
+      "id": 3,
+      "nome": "Gravação Profissional",
+      "custo": 80
+    },
+    {
+      "id": 4,
+      "nome": "Transmissão ao Vivo",
+      "custo": 120
+    },
+    {
+      "id": 5,
+      "nome": "Flip Chart Extra",
+      "custo": 5
+    }
+  ],
+  "custosFuncionario": {
+    "horaNormal": 13.04,
+    "he50": 19.56,
+    "he100": 26.08,
+    "valeTransporte": 12
+  },
+  "multiplicadoresTurno": {
+    "manha": 1,
+    "tarde": 1.15,
+    "noite": 1.4
+  }
+}
