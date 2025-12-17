@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de cálculo de orçamentos para locação de espaços CDL/UTV">
+    <meta name="keywords" content="CDL, UTV, Orçamento, Calculadora, Locação, Espaços">
+    <meta name="author" content="CDL Manaus">
+    
+    <title>Calculadora de Orçamento - CDL/UTV v5.0</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <!-- Container Principal -->
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🏢 Calculadora de Orçamento v5.0</h1>
+            <p>CDL/UTV - Locação de Espaços para Eventos</p>
+            <div style="margin-top: 15px;">
+                <span id="data-status" class="status-badge">✓ Sistema Carregado</span>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="calculator">📊 Calculadora</button>
+            <button class="tab-btn" data-tab="spaces">🏛️ Espaços</button>
+            <button class="tab-btn" data-tab="costs">💰 Custos Base</button>
+            <button class="tab-btn" data-tab="config">⚙️ Configurações</button>
+        </div>
+
+        <!-- Tab: Calculadora -->
+        <div id="calculator" class="tab-content active">
+            <div class="calculator-grid">
+                <!-- Configurar Orçamento -->
+                <div class="card">
+                    <h2 class="card-title">📝 Configurar Orçamento</h2>
+                    
+                    <div class="form-group">
+                        <label for="espaco">Selecione o Espaço:</label>
+                        <select id="espaco" class="form-control"></select>
+                        <div class="sala-info" id="sala-info"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duracao">Duração do Contrato (meses):</label>
+                        <input type="number" id="duracao" class="form-control" min="1" max="24" value="6">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dias">Dias por Semana:</label>
+                        <select id="dias" class="form-control">
+                            <option value="1">1 dia (Sábado)</option>
+                            <option value="2">2 dias (Sábado e Domingo)</option>
+                            <option value="5">5 dias (Segunda a Sexta)</option>
+                            <option value="7">7 dias (Todos os dias)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Horários de Uso:</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="manha" checked>
+                            <label for="manha">☀️ Manhã (8h às 12h - 4 horas)</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="tarde" checked>
+                            <label for="tarde">🌤️ Tarde (13h às 17h - 4 horas)</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="noite">
+                            <label for="noite">🌙 Noite (18h às 22h - 4 horas)</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Itens Extras:</label>
+                        <div class="extras-grid" id="extras-checkboxes"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="margem">Margem de Lucro (%):</label>
+                        <div class="range-container">
+                            <input type="range" id="margem" min="10" max="60" value="30">
+                            <span class="range-value" id="margem-value">30%</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="desconto">Desconto por Fidelidade (%):</label>
+                        <div class="range-container">
+                            <input type="range" id="desconto" min="0" max="50" step="5" value="20">
+                            <span class="range-value" id="desconto-value">20%</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" id="calcular">🚀 Calcular Orçamento</button>
+                </div>
+
+                <!-- Resultado do Orçamento -->
+                <div class="card">
+                    <h2 class="card-title">💵 Resultado do Orçamento</h2>
+                    
+                    <div class="result-box">
+                        <h3>VALOR FINAL</h3>
+                        <div class="value">R$ <span id="valor-total">0,00</span></div>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="label">Valor por Hora</div>
+                            <div class="value">R$ <span id="valor-hora">0,00</span></div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="label">Total de Horas</div>
+                            <div class="value"><span id="total-horas">0</span>h</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="label">Custo Base/h</div>
+                            <div class="value">R$ <span id="custo-hora">0,00</span></div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="label">Economia</div>
+                            <div class="value">R$ <span id="economia">0,00</span></div>
+                        </div>
+                    </div>
+
+                    <div class="breakdown">
+                        <h4>📋 Detalhamento do Cálculo</h4>
+                        <div class="breakdown-item">
+                            <span>Custo Operacional Base</span>
+                            <span>R$ <span id="custo-base">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Mão de Obra - Horas Normais</span>
+                            <span>R$ <span id="mao-obra-normal">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Mão de Obra - HE 50% (Sábado)</span>
+                            <span>R$ <span id="mao-obra-he50">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Mão de Obra - HE 100% (Domingo)</span>
+                            <span>R$ <span id="mao-obra-he100">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Vale Transporte</span>
+                            <span>R$ <span id="vale-transporte">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item" id="extras-line" style="display:none;">
+                            <span>Itens Extras</span>
+                            <span>R$ <span id="valor-extras">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Subtotal (sem margem)</span>
+                            <span>R$ <span id="subtotal-sem-margem">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Margem de Lucro (<span id="margem-percent">30</span>%)</span>
+                            <span>R$ <span id="valor-margem">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Subtotal (com margem)</span>
+                            <span>R$ <span id="subtotal-com-margem">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Desconto (<span id="desconto-percent">20</span>%)</span>
+                            <span>- R$ <span id="valor-desconto">0,00</span></span>
+                        </div>
+                        <div class="breakdown-item total">
+                            <span>VALOR FINAL</span>
+                            <span>R$ <span id="valor-final">0,00</span></span>
+                        </div>
+                    </div>
+
+                    <div class="export-buttons">
+                        <button class="btn-primary btn-success" id="exportar-pdf-cliente">📄 PDF Cliente</button>
+                        <button class="btn-primary" id="exportar-pdf-super">📊 PDF Superintendência</button>
+                        <button class="btn-primary btn-secondary" id="imprimir">🖨️ Imprimir Cliente</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Espaços -->
+        <div id="spaces" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">🏛️ Gerenciar Espaços</h2>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Espaço</th>
+                            <th>Unidade</th>
+                            <th>Capacidade</th>
+                            <th>Área (m²)</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="espacos-body"></tbody>
+                </table>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 20px; color: #1e3c72;">➕ Adicionar Novo Espaço</h3>
+                    <div class="input-group">
+                        <input type="text" id="novo-espaco-nome" class="form-control" placeholder="Nome do espaço">
+                        <input type="text" id="novo-espaco-unidade" class="form-control" placeholder="Unidade (DJLM/UTV)">
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="novo-espaco-capacidade" class="form-control" placeholder="Capacidade">
+                        <input type="number" id="novo-espaco-area" class="form-control" placeholder="Área (m²)" step="0.1">
+                    </div>
+                    <button class="btn-primary btn-success" id="adicionar-espaco">➕ Adicionar Espaço</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Custos Base -->
+        <div id="costs" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">💰 Custos Base por Espaço</h2>
+                
+                <div style="overflow-x: auto;">
+                    <table class="data-table" id="costs-table">
+                        <thead>
+                            <tr>
+                                <th>Unidade</th>
+                                <th>Espaço</th>
+                                <th>Capacidade</th>
+                                <th>Área (m²)</th>
+                                <th>Custo Base/h</th>
+                                <th>Manhã (×1,00)</th>
+                                <th>Tarde (×1,15)</th>
+                                <th>Noite (×1,40)</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="costs-body"></tbody>
+                    </table>
+                </div>
+
+                <button class="btn-primary" id="salvar-custos" style="margin-top: 20px;">💾 Salvar Todos os Custos</button>
+            </div>
+        </div>
+
+        <!-- Tab: Configurações -->
+        <div id="config" class="tab-content">
+            <div class="admin-grid">
+                <div class="card">
+                    <h2 class="card-title">🎁 Itens Extras</h2>
+                    <div id="extras-list"></div>
+                    <div style="margin-top: 20px;">
+                        <h3 style="margin-bottom: 15px; color: #1e3c72;">➕ Novo Item Extra</h3>
+                        <input type="text" id="novo-item-nome" class="form-control" placeholder="Nome do item" style="margin-bottom: 10px;">
+                        <input type="number" id="novo-item-custo" class="form-control" placeholder="Custo por hora (R$)" style="margin-bottom: 10px;">
+                        <button class="btn-primary btn-success" id="adicionar-item">➕ Adicionar Item</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="card-title">👤 Custos do Funcionário</h2>
+                    <div class="input-group">
+                        <div class="form-group">
+                            <label>Hora Normal (R$/h):</label>
+                            <input type="number" id="func-normal" class="form-control" value="13.04" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>HE 50% (R$/h):</label>
+                            <input type="number" id="func-he50" class="form-control" value="19.56" step="0.01">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <div class="form-group">
+                            <label>HE 100% (R$/h):</label>
+                            <input type="number" id="func-he100" class="form-control" value="26.08" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Vale Transporte (R$/dia):</label>
+                            <input type="number" id="func-vt" class="form-control" value="12.00" step="0.01">
+                        </div>
+                    </div>
+                    <button class="btn-primary" id="salvar-funcionario">💾 Salvar Custos</button>
+                </div>
+
+                <div class="card">
+                    <h2 class="card-title">💾 Backup e Dados</h2>
+                    <button class="btn-primary btn-secondary" id="exportar-dados" style="margin-bottom: 15px;">📥 Exportar Dados (JSON)</button>
+                    <button class="btn-primary btn-secondary" id="importar-dados" style="margin-bottom: 15px;">📤 Importar Dados (JSON)</button>
+                    <input type="file" id="import-file" accept=".json" style="display:none;">
+                    <button class="btn-primary btn-danger" id="resetar-dados">🔄 Resetar para Padrão</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Section -->
+    <div id="print-section"></div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <span id="notification-text">Operação realizada com sucesso!</span>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/data-manager.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>

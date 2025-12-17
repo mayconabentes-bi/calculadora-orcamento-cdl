@@ -1,0 +1,409 @@
+/* =================================================================
+   DATA MANAGER - CALCULADORA DE ORÇAMENTO CDL/UTV v5.0
+   Sistema de gerenciamento de dados com persistência em LocalStorage
+   ================================================================= */
+
+/**
+ * Classe DataManager
+ * Responsável por gerenciar todos os dados do sistema:
+ * - Salas/Espaços
+ * - Itens Extras
+ * - Custos de Funcionário
+ * - Multiplicadores de Turno
+ * - Persistência em LocalStorage
+ */
+class DataManager {
+    constructor() {
+        this.storageKey = 'cdl-calculadora-v5-data';
+        this.dados = this.carregarDados();
+    }
+
+    /**
+     * Carrega dados do LocalStorage ou retorna dados padrão
+     */
+    carregarDados() {
+        try {
+            const stored = localStorage.getItem(this.storageKey);
+            if (stored) {
+                const dados = JSON.parse(stored);
+                // Validar estrutura básica
+                if (dados.salas && dados.extras && dados.custosFuncionario) {
+                    return dados;
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+        }
+        return this.obterDadosPadrao();
+    }
+
+    /**
+     * Salva dados no LocalStorage
+     */
+    salvarDados() {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(this.dados));
+            return true;
+        } catch (error) {
+            console.error('Erro ao salvar dados:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Retorna os dados padrão do sistema
+     */
+    obterDadosPadrao() {
+        return {
+            salas: [
+                {
+                    id: 1,
+                    nome: "Auditório",
+                    unidade: "DJLM",
+                    capacidade: 120,
+                    area: 108,
+                    custoBase: 132.72
+                },
+                {
+                    id: 2,
+                    nome: "Auditório",
+                    unidade: "UTV",
+                    capacidade: 70,
+                    area: 63,
+                    custoBase: 77.60
+                },
+                {
+                    id: 3,
+                    nome: "Sala 2",
+                    unidade: "UTV",
+                    capacidade: 30,
+                    area: 27,
+                    custoBase: 35.69
+                },
+                {
+                    id: 4,
+                    nome: "Sala 3",
+                    unidade: "UTV",
+                    capacidade: 50,
+                    area: 45,
+                    custoBase: 55.19
+                },
+                {
+                    id: 5,
+                    nome: "Sala 4",
+                    unidade: "UTV",
+                    capacidade: 40,
+                    area: 36,
+                    custoBase: 43.92
+                },
+                {
+                    id: 6,
+                    nome: "Sala 7",
+                    unidade: "UTV",
+                    capacidade: 26,
+                    area: 25,
+                    custoBase: 29.53
+                },
+                {
+                    id: 7,
+                    nome: "Sala 8",
+                    unidade: "UTV",
+                    capacidade: 16,
+                    area: 14.4,
+                    custoBase: 17.74
+                },
+                {
+                    id: 8,
+                    nome: "Sala 9",
+                    unidade: "UTV",
+                    capacidade: 28,
+                    area: 25,
+                    custoBase: 30.52
+                },
+                {
+                    id: 9,
+                    nome: "Sala 12",
+                    unidade: "UTV",
+                    capacidade: 9,
+                    area: 8.1,
+                    custoBase: 10.02
+                },
+                {
+                    id: 10,
+                    nome: "Sala 13",
+                    unidade: "UTV",
+                    capacidade: 8,
+                    area: 7.2,
+                    custoBase: 8.86
+                }
+            ],
+            extras: [
+                { id: 1, nome: "Coffee Break Premium", custo: 50.00 },
+                { id: 2, nome: "Serviço de Impressão", custo: 15.00 },
+                { id: 3, nome: "Gravação Profissional", custo: 80.00 },
+                { id: 4, nome: "Transmissão ao Vivo", custo: 120.00 },
+                { id: 5, nome: "Flip Chart Extra", custo: 5.00 }
+            ],
+            custosFuncionario: {
+                horaNormal: 13.04,
+                he50: 19.56,
+                he100: 26.08,
+                valeTransporte: 12.00
+            },
+            multiplicadoresTurno: {
+                manha: 1.00,
+                tarde: 1.15,
+                noite: 1.40
+            }
+        };
+    }
+
+    // ========== MÉTODOS DE GESTÃO DE SALAS ==========
+
+    /**
+     * Obtém todas as salas
+     */
+    obterSalas() {
+        return this.dados.salas;
+    }
+
+    /**
+     * Obtém uma sala por ID
+     */
+    obterSalaPorId(id) {
+        return this.dados.salas.find(sala => sala.id === parseInt(id));
+    }
+
+    /**
+     * Adiciona uma nova sala
+     */
+    adicionarSala(sala) {
+        const novoId = Math.max(...this.dados.salas.map(s => s.id), 0) + 1;
+        const novaSala = {
+            id: novoId,
+            nome: sala.nome,
+            unidade: sala.unidade,
+            capacidade: parseInt(sala.capacidade),
+            area: parseFloat(sala.area),
+            custoBase: parseFloat(sala.custoBase) || 0
+        };
+        this.dados.salas.push(novaSala);
+        this.salvarDados();
+        return novaSala;
+    }
+
+    /**
+     * Atualiza uma sala existente
+     */
+    atualizarSala(id, dadosAtualizados) {
+        const index = this.dados.salas.findIndex(sala => sala.id === parseInt(id));
+        if (index !== -1) {
+            this.dados.salas[index] = {
+                ...this.dados.salas[index],
+                ...dadosAtualizados
+            };
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove uma sala
+     */
+    removerSala(id) {
+        const index = this.dados.salas.findIndex(sala => sala.id === parseInt(id));
+        if (index !== -1) {
+            this.dados.salas.splice(index, 1);
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    // ========== MÉTODOS DE GESTÃO DE EXTRAS ==========
+
+    /**
+     * Obtém todos os itens extras
+     */
+    obterExtras() {
+        return this.dados.extras;
+    }
+
+    /**
+     * Obtém um item extra por ID
+     */
+    obterExtraPorId(id) {
+        return this.dados.extras.find(extra => extra.id === parseInt(id));
+    }
+
+    /**
+     * Adiciona um novo item extra
+     */
+    adicionarExtra(extra) {
+        const novoId = Math.max(...this.dados.extras.map(e => e.id), 0) + 1;
+        const novoExtra = {
+            id: novoId,
+            nome: extra.nome,
+            custo: parseFloat(extra.custo)
+        };
+        this.dados.extras.push(novoExtra);
+        this.salvarDados();
+        return novoExtra;
+    }
+
+    /**
+     * Atualiza um item extra existente
+     */
+    atualizarExtra(id, dadosAtualizados) {
+        const index = this.dados.extras.findIndex(extra => extra.id === parseInt(id));
+        if (index !== -1) {
+            this.dados.extras[index] = {
+                ...this.dados.extras[index],
+                ...dadosAtualizados
+            };
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove um item extra
+     */
+    removerExtra(id) {
+        const index = this.dados.extras.findIndex(extra => extra.id === parseInt(id));
+        if (index !== -1) {
+            this.dados.extras.splice(index, 1);
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    // ========== MÉTODOS DE GESTÃO DE CUSTOS ==========
+
+    /**
+     * Obtém custos do funcionário
+     */
+    obterCustosFuncionario() {
+        return this.dados.custosFuncionario;
+    }
+
+    /**
+     * Atualiza custos do funcionário
+     */
+    atualizarCustosFuncionario(custos) {
+        this.dados.custosFuncionario = {
+            horaNormal: parseFloat(custos.horaNormal),
+            he50: parseFloat(custos.he50),
+            he100: parseFloat(custos.he100),
+            valeTransporte: parseFloat(custos.valeTransporte)
+        };
+        this.salvarDados();
+        return true;
+    }
+
+    /**
+     * Obtém multiplicadores de turno
+     */
+    obterMultiplicadoresTurno() {
+        return this.dados.multiplicadoresTurno;
+    }
+
+    // ========== MÉTODOS DE BACKUP E RESTORE ==========
+
+    /**
+     * Exporta todos os dados como JSON
+     */
+    exportarDados() {
+        return JSON.stringify(this.dados, null, 2);
+    }
+
+    /**
+     * Importa dados de um JSON
+     */
+    importarDados(jsonString) {
+        try {
+            const dados = JSON.parse(jsonString);
+            // Validar estrutura básica
+            if (!dados.salas || !dados.extras || !dados.custosFuncionario) {
+                throw new Error('Estrutura de dados inválida');
+            }
+            this.dados = dados;
+            this.salvarDados();
+            return true;
+        } catch (error) {
+            console.error('Erro ao importar dados:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Restaura dados para o padrão
+     */
+    restaurarPadrao() {
+        this.dados = this.obterDadosPadrao();
+        this.salvarDados();
+        return true;
+    }
+
+    /**
+     * Limpa todos os dados
+     */
+    limparDados() {
+        try {
+            localStorage.removeItem(this.storageKey);
+            this.dados = this.obterDadosPadrao();
+            return true;
+        } catch (error) {
+            console.error('Erro ao limpar dados:', error);
+            return false;
+        }
+    }
+}
+
+// ========== SISTEMA DE NOTIFICAÇÕES ==========
+
+/**
+ * Exibe uma notificação para o usuário
+ * @param {string} mensagem - Mensagem a ser exibida
+ * @param {number} duracao - Duração em ms (padrão: 3000)
+ */
+function mostrarNotificacao(mensagem, duracao = 3000) {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notification-text');
+    
+    if (notification && notificationText) {
+        notificationText.textContent = mensagem;
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, duracao);
+    }
+}
+
+/**
+ * Formata número como moeda brasileira
+ * @param {number} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+function formatarMoeda(valor) {
+    return valor.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+/**
+ * Formata número simples com 2 casas decimais
+ * @param {number} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+function formatarNumero(valor) {
+    return valor.toFixed(2);
+}
+
+// Exportar instância global do DataManager
+const dataManager = new DataManager();
