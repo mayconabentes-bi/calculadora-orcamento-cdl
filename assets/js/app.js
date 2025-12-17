@@ -251,6 +251,8 @@ function carregarListaFuncionarios() {
                         <div>📈 HE 50%: <strong>R$ ${formatarMoeda(func.he50)}</strong></div>
                         <div>📊 HE 100%: <strong>R$ ${formatarMoeda(func.he100)}</strong></div>
                         <div>🎫 Vale Transporte: <strong>R$ ${formatarMoeda(func.valeTransporte)}</strong></div>
+                        <div>🚗 Transporte App: <strong>R$ ${formatarMoeda(func.transporteApp || 0)}</strong></div>
+                        <div>🍽️ Refeição: <strong>R$ ${formatarMoeda(func.refeicao || 0)}</strong></div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 5px; margin-left: 15px;">
@@ -417,6 +419,12 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
     const diasTotais = diasPorMes * duracao;
     const custoValeTransporte = diasTotais * custos.valeTransporte;
     
+    // Calcular transporte por aplicativo (por dia trabalhado)
+    const custoTransporteApp = diasTotais * (custos.transporteApp || 0);
+    
+    // Calcular refeição (por dia trabalhado)
+    const custoRefeicao = diasTotais * (custos.refeicao || 0);
+    
     // Calcular itens extras
     let custoExtras = 0;
     const extras = dataManager.obterExtras();
@@ -428,7 +436,7 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
     });
     
     // Subtotal sem margem
-    const subtotalSemMargem = custoOperacionalBase + custoMaoObraTotal + custoValeTransporte + custoExtras;
+    const subtotalSemMargem = custoOperacionalBase + custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao + custoExtras;
     
     // Aplicar margem de lucro
     const valorMargem = subtotalSemMargem * margem;
@@ -454,6 +462,8 @@ function calcularValores(sala, duracao, diasSemana, manha, tarde, noite, margem,
         custoMaoObraHE100,
         custoMaoObraTotal,
         custoValeTransporte,
+        custoTransporteApp,
+        custoRefeicao,
         custoExtras,
         subtotalSemMargem,
         valorMargem,
@@ -486,6 +496,22 @@ function exibirResultados(resultado) {
     document.getElementById('mao-obra-he50').textContent = formatarMoeda(resultado.custoMaoObraHE50);
     document.getElementById('mao-obra-he100').textContent = formatarMoeda(resultado.custoMaoObraHE100);
     document.getElementById('vale-transporte').textContent = formatarMoeda(resultado.custoValeTransporte);
+    
+    // Transporte por Aplicativo
+    if (resultado.custoTransporteApp > 0) {
+        document.getElementById('transporte-app-line').style.display = 'flex';
+        document.getElementById('transporte-app').textContent = formatarMoeda(resultado.custoTransporteApp);
+    } else {
+        document.getElementById('transporte-app-line').style.display = 'none';
+    }
+    
+    // Refeição
+    if (resultado.custoRefeicao > 0) {
+        document.getElementById('refeicao-line').style.display = 'flex';
+        document.getElementById('refeicao').textContent = formatarMoeda(resultado.custoRefeicao);
+    } else {
+        document.getElementById('refeicao-line').style.display = 'none';
+    }
     
     // Extras
     if (resultado.custoExtras > 0) {
@@ -717,9 +743,11 @@ function adicionarNovoFuncionario() {
     const he50 = document.getElementById('novo-func-he50').value;
     const he100 = document.getElementById('novo-func-he100').value;
     const valeTransporte = document.getElementById('novo-func-vt').value;
+    const transporteApp = document.getElementById('novo-func-transporte-app').value || '0';
+    const refeicao = document.getElementById('novo-func-refeicao').value || '0';
     
     if (!nome || !horaNormal || !he50 || !he100 || !valeTransporte) {
-        alert('Por favor, preencha todos os campos!');
+        alert('Por favor, preencha todos os campos obrigatórios!');
         return;
     }
     
@@ -728,13 +756,15 @@ function adicionarNovoFuncionario() {
     const he50Num = parseFloat(he50);
     const he100Num = parseFloat(he100);
     const valeTransporteNum = parseFloat(valeTransporte);
+    const transporteAppNum = parseFloat(transporteApp);
+    const refeicaoNum = parseFloat(refeicao);
     
-    if (isNaN(horaNormalNum) || isNaN(he50Num) || isNaN(he100Num) || isNaN(valeTransporteNum)) {
+    if (isNaN(horaNormalNum) || isNaN(he50Num) || isNaN(he100Num) || isNaN(valeTransporteNum) || isNaN(transporteAppNum) || isNaN(refeicaoNum)) {
         alert('Por favor, insira valores numéricos válidos!');
         return;
     }
     
-    if (horaNormalNum < 0 || he50Num < 0 || he100Num < 0 || valeTransporteNum < 0) {
+    if (horaNormalNum < 0 || he50Num < 0 || he100Num < 0 || valeTransporteNum < 0 || transporteAppNum < 0 || refeicaoNum < 0) {
         alert('Os valores não podem ser negativos!');
         return;
     }
@@ -744,7 +774,9 @@ function adicionarNovoFuncionario() {
         horaNormal: horaNormalNum,
         he50: he50Num,
         he100: he100Num,
-        valeTransporte: valeTransporteNum
+        valeTransporte: valeTransporteNum,
+        transporteApp: transporteAppNum,
+        refeicao: refeicaoNum
     };
     
     dataManager.adicionarFuncionario(novoFuncionario);
@@ -755,6 +787,8 @@ function adicionarNovoFuncionario() {
     document.getElementById('novo-func-he50').value = '';
     document.getElementById('novo-func-he100').value = '';
     document.getElementById('novo-func-vt').value = '';
+    document.getElementById('novo-func-transporte-app').value = '';
+    document.getElementById('novo-func-refeicao').value = '';
     
     // Atualizar interface
     carregarListaFuncionarios();
@@ -784,18 +818,26 @@ function editarFuncionario(id) {
     const valeTransporte = prompt('Vale Transporte (R$/dia):', func.valeTransporte);
     if (valeTransporte === null) return;
     
+    const transporteApp = prompt('Transporte por Aplicativo (R$/dia):', func.transporteApp || 0);
+    if (transporteApp === null) return;
+    
+    const refeicao = prompt('Refeição (R$/dia):', func.refeicao || 0);
+    if (refeicao === null) return;
+    
     // Validar valores numéricos
     const horaNormalNum = parseFloat(horaNormal);
     const he50Num = parseFloat(he50);
     const he100Num = parseFloat(he100);
     const valeTransporteNum = parseFloat(valeTransporte);
+    const transporteAppNum = parseFloat(transporteApp);
+    const refeicaoNum = parseFloat(refeicao);
     
-    if (isNaN(horaNormalNum) || isNaN(he50Num) || isNaN(he100Num) || isNaN(valeTransporteNum)) {
+    if (isNaN(horaNormalNum) || isNaN(he50Num) || isNaN(he100Num) || isNaN(valeTransporteNum) || isNaN(transporteAppNum) || isNaN(refeicaoNum)) {
         alert('Por favor, insira valores numéricos válidos!');
         return;
     }
     
-    if (horaNormalNum < 0 || he50Num < 0 || he100Num < 0 || valeTransporteNum < 0) {
+    if (horaNormalNum < 0 || he50Num < 0 || he100Num < 0 || valeTransporteNum < 0 || transporteAppNum < 0 || refeicaoNum < 0) {
         alert('Os valores não podem ser negativos!');
         return;
     }
@@ -805,7 +847,9 @@ function editarFuncionario(id) {
         horaNormal: horaNormalNum,
         he50: he50Num,
         he100: he100Num,
-        valeTransporte: valeTransporteNum
+        valeTransporte: valeTransporteNum,
+        transporteApp: transporteAppNum,
+        refeicao: refeicaoNum
     });
     
     carregarListaFuncionarios();
@@ -1094,9 +1138,20 @@ function exportarPDFSuperintendencia() {
         ['Mão de Obra - Horas Normais', `R$ ${formatarMoeda(resultado.custoMaoObraNormal)}`],
         ['Mão de Obra - HE 50% (Sábado)', `R$ ${formatarMoeda(resultado.custoMaoObraHE50)}`],
         ['Mão de Obra - HE 100% (Domingo)', `R$ ${formatarMoeda(resultado.custoMaoObraHE100)}`],
-        ['Vale Transporte', `R$ ${formatarMoeda(resultado.custoValeTransporte)}`],
-        ['Itens Extras', `R$ ${formatarMoeda(resultado.custoExtras)}`],
+        ['Vale Transporte', `R$ ${formatarMoeda(resultado.custoValeTransporte)}`]
     ];
+    
+    // Adicionar transporte por aplicativo se houver
+    if (resultado.custoTransporteApp > 0) {
+        custos.push(['Transporte por Aplicativo', `R$ ${formatarMoeda(resultado.custoTransporteApp)}`]);
+    }
+    
+    // Adicionar refeição se houver
+    if (resultado.custoRefeicao > 0) {
+        custos.push(['Refeição', `R$ ${formatarMoeda(resultado.custoRefeicao)}`]);
+    }
+    
+    custos.push(['Itens Extras', `R$ ${formatarMoeda(resultado.custoExtras)}`]);
     
     custos.forEach(([item, valor]) => {
         doc.text(item, 20, y);

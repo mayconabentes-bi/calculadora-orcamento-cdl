@@ -37,9 +37,19 @@ class DataManager {
                             he50: dados.custosFuncionario.he50,
                             he100: dados.custosFuncionario.he100,
                             valeTransporte: dados.custosFuncionario.valeTransporte,
+                            transporteApp: dados.custosFuncionario.transporteApp || 0.00,
+                            refeicao: dados.custosFuncionario.refeicao || 0.00,
                             ativo: true
                         }];
                         delete dados.custosFuncionario;
+                    }
+                    // Adicionar novos campos em funcionários existentes que não os têm
+                    if (dados.funcionarios) {
+                        dados.funcionarios = dados.funcionarios.map(func => ({
+                            ...func,
+                            transporteApp: func.transporteApp !== undefined ? func.transporteApp : 0.00,
+                            refeicao: func.refeicao !== undefined ? func.refeicao : 0.00
+                        }));
                     }
                     if (dados.funcionarios) {
                         return dados;
@@ -167,6 +177,8 @@ class DataManager {
                     he50: 19.56,
                     he100: 26.08,
                     valeTransporte: 12.00,
+                    transporteApp: 0.00,
+                    refeicao: 0.00,
                     ativo: true
                 }
             ],
@@ -337,6 +349,8 @@ class DataManager {
             he50: parseFloat(funcionario.he50),
             he100: parseFloat(funcionario.he100),
             valeTransporte: parseFloat(funcionario.valeTransporte),
+            transporteApp: parseFloat(funcionario.transporteApp || 0),
+            refeicao: parseFloat(funcionario.refeicao || 0),
             ativo: false
         };
         this.dados.funcionarios.push(novoFuncionario);
@@ -412,7 +426,9 @@ class DataManager {
                 horaNormal: funcionarioAtivo.horaNormal,
                 he50: funcionarioAtivo.he50,
                 he100: funcionarioAtivo.he100,
-                valeTransporte: funcionarioAtivo.valeTransporte
+                valeTransporte: funcionarioAtivo.valeTransporte,
+                transporteApp: funcionarioAtivo.transporteApp || 0,
+                refeicao: funcionarioAtivo.refeicao || 0
             };
         }
         // Fallback para evitar erros
@@ -420,7 +436,9 @@ class DataManager {
             horaNormal: 13.04,
             he50: 19.56,
             he100: 26.08,
-            valeTransporte: 12.00
+            valeTransporte: 12.00,
+            transporteApp: 0.00,
+            refeicao: 0.00
         };
     }
 
@@ -471,9 +489,19 @@ class DataManager {
                     he50: dados.custosFuncionario.he50,
                     he100: dados.custosFuncionario.he100,
                     valeTransporte: dados.custosFuncionario.valeTransporte,
+                    transporteApp: dados.custosFuncionario.transporteApp || 0.00,
+                    refeicao: dados.custosFuncionario.refeicao || 0.00,
                     ativo: true
                 }];
                 delete dados.custosFuncionario;
+            }
+            // Adicionar novos campos em funcionários existentes que não os têm
+            if (dados.funcionarios) {
+                dados.funcionarios = dados.funcionarios.map(func => ({
+                    ...func,
+                    transporteApp: func.transporteApp !== undefined ? func.transporteApp : 0.00,
+                    refeicao: func.refeicao !== undefined ? func.refeicao : 0.00
+                }));
             }
             if (!dados.funcionarios) {
                 throw new Error('Estrutura de dados inválida');
