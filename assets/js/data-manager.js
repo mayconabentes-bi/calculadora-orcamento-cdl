@@ -44,13 +44,7 @@ class DataManager {
                         delete dados.custosFuncionario;
                     }
                     // Adicionar novos campos em funcionários existentes que não os têm
-                    if (dados.funcionarios) {
-                        dados.funcionarios = dados.funcionarios.map(func => ({
-                            ...func,
-                            transporteApp: func.transporteApp !== undefined ? func.transporteApp : 0.00,
-                            refeicao: func.refeicao !== undefined ? func.refeicao : 0.00
-                        }));
-                    }
+                    dados = this.migrarCamposNovosFuncionarios(dados);
                     if (dados.funcionarios) {
                         return dados;
                     }
@@ -73,6 +67,20 @@ class DataManager {
             console.error('Erro ao salvar dados:', error);
             return false;
         }
+    }
+
+    /**
+     * Migra campos novos em funcionários existentes
+     */
+    migrarCamposNovosFuncionarios(dados) {
+        if (dados.funcionarios) {
+            dados.funcionarios = dados.funcionarios.map(func => ({
+                ...func,
+                transporteApp: func.transporteApp !== undefined ? func.transporteApp : 0.00,
+                refeicao: func.refeicao !== undefined ? func.refeicao : 0.00
+            }));
+        }
+        return dados;
     }
 
     /**
@@ -496,13 +504,7 @@ class DataManager {
                 delete dados.custosFuncionario;
             }
             // Adicionar novos campos em funcionários existentes que não os têm
-            if (dados.funcionarios) {
-                dados.funcionarios = dados.funcionarios.map(func => ({
-                    ...func,
-                    transporteApp: func.transporteApp !== undefined ? func.transporteApp : 0.00,
-                    refeicao: func.refeicao !== undefined ? func.refeicao : 0.00
-                }));
-            }
+            dados = this.migrarCamposNovosFuncionarios(dados);
             if (!dados.funcionarios) {
                 throw new Error('Estrutura de dados inválida');
             }
