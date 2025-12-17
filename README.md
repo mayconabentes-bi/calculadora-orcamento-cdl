@@ -114,6 +114,6 @@ O sistema está hospedado no GitHub Pages e funciona diretamente no navegador!
 ---
 
 **Desenvolvido por Maycon A. Bentes
-Inteligência de Mercado, Planejamwento e Estudos Estatísticos**
+- Inteligência de Mercado, Planejamwento e Estudos Estatísticos**
 
 **Última atualização**: Dezembro 2025
