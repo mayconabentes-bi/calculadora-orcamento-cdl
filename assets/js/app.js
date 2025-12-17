@@ -1154,18 +1154,27 @@ function exportarPDFCliente() {
     y += 8;
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Duração: ${calculo.duracao} meses`, 20, y);
-    y += 6;
-    doc.text(`Dias por semana: ${calculo.diasSemana}`, 20, y);
+    doc.text(`Duração: ${calculo.duracao} ${calculo.duracaoTipo || 'meses'}`, 20, y);
     y += 6;
     
-    const turnos = [];
-    if (calculo.turnos.manha) turnos.push('Manhã');
-    if (calculo.turnos.tarde) turnos.push('Tarde');
-    if (calculo.turnos.noite) turnos.push('Noite');
-    doc.text(`Turnos: ${turnos.join(', ')}`, 20, y);
+    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const diasSelecionadosTexto = calculo.diasSelecionados ? 
+        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
+        `${calculo.diasSemana || 0} dias/semana`;
+    doc.text(`Dias: ${diasSelecionadosTexto}`, 20, y);
     y += 6;
-    doc.text(`Total de horas: ${resultado.horasTotais}h`, 20, y);
+    
+    if (calculo.horarioInicio && calculo.horarioFim) {
+        doc.text(`Horário: ${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
+    } else {
+        const turnos = [];
+        if (calculo.turnos && calculo.turnos.manha) turnos.push('Manhã');
+        if (calculo.turnos && calculo.turnos.tarde) turnos.push('Tarde');
+        if (calculo.turnos && calculo.turnos.noite) turnos.push('Noite');
+        doc.text(`Turnos: ${turnos.join(', ')}`, 20, y);
+    }
+    y += 6;
+    doc.text(`Total de horas: ${resultado.horasTotais.toFixed(1)}h`, 20, y);
     
     // Valores
     y += 12;
@@ -1259,13 +1268,24 @@ function exportarPDFSuperintendencia() {
     y += 7;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
-    doc.text(`Duração: ${calculo.duracao} meses | Dias/semana: ${calculo.diasSemana} | Total de horas: ${resultado.horasTotais}h`, 20, y);
+    
+    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const diasTexto = calculo.diasSelecionados ? 
+        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
+        `${calculo.diasSemana || 0} dias/semana`;
+    
+    doc.text(`Duração: ${calculo.duracao} ${calculo.duracaoTipo || 'meses'} | Dias: ${diasTexto} | Total de horas: ${resultado.horasTotais.toFixed(1)}h`, 20, y);
     y += 5;
-    const turnos = [];
-    if (calculo.turnos.manha) turnos.push('Manhã');
-    if (calculo.turnos.tarde) turnos.push('Tarde');
-    if (calculo.turnos.noite) turnos.push('Noite');
-    doc.text(`Turnos utilizados: ${turnos.join(', ')}`, 20, y);
+    
+    if (calculo.horarioInicio && calculo.horarioFim) {
+        doc.text(`Horário: ${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
+    } else if (calculo.turnos) {
+        const turnos = [];
+        if (calculo.turnos.manha) turnos.push('Manhã');
+        if (calculo.turnos.tarde) turnos.push('Tarde');
+        if (calculo.turnos.noite) turnos.push('Noite');
+        doc.text(`Turnos utilizados: ${turnos.join(', ')}`, 20, y);
+    }
     y += 5;
     doc.text(`Margem de lucro: ${resultado.margemPercent.toFixed(0)}% | Desconto: ${resultado.descontoPercent.toFixed(0)}%`, 20, y);
     
@@ -1416,10 +1436,21 @@ function imprimirOrcamento() {
     const sala = calculo.sala;
     const resultado = calculo.resultado;
     
-    const turnos = [];
-    if (calculo.turnos.manha) turnos.push('Manhã');
-    if (calculo.turnos.tarde) turnos.push('Tarde');
-    if (calculo.turnos.noite) turnos.push('Noite');
+    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const diasSelecionadosTexto = calculo.diasSelecionados ? 
+        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
+        `${calculo.diasSemana || 0} dias/semana`;
+    
+    let horarioTexto = '';
+    if (calculo.horarioInicio && calculo.horarioFim) {
+        horarioTexto = `<tr><td>Horário:</td><td>${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)</td></tr>`;
+    } else if (calculo.turnos) {
+        const turnos = [];
+        if (calculo.turnos.manha) turnos.push('Manhã');
+        if (calculo.turnos.tarde) turnos.push('Tarde');
+        if (calculo.turnos.noite) turnos.push('Noite');
+        horarioTexto = `<tr><td>Turnos:</td><td>${turnos.join(', ')}</td></tr>`;
+    }
     
     printSection.innerHTML = `
         <div class="pdf-content">
@@ -1440,10 +1471,10 @@ function imprimirOrcamento() {
             <div class="pdf-section">
                 <h2>📋 Detalhes do Contrato</h2>
                 <table class="pdf-table">
-                    <tr><td>Duração:</td><td>${calculo.duracao} meses</td></tr>
-                    <tr><td>Dias por semana:</td><td>${calculo.diasSemana}</td></tr>
-                    <tr><td>Turnos:</td><td>${turnos.join(', ')}</td></tr>
-                    <tr><td>Total de horas:</td><td>${resultado.horasTotais}h</td></tr>
+                    <tr><td>Duração:</td><td>${calculo.duracao} ${calculo.duracaoTipo || 'meses'}</td></tr>
+                    <tr><td>Dias:</td><td>${diasSelecionadosTexto}</td></tr>
+                    ${horarioTexto}
+                    <tr><td>Total de horas:</td><td>${resultado.horasTotais.toFixed(1)}h</td></tr>
                 </table>
             </div>
             
