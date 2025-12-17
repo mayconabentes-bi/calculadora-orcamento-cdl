@@ -1,28 +1,53 @@
 # 🌐 Como Acessar o Sistema Online
 
-## ✅ Opção 1: Acesso Direto (Após Merge)
+## ⚠️ IMPORTANTE: O Sistema Ainda NÃO Está Online
 
-Após mergear este PR para a branch `main`, o sistema estará disponível em:
+Para ficar online, você precisa fazer 2 passos simples (leva 2 minutos):
 
-**🔗 https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/**
+---
 
-## 📋 Passos para Habilitar o Acesso:
+## ✅ Passo 1: Mergear o Pull Request
 
-### 1️⃣ Habilitar GitHub Pages
+**Por que?** O código está na branch do PR, mas precisa estar em `main` para o GitHub Pages funcionar.
 
-1. Vá em: **Settings** → **Pages** no repositório GitHub
-2. Em **Source**, selecione: **GitHub Actions**
-3. Salve as configurações
+1. Vá para: https://github.com/mayconabentes-bi/calculadora-orcamento-cdl/pulls
+2. Abra o PR "Initial project setup - CDL/UTV Budget Calculator v5.0"
+3. Clique em **"Merge pull request"** (botão verde)
+4. Confirme clicando em **"Confirm merge"**
 
-### 2️⃣ Mergear o Pull Request
+---
 
-1. Aprove e merge este Pull Request
-2. O GitHub Actions irá automaticamente fazer o deploy
-3. Aguarde 1-2 minutos para o site ficar disponível
+## ✅ Passo 2: Habilitar GitHub Pages
 
-### 3️⃣ Acessar o Sistema
+**Por que?** Precisa ativar o GitHub Pages no repositório.
 
-Após o deploy, acesse: https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/
+1. Vá em: https://github.com/mayconabentes-bi/calculadora-orcamento-cdl/settings/pages
+2. Em **"Source"**, selecione: **GitHub Actions** (não "Deploy from a branch")
+3. Salve (se houver botão de salvar)
+
+---
+
+## ✅ Passo 3: Aguardar Deploy (1-2 minutos)
+
+1. Vá em: https://github.com/mayconabentes-bi/calculadora-orcamento-cdl/actions
+2. Verá um workflow "Deploy to GitHub Pages" rodando
+3. Aguarde aparecer ✅ verde
+
+---
+
+## 🎉 Passo 4: Acessar!
+
+**URL do sistema**: https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/
+
+---
+
+## 📖 Documentação Detalhada
+
+Veja **VERIFICACAO.md** para:
+- Checklist completo de verificação
+- Troubleshooting detalhado
+- Alternativas para testar localmente
+- Solução para erros comuns
 
 ---
 
