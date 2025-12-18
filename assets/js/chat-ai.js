@@ -25,7 +25,18 @@ class ChatAI {
         this.recognition = null;
         this.silenceTimer = null;
         this.silenceDelay = 1500; // 1.5 seconds of silence
+        this.currentTranscript = ''; // Accumulated transcript for voice input
         this.initializeSpeechRecognition();
+    }
+
+    /**
+     * Clears the silence detection timer
+     */
+    clearSilenceTimer() {
+        if (this.silenceTimer) {
+            clearTimeout(this.silenceTimer);
+            this.silenceTimer = null;
+        }
     }
 
     /**
@@ -46,10 +57,8 @@ class ChatAI {
             };
 
             this.recognition.onresult = (event) => {
-                // Clear silence timer
-                if (this.silenceTimer) {
-                    clearTimeout(this.silenceTimer);
-                }
+                // Clear any existing silence timer
+                this.clearSilenceTimer();
 
                 let interimTranscript = '';
                 let finalTranscript = '';
@@ -73,10 +82,18 @@ class ChatAI {
                     console.log('Voz reconhecida:', finalTranscript);
                     this.updateVoiceStatus('processing');
                     
-                    // Start silence detection timer
+                    // Accumulate final transcript
+                    if (!this.currentTranscript) {
+                        this.currentTranscript = '';
+                    }
+                    this.currentTranscript += ' ' + finalTranscript;
+                    
+                    // Start silence detection timer - will process accumulated transcript
                     this.silenceTimer = setTimeout(() => {
+                        const textToProcess = this.currentTranscript.trim();
+                        this.currentTranscript = '';
                         this.stopListening();
-                        this.handleVoiceInput(finalTranscript);
+                        this.handleVoiceInput(textToProcess);
                     }, this.silenceDelay);
                 }
             };
@@ -116,10 +133,7 @@ class ChatAI {
                 this.isListening = false;
                 this.updateVoiceButtonState();
                 this.hideVoiceStatus();
-                
-                if (this.silenceTimer) {
-                    clearTimeout(this.silenceTimer);
-                }
+                this.clearSilenceTimer();
             };
         } else {
             console.warn('Reconhecimento de voz não suportado neste navegador');
@@ -1013,7 +1027,9 @@ class ChatAI {
         });
         
         response += `\n**Composição do Valor:**\n`;
-        response += `• Horas normais: ${resultado.horasNormais.toFixed(1)}h × R$ ${this.formatCurrency(resultado.custoMaoObraNormal / resultado.horasNormais)}/h\n`;
+        if (resultado.horasNormais > 0) {
+            response += `• Horas normais: ${resultado.horasNormais.toFixed(1)}h × R$ ${this.formatCurrency(resultado.custoMaoObraNormal / resultado.horasNormais)}/h\n`;
+        }
         if (resultado.horasHE50 > 0) {
             response += `• HE 50%: ${resultado.horasHE50.toFixed(1)}h × R$ ${this.formatCurrency(resultado.custoMaoObraHE50 / resultado.horasHE50)}/h\n`;
         }
