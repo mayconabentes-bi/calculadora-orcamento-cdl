@@ -31,6 +31,7 @@ function initializeChatUI() {
     const floatBtn = document.getElementById('chat-float-btn');
     const modal = document.getElementById('chat-modal');
     const closeBtn = document.getElementById('chat-close-btn');
+    const minimizeBtn = document.getElementById('chat-minimize-btn');
     const clearBtn = document.getElementById('chat-clear-btn');
     const exportBtn = document.getElementById('chat-export-btn');
     const sendBtn = document.getElementById('chat-send-btn');
@@ -48,6 +49,13 @@ function initializeChatUI() {
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
             closeChat();
+        });
+    }
+
+    // Minimizar chat
+    if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', () => {
+            minimizeChat();
         });
     }
 
@@ -112,6 +120,16 @@ function initializeChatUI() {
         });
     });
 
+    // Clicar no cabeçalho quando minimizado para restaurar
+    const chatHeader = document.querySelector('.chat-header-info');
+    if (chatHeader) {
+        chatHeader.addEventListener('click', () => {
+            if (modal && modal.classList.contains('minimized')) {
+                minimizeChat(); // Toggle para restaurar
+            }
+        });
+    }
+
     // Fechar ao clicar fora (opcional)
     document.addEventListener('click', (e) => {
         if (modal && modal.classList.contains('active')) {
@@ -129,8 +147,14 @@ function initializeChatUI() {
 function toggleChat() {
     const modal = document.getElementById('chat-modal');
     if (modal) {
-        modal.classList.toggle('active');
         if (modal.classList.contains('active')) {
+            // Se já está ativo, fecha
+            closeChat();
+        } else {
+            // Se está fechado, abre e remove minimizado
+            modal.classList.add('active');
+            modal.classList.remove('minimized');
+            
             // Focar no input quando abrir
             const input = document.getElementById('chat-input');
             if (input) {
@@ -161,6 +185,35 @@ function closeChat() {
     const modal = document.getElementById('chat-modal');
     if (modal) {
         modal.classList.remove('active');
+        modal.classList.remove('minimized');
+    }
+}
+
+/**
+ * Minimiza o chat
+ */
+function minimizeChat() {
+    const modal = document.getElementById('chat-modal');
+    if (modal) {
+        modal.classList.toggle('minimized');
+        
+        // Atualizar o ícone do botão
+        const minimizeBtn = document.getElementById('chat-minimize-btn');
+        if (minimizeBtn) {
+            if (modal.classList.contains('minimized')) {
+                minimizeBtn.innerHTML = '🔲';
+                minimizeBtn.title = 'Restaurar';
+            } else {
+                minimizeBtn.innerHTML = '➖';
+                minimizeBtn.title = 'Minimizar';
+                
+                // Focar no input quando restaurar
+                const input = document.getElementById('chat-input');
+                if (input) {
+                    setTimeout(() => input.focus(), 100);
+                }
+            }
+        }
     }
 }
 
@@ -366,6 +419,7 @@ window.chatUI = {
     toggleChat,
     openChat,
     closeChat,
+    minimizeChat,
     sendMessage,
     applyChatQuotationToCalculator,
     saveChatQuotation

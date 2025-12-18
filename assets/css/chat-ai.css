@@ -48,7 +48,6 @@
    2. MODAL DO CHAT
    ----------------------------------------------------------------- */
 .chat-modal {
-    display: none;
     position: fixed;
     bottom: 100px;
     right: 30px;
@@ -61,13 +60,30 @@
     box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
     z-index: 1000;
     overflow: hidden;
-    display: flex;
+    display: none;
     flex-direction: column;
     animation: slideUp 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .chat-modal.active {
     display: flex;
+}
+
+.chat-modal.minimized {
+    height: 60px;
+    overflow: hidden;
+}
+
+.chat-modal.minimized .chat-messages,
+.chat-modal.minimized .chat-suggestions,
+.chat-modal.minimized .chat-input-area,
+.chat-modal.minimized .chat-status {
+    display: none;
+}
+
+.chat-modal.minimized .chat-header-info {
+    cursor: pointer;
 }
 
 @keyframes slideUp {

@@ -27,9 +27,16 @@ class ChatAI {
             this.recognition.lang = 'pt-BR';
             this.recognition.continuous = false;
             this.recognition.interimResults = false;
+            this.recognition.maxAlternatives = 1;
+
+            this.recognition.onstart = () => {
+                console.log('Reconhecimento de voz iniciado');
+                this.addMessage('🎤 Estou te ouvindo... Pode falar!', 'bot');
+            };
 
             this.recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
+                console.log('Voz reconhecida:', transcript);
                 this.handleVoiceInput(transcript);
             };
 
@@ -37,12 +44,36 @@ class ChatAI {
                 console.error('Erro no reconhecimento de voz:', event.error);
                 this.isListening = false;
                 this.updateVoiceButtonState();
+                
+                let errorMessage = '❌ Ops! Erro no reconhecimento de voz. ';
+                
+                switch(event.error) {
+                    case 'no-speech':
+                        errorMessage += 'Não consegui ouvir nada. Tente novamente!';
+                        break;
+                    case 'audio-capture':
+                        errorMessage += 'Não consegui acessar o microfone. Verifique as permissões.';
+                        break;
+                    case 'not-allowed':
+                        errorMessage += 'Permissão negada. Por favor, permita o acesso ao microfone.';
+                        break;
+                    case 'network':
+                        errorMessage += 'Erro de rede. Verifique sua conexão.';
+                        break;
+                    default:
+                        errorMessage += 'Tente novamente ou use o texto.';
+                }
+                
+                this.addMessage(errorMessage, 'bot');
             };
 
             this.recognition.onend = () => {
+                console.log('Reconhecimento de voz finalizado');
                 this.isListening = false;
                 this.updateVoiceButtonState();
             };
+        } else {
+            console.warn('Reconhecimento de voz não suportado neste navegador');
         }
     }
 
@@ -51,11 +82,18 @@ class ChatAI {
      */
     startListening() {
         if (this.recognition) {
-            this.isListening = true;
-            this.recognition.start();
-            this.updateVoiceButtonState();
+            try {
+                this.isListening = true;
+                this.updateVoiceButtonState();
+                this.recognition.start();
+            } catch (error) {
+                console.error('Erro ao iniciar reconhecimento:', error);
+                this.isListening = false;
+                this.updateVoiceButtonState();
+                this.addMessage('❌ Não foi possível iniciar o reconhecimento de voz. Tente novamente!', 'bot');
+            }
         } else {
-            this.addMessage('Reconhecimento de voz não suportado neste navegador.', 'bot');
+            this.addMessage('😕 Reconhecimento de voz não suportado neste navegador. Tente usar Chrome, Edge ou Safari.', 'bot');
         }
     }
 
@@ -133,6 +171,14 @@ class ChatAI {
             return this.handleGreeting();
         }
 
+        if (this.isThankYou(input)) {
+            return this.handleThankYou();
+        }
+
+        if (this.isGoodbye(input)) {
+            return this.handleGoodbye();
+        }
+
         if (this.isQuotationRequest(input)) {
             return await this.handleQuotationRequest(input);
         }
@@ -161,15 +207,64 @@ class ChatAI {
      * Verifica se é uma saudação
      */
     isGreeting(input) {
-        const greetings = ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'hey', 'alô'];
-        return greetings.some(g => input.includes(g));
+        const greetings = ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'hey', 'alô', 'alo', 
+                          'e aí', 'e ai', 'opa', 'salve', 'fala'];
+        return greetings.some(g => input.includes(g)) && input.length < 30; // Saudação geralmente é curta
     }
 
     /**
      * Processa saudação
      */
     handleGreeting() {
-        return `Olá! 👋 Sou o assistente de cotações da CDL/UTV.\n\nPosso ajudá-lo a gerar cotações automaticamente. Por exemplo:\n\n"Gerar cotação para contrato de 3 meses com 5 funcionários aos sábados e domingos"\n\nOu diga "ajuda" para ver mais opções.`;
+        const responses = [
+            `Olá! 👋 Fico feliz em ajudar você hoje!\n\nSou especialista em cotações da CDL/UTV. Posso criar orçamentos personalizados de forma rápida e fácil.\n\nPor exemplo, você pode me dizer:\n"Preciso de uma cotação para 3 meses, de segunda a sexta"\n\nOu simplesmente pergunte "como funciona?" para eu te explicar melhor. 😊`,
+            `Oi! 🌟 É um prazer conversar com você!\n\nEstou aqui para facilitar a criação de orçamentos para locação de espaços.\n\nQue tal começarmos? Você pode me dizer:\n"Quero fazer uma proposta para 2 meses aos finais de semana"\n\nOu diga "ajuda" para conhecer todas as minhas funcionalidades! 💡`,
+            `Olá! 👋 Bem-vindo ao assistente de cotações!\n\nVou te ajudar a criar orçamentos de forma simples e conversacional.\n\nExemplo: "Gerar cotação para 3 meses com 5 funcionários aos sábados e domingos"\n\nSe tiver dúvidas, é só perguntar! Estou aqui para isso. 😄`
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    /**
+     * Verifica se é um agradecimento
+     */
+    isThankYou(input) {
+        const thanks = ['obrigad', 'valeu', 'vlw', 'agradeço', 'agradeco', 'thank'];
+        return thanks.some(t => input.includes(t));
+    }
+
+    /**
+     * Processa agradecimento
+     */
+    handleThankYou() {
+        const responses = [
+            `Por nada! 😊 Fico feliz em ajudar!\n\nPrecisa de mais alguma coisa?`,
+            `Disponha! 🌟 Estou sempre aqui quando precisar!\n\nQuer fazer mais alguma cotação?`,
+            `É um prazer! 💙 Se precisar de qualquer outra ajuda, é só chamar!`,
+            `De nada! 😄 Espero ter sido útil!\n\nAlgo mais que posso fazer por você?`
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    /**
+     * Verifica se é uma despedida
+     */
+    isGoodbye(input) {
+        const goodbyes = ['tchau', 'até logo', 'ate logo', 'até mais', 'ate mais', 'falou', 
+                         'abraço', 'abraco', 'bye', 'adeus'];
+        return goodbyes.some(g => input.includes(g));
+    }
+
+    /**
+     * Processa despedida
+     */
+    handleGoodbye() {
+        const responses = [
+            `Até logo! 👋 Foi um prazer te ajudar!\n\nVolte sempre que precisar! 😊`,
+            `Tchau! 🌟 Sempre que precisar de orçamentos, estarei aqui!\n\nTenha um ótimo dia! ☀️`,
+            `Até mais! 💙 Fico feliz em ter ajudado!\n\nQualquer coisa é só chamar! 👍`,
+            `Falou! 😄 Sucesso com suas cotações!\n\nEstou aqui quando precisar! 🚀`
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
     }
 
     /**
@@ -304,7 +399,20 @@ class ChatAI {
      * Solicita parâmetros faltantes
      */
     requestMissingParameters(missing) {
-        return `⚠️ Para gerar a cotação, preciso das seguintes informações:\n\n${missing.map(m => `• ${m}`).join('\n')}\n\nPor favor, informe esses dados.`;
+        const intro = [
+            `🤔 Certo! Para criar a cotação completa, preciso saber mais algumas coisas:`,
+            `👍 Entendi! Só preciso de mais alguns detalhes:`,
+            `✨ Ótimo! Para finalizar, me conta:`
+        ][Math.floor(Math.random() * 3)];
+        
+        const missingText = missing.map(m => {
+            if (m === 'duração do contrato') return '• Por quanto tempo será o contrato? (ex: 3 meses ou 30 dias)';
+            if (m === 'dias da semana') return '• Quais dias da semana? (ex: segunda a sexta, ou finais de semana)';
+            if (m === 'espaço') return '• Qual espaço você prefere? (pode dizer "listar espaços" para ver as opções)';
+            return `• ${m}`;
+        }).join('\n');
+        
+        return `${intro}\n\n${missingText}\n\n💬 Pode me contar tudo de uma vez ou uma coisa de cada vez, como preferir!`;
     }
 
     /**
@@ -319,16 +427,19 @@ class ChatAI {
      * Solicita confirmação de HE
      */
     requestHEConfirmation(params) {
-        let message = '🌟 Detalhes de Horas Extras:\n\n';
+        let message = '⚠️ **Atenção para as Horas Extras!**\n\n';
+        message += 'Notei que você incluiu finais de semana. Neste caso:\n\n';
         
         if (params.days.includes(6)) {
-            message += '• Sábado = HE 50% (adicional de 50%)\n';
+            message += '• 📅 **Sábados** = Hora Extra 50% (custo adicional de 50%)\n';
         }
         if (params.days.includes(0)) {
-            message += '• Domingo = HE 100% (adicional de 100%)\n';
+            message += '• 📅 **Domingos** = Hora Extra 100% (custo adicional de 100%)\n';
         }
         
-        message += '\n✅ Posso prosseguir com estas condições?';
+        message += '\nIsso aumentará o valor da proposta, mas garante que tudo seja calculado corretamente.\n\n';
+        message += '✅ Posso continuar com essas condições?\n\n';
+        message += '💬 Responda "sim" ou "confirmar" para prosseguir!';
         
         this.currentContext.pendingParams = params;
         this.currentContext.waitingHEConfirmation = true;
@@ -493,41 +604,46 @@ class ChatAI {
         };
         const selectedDays = params.days.map(d => daysNames[d]).join(', ');
 
-        let response = `✅ **COTAÇÃO GERADA COM SUCESSO**\n\n`;
+        let response = `✨ **Prontinho! Sua cotação está pronta!** ✨\n\n`;
+        response += `📋 **Resumo da Proposta:**\n\n`;
         response += `📍 **Espaço:** ${space.nome} (${space.unidade})\n`;
-        response += `👥 **Funcionários:** ${employees}\n`;
-        response += `📅 **Período:** ${params.duration} ${params.durationType}\n`;
-        response += `📆 **Dias:** ${selectedDays}\n`;
-        response += `⏰ **Horário:** ${params.startTime} às ${params.endTime}\n\n`;
+        response += `👥 **Equipe:** ${employees} ${employees === 1 ? 'funcionário' : 'funcionários'}\n`;
+        response += `📅 **Duração:** ${params.duration} ${params.durationType}\n`;
+        response += `📆 **Dias da semana:** ${selectedDays}\n`;
+        response += `⏰ **Horário de trabalho:** ${params.startTime} às ${params.endTime}\n\n`;
         
-        response += `⏱️ **Horas Totais:** ${resultado.horasTotais.toFixed(1)}h\n`;
-        response += `   • Normais: ${resultado.horasNormais.toFixed(1)}h\n`;
+        response += `⏱️ **Carga Horária:**\n`;
+        response += `   • Total: ${resultado.horasTotais.toFixed(1)}h\n`;
+        response += `   • Horas normais: ${resultado.horasNormais.toFixed(1)}h\n`;
         if (resultado.horasHE50 > 0) {
-            response += `   • HE 50% (Sábado): ${resultado.horasHE50.toFixed(1)}h\n`;
+            response += `   • HE 50% (Sábados): ${resultado.horasHE50.toFixed(1)}h\n`;
         }
         if (resultado.horasHE100 > 0) {
-            response += `   • HE 100% (Domingo): ${resultado.horasHE100.toFixed(1)}h\n`;
+            response += `   • HE 100% (Domingos): ${resultado.horasHE100.toFixed(1)}h\n`;
         }
         
-        response += `\n💰 **Detalhamento de Custos:**\n`;
-        response += `   • Mão de Obra Normal: R$ ${this.formatCurrency(resultado.custoMaoObraNormal)}\n`;
+        response += `\n💰 **Composição de Custos:**\n`;
+        response += `   • Mão de obra (normal): R$ ${this.formatCurrency(resultado.custoMaoObraNormal)}\n`;
         if (resultado.custoMaoObraHE50 > 0) {
-            response += `   • Mão de Obra HE 50%: R$ ${this.formatCurrency(resultado.custoMaoObraHE50)}\n`;
+            response += `   • Mão de obra (HE 50%): R$ ${this.formatCurrency(resultado.custoMaoObraHE50)}\n`;
         }
         if (resultado.custoMaoObraHE100 > 0) {
-            response += `   • Mão de Obra HE 100%: R$ ${this.formatCurrency(resultado.custoMaoObraHE100)}\n`;
+            response += `   • Mão de obra (HE 100%): R$ ${this.formatCurrency(resultado.custoMaoObraHE100)}\n`;
         }
-        response += `   • Vale Transporte: R$ ${this.formatCurrency(resultado.custoValeTransporte)}\n`;
+        response += `   • Vale transporte: R$ ${this.formatCurrency(resultado.custoValeTransporte)}\n`;
         if (resultado.custoTransporteApp > 0) {
-            response += `   • Transporte App: R$ ${this.formatCurrency(resultado.custoTransporteApp)}\n`;
+            response += `   • Transporte por app: R$ ${this.formatCurrency(resultado.custoTransporteApp)}\n`;
         }
         if (resultado.custoRefeicao > 0) {
-            response += `   • Refeição: R$ ${this.formatCurrency(resultado.custoRefeicao)}\n`;
+            response += `   • Refeições: R$ ${this.formatCurrency(resultado.custoRefeicao)}\n`;
         }
         
-        response += `\n💵 **VALOR TOTAL: R$ ${this.formatCurrency(resultado.valorFinal)}**\n\n`;
-        response += `📊 Deseja que eu aplique esta cotação na calculadora?\n`;
-        response += `Ou diga "salvar cotação" para salvá-la.`;
+        response += `\n🎯 **VALOR TOTAL: R$ ${this.formatCurrency(resultado.valorFinal)}**\n\n`;
+        response += `💡 **O que você quer fazer agora?**\n`;
+        response += `• Diga "aplicar" para usar na calculadora\n`;
+        response += `• Diga "salvar" para guardar esta cotação\n`;
+        response += `• Ou peça para "alterar" algo que queira mudar\n\n`;
+        response += `Estou à disposição! 😊`;
 
         // Armazenar cotação no contexto
         this.currentContext.lastQuotation = {
@@ -570,25 +686,32 @@ class ChatAI {
      * Verifica se é pedido de ajuda
      */
     isHelp(input) {
-        return input.includes('ajuda') || input.includes('help') || input === '?';
+        return input.includes('ajuda') || input.includes('help') || input === '?' || 
+               input.includes('como funciona') || input.includes('o que você faz') ||
+               input.includes('o que voce faz') || input.includes('pode me ajudar');
     }
 
     /**
      * Processa pedido de ajuda
      */
     handleHelp() {
-        return `📚 **COMANDOS DISPONÍVEIS:**\n\n` +
-               `**Gerar Cotação:**\n` +
-               `• "Gerar cotação para 3 meses com 5 funcionários"\n` +
-               `• "Cotação de 30 dias, segunda a sexta, 8h às 18h"\n` +
-               `• "Fazer proposta para sábado e domingo"\n\n` +
-               `**Consultas:**\n` +
-               `• "Listar espaços" - Ver espaços disponíveis\n` +
-               `• "Listar funcionários" - Ver funcionários ativos\n\n` +
-               `**Modificações:**\n` +
-               `• "Alterar para 6 meses"\n` +
-               `• "Mudar para 10 funcionários"\n\n` +
-               `💡 Você pode combinar comandos naturalmente!`;
+        return `📚 **COMO POSSO TE AJUDAR:**\n\n` +
+               `Sou seu assistente virtual para criar orçamentos de locação de espaços. Funciono de forma bem natural, como numa conversa!\n\n` +
+               `**💬 Exemplos de como conversar comigo:**\n\n` +
+               `**Para criar cotações:**\n` +
+               `• "Preciso de uma cotação para 3 meses"\n` +
+               `• "Quero orçamento de 30 dias, segunda a sexta, das 8h às 18h"\n` +
+               `• "Fazer proposta para finais de semana com 4 funcionários"\n\n` +
+               `**Para consultar informações:**\n` +
+               `• "Quais espaços estão disponíveis?"\n` +
+               `• "Me mostre os funcionários"\n` +
+               `• "Quanto custa o Auditório?"\n\n` +
+               `**Para modificar cotações:**\n` +
+               `• "Melhor fazer com 6 meses"\n` +
+               `• "Aumenta para 10 funcionários"\n` +
+               `• "Adiciona a quinta-feira também"\n\n` +
+               `💡 **Dica:** Fale naturalmente! Não precisa decorar comandos específicos. Estou aqui para entender você! 😊\n\n` +
+               `🎤 Você pode usar o botão do microfone para falar ao invés de digitar!`;
     }
 
     /**
@@ -643,11 +766,29 @@ class ChatAI {
      * Processa comando desconhecido
      */
     handleUnknownCommand() {
-        return `❓ Desculpe, não entendi o comando.\n\n` +
-               `Experimente:\n` +
-               `• "Gerar cotação para 3 meses"\n` +
-               `• "Listar espaços"\n` +
-               `• "Ajuda" para ver todos os comandos`;
+        const responses = [
+            `🤔 Hmm, não consegui entender completamente. Pode reformular?\n\n` +
+            `Algumas coisas que posso fazer:\n` +
+            `• Criar cotações (ex: "cotação para 3 meses")\n` +
+            `• Mostrar espaços disponíveis\n` +
+            `• Responder suas dúvidas\n\n` +
+            `Digite "ajuda" para ver mais exemplos! 😊`,
+            
+            `😅 Ops! Não entendi direito. Vamos tentar de novo?\n\n` +
+            `Você pode me pedir para:\n` +
+            `• Gerar um orçamento\n` +
+            `• Ver os espaços\n` +
+            `• Listar funcionários\n\n` +
+            `Ou diga "como funciona" para eu te explicar melhor!`,
+            
+            `❓ Desculpe, ainda estou aprendendo essa. Pode tentar de outra forma?\n\n` +
+            `Experimente algo como:\n` +
+            `• "Preciso de uma cotação para 2 meses"\n` +
+            `• "Quais espaços você tem?"\n` +
+            `• "Ajuda" para ver todas opções\n\n` +
+            `Estou aqui para ajudar! 💪`
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
     }
 
     /**
