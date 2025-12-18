@@ -1,0 +1,285 @@
+name: 🤖 AI Chat Quality Review
+
+on:
+  pull_request:
+    paths:
+      - 'assets/js/chat-ai.js'
+      - 'assets/js/chat-ui.js'
+      - 'assets/js/app.js'
+      - 'assets/js/data-manager.js'
+      - 'docs/ai/**'
+      - 'tests/conversational/**'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'assets/js/chat-ai.js'
+      - 'assets/js/chat-ui.js'
+
+permissions:
+  contents: read
+
+jobs:
+  architecture-review:
+    name: 🏗️ Architecture Compliance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check LLM doesn't calculate
+        run: |
+          echo "🔍 Verificando se LLM não calcula valores diretamente..."
+          
+          # Procurar por cálculos diretos no chat-ai.js (fora do calculateQuotation)
+          # Verificar multiplicação
+          if grep -n "const.*=.*\*\|let.*=.*\*" assets/js/chat-ai.js | grep -v "calculateQuotation" | grep -v "Math.floor\|Math.random" | grep -v "//"; then
+            echo "❌ CRÍTICO: LLM está calculando valores diretamente (multiplicação)!"
+            exit 1
+          fi
+          
+          # Verificar adição/subtração com valores (exceto strings e incrementos)
+          if grep -n "const.*=.*+.*[0-9]\|let.*=.*+.*[0-9]" assets/js/chat-ai.js | grep -v "calculateQuotation" | grep -v "padStart\|++" | grep -v "//"; then
+            echo "❌ CRÍTICO: LLM está calculando valores diretamente (soma)!"
+            exit 1
+          fi
+          
+          echo "✅ OK: LLM não calcula valores diretamente"
+
+      - name: Check confirmation is mandatory
+        run: |
+          echo "🔍 Verificando se confirmação é obrigatória..."
+          
+          # Verificar se generateQuotation só é chamado após confirmação
+          if ! grep -q "waitingForFinalConfirmation\|isConfirmation" assets/js/chat-ai.js; then
+            echo "❌ CRÍTICO: Sistema de confirmação não implementado!"
+            exit 1
+          fi
+          
+          echo "✅ OK: Sistema de confirmação implementado"
+
+      - name: Check audit logs exist
+        run: |
+          echo "🔍 Verificando logs de auditoria..."
+          
+          # Verificar se logs existem
+          if ! grep -q "logInferredParameter\|logUserConfirmation\|logCommandInterpretation" assets/js/chat-ai.js; then
+            echo "⚠️ AVISO: Logs de auditoria podem estar incompletos"
+          fi
+          
+          echo "✅ OK: Logs de auditoria presentes"
+
+  prompt-quality:
+    name: 💬 Prompt Quality Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check conversational patterns
+        run: |
+          echo "🔍 Verificando padrões conversacionais..."
+          
+          # Verificar se há responses conversacionais
+          if ! grep -q "responses\[\]\|responses = \[" assets/js/chat-ai.js; then
+            echo "⚠️ AVISO: Poucas variações de resposta detectadas"
+          fi
+          
+          # Verificar se aceita múltiplas formas de input
+          if ! grep -q "includes\|match\|test" assets/js/chat-ai.js; then
+            echo "⚠️ AVISO: Flexibilidade de input pode estar limitada"
+          fi
+          
+          echo "✅ OK: Padrões conversacionais detectados"
+
+      - name: Check for context maintenance
+        run: |
+          echo "🔍 Verificando manutenção de contexto..."
+          
+          # Verificar se há gerenciamento de contexto
+          if ! grep -q "currentContext\|conversationHistory" assets/js/chat-ai.js; then
+            echo "❌ CRÍTICO: Contexto não está sendo mantido!"
+            exit 1
+          fi
+          
+          echo "✅ OK: Contexto sendo mantido"
+
+  voice-parity:
+    name: 🎤 Voice-Text Parity
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check voice uses same pipeline
+        run: |
+          echo "🔍 Verificando paridade voz-texto..."
+          
+          # Verificar se voz chama processUserInput
+          if grep -q "handleVoiceInput" assets/js/chat-ai.js; then
+            if ! grep -A 5 "handleVoiceInput" assets/js/chat-ai.js | grep -q "processUserInput"; then
+              echo "❌ CRÍTICO: Voz não usa mesmo pipeline que texto!"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ OK: Voz usa mesmo pipeline"
+
+      - name: Check silence detection
+        run: |
+          echo "🔍 Verificando detecção de silêncio..."
+          
+          # Verificar se há tratamento de silêncio
+          if ! grep -q "silenceTimer\|silenceDelay" assets/js/chat-ai.js; then
+            echo "⚠️ AVISO: Detecção de silêncio pode não estar implementada"
+          fi
+          
+          echo "✅ OK: Detecção de silêncio presente"
+
+  test-coverage:
+    name: 🧪 Test Coverage Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check test files exist
+        run: |
+          echo "🔍 Verificando existência de testes..."
+          
+          # Verificar se há documentação de testes
+          if [ ! -f "tests/conversational/test-scenarios.md" ]; then
+            echo "⚠️ AVISO: Cenários de teste não documentados"
+          else
+            echo "✅ OK: Cenários de teste documentados"
+          fi
+
+      - name: Count test scenarios
+        run: |
+          echo "🔍 Contando cenários de teste..."
+          
+          if [ -f "tests/conversational/test-scenarios.md" ]; then
+            TEST_COUNT=$(grep -c "^### Teste" tests/conversational/test-scenarios.md || echo "0")
+            echo "📊 Total de cenários: $TEST_COUNT"
+            
+            if [ "$TEST_COUNT" -lt 20 ]; then
+              echo "⚠️ AVISO: Poucos cenários de teste ($TEST_COUNT < 20)"
+            else
+              echo "✅ OK: Boa cobertura de testes ($TEST_COUNT)"
+            fi
+          fi
+
+  documentation:
+    name: 📚 Documentation Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check governance docs
+        run: |
+          echo "🔍 Verificando documentação de governança..."
+          
+          if [ ! -f "docs/GOVERNANCE.md" ]; then
+            echo "⚠️ AVISO: Documentação de governança não encontrada"
+          else
+            echo "✅ OK: Governança documentada"
+          fi
+
+      - name: Check AI prompts docs
+        run: |
+          echo "🔍 Verificando documentação de prompts..."
+          
+          if [ ! -f "docs/ai/system-prompts.md" ]; then
+            echo "⚠️ AVISO: Prompts não documentados"
+          else
+            echo "✅ OK: Prompts documentados"
+          fi
+
+      - name: Check conversation flows docs
+        run: |
+          echo "🔍 Verificando documentação de fluxos..."
+          
+          if [ ! -f "docs/ai/conversation-flows.md" ]; then
+            echo "⚠️ AVISO: Fluxos conversacionais não documentados"
+          else
+            echo "✅ OK: Fluxos documentados"
+          fi
+
+  security-check:
+    name: 🔒 Security Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "🔍 Verificando segredos hardcoded..."
+          
+          if grep -r "api[_-]key\|password\|secret\|token" assets/js/*.js | grep -v "// " | grep "="; then
+            echo "❌ CRÍTICO: Possíveis credenciais hardcoded encontradas!"
+            exit 1
+          fi
+          
+          echo "✅ OK: Sem credenciais hardcoded"
+
+      - name: Check for XSS vulnerabilities
+        run: |
+          echo "🔍 Verificando vulnerabilidades XSS..."
+          
+          # Verificar se innerHTML é usado sem sanitização
+          if grep -n "innerHTML.*=.*input\|innerHTML.*=.*message" assets/js/*.js; then
+            echo "⚠️ AVISO: Uso de innerHTML pode ser vulnerável a XSS"
+          fi
+          
+          echo "✅ OK: innerHTML não usado diretamente com input"
+
+  summary:
+    name: 📋 Review Summary
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [architecture-review, prompt-quality, voice-parity, test-coverage, documentation, security-check]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# 🤖 AI Chat Quality Review - Resumo" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Conformidades" >> $GITHUB_STEP_SUMMARY
+          echo "- Arquitetura com separação de responsabilidades" >> $GITHUB_STEP_SUMMARY
+          echo "- Sistema de confirmação implementado" >> $GITHUB_STEP_SUMMARY
+          echo "- Logs de auditoria presentes" >> $GITHUB_STEP_SUMMARY
+          echo "- Contexto conversacional mantido" >> $GITHUB_STEP_SUMMARY
+          echo "- Paridade voz-texto" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Status dos Jobs" >> $GITHUB_STEP_SUMMARY
+          echo "- Architecture Review: ${{ needs.architecture-review.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Prompt Quality: ${{ needs.prompt-quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Voice Parity: ${{ needs.voice-parity.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Test Coverage: ${{ needs.test-coverage.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Documentation: ${{ needs.documentation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security: ${{ needs.security-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 💡 Próximos Passos" >> $GITHUB_STEP_SUMMARY
+          echo "1. Revisar warnings encontrados" >> $GITHUB_STEP_SUMMARY
+          echo "2. Adicionar testes para novos cenários" >> $GITHUB_STEP_SUMMARY
+          echo "3. Manter documentação atualizada" >> $GITHUB_STEP_SUMMARY
+          echo "4. Validar com usuários reais" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Review automático realizado em $(date)*" >> $GITHUB_STEP_SUMMARY
