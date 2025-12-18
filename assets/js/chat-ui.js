@@ -279,7 +279,7 @@ function applyChatQuotationToCalculator(params, space) {
         // Limpar horários existentes
         horarios = [];
         // Adicionar novo horário
-        adicionarHorario(params.startTime, params.endTime);
+        adicionarNovoHorario(params.startTime, params.endTime);
     }
 
     // Fechar chat
