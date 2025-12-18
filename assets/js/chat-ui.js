@@ -48,7 +48,17 @@ function initializeChatUI() {
 
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
-            closeChat();
+            // Check if there's an active quotation in progress
+            if (chatAI && chatAI.currentContext && 
+                (chatAI.currentContext.stage === 'gathering' || 
+                 chatAI.currentContext.stage === 'refining' || 
+                 chatAI.currentContext.stage === 'confirming')) {
+                if (confirm('Você tem uma cotação em andamento. Deseja realmente fechar? Os dados serão mantidos.')) {
+                    closeChat();
+                }
+            } else {
+                closeChat();
+            }
         });
     }
 
@@ -154,6 +164,23 @@ function toggleChat() {
             // Se está fechado, abre e remove minimizado
             modal.classList.add('active');
             modal.classList.remove('minimized');
+            
+            // Check if there's a conversation in progress
+            if (chatAI && chatAI.currentContext && chatAI.currentContext.stage !== 'initial') {
+                // Offer to continue or start new
+                setTimeout(() => {
+                    if (chatAI.currentContext.lastQuotation) {
+                        chatAI.addMessage(
+                            '👋 Bem-vindo de volta!\n\n' +
+                            'Você tem uma cotação salva. Quer:\n' +
+                            '• "Continuar" de onde parou\n' +
+                            '• "Nova cotação" para começar do zero\n\n' +
+                            'O que prefere?',
+                            'bot'
+                        );
+                    }
+                }, 300);
+            }
             
             // Focar no input quando abrir
             const input = document.getElementById('chat-input');
@@ -369,50 +396,83 @@ function saveChatQuotation() {
 }
 
 /**
- * Adiciona listener para comandos especiais no chat
+ * Adds listener for special commands in chat
  */
-if (typeof chatAI !== 'undefined' && chatAI) {
-    // Interceptar comandos de aplicar/salvar
-    const originalProcessInput = chatAI.processUserInput;
-    chatAI.processUserInput = async function(input) {
-        const normalized = input.toLowerCase();
-        
-        // Verificar comandos especiais
-        if ((normalized.includes('sim') || normalized.includes('confirmar') || normalized.includes('prosseguir')) 
-            && this.currentContext.waitingHEConfirmation) {
-            // Confirmar HE e gerar cotação
-            this.currentContext.heConfirmed = true;
-            this.currentContext.waitingHEConfirmation = false;
-            const params = this.currentContext.pendingParams;
-            
-            const quotation = this.generateQuotation(params);
-            const response = this.formatQuotationResponse(quotation, params);
-            
-            this.conversationHistory.push({
-                role: 'user',
-                content: input,
-                timestamp: new Date()
-            });
-            this.conversationHistory.push({
-                role: 'bot',
-                content: response,
-                timestamp: new Date()
-            });
-            
-            this.addMessage(response, 'bot');
-            return;
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for chatAI to be initialized
+    setTimeout(() => {
+        if (typeof chatAI !== 'undefined' && chatAI) {
+            // Intercept apply/save commands
+            const originalProcessInput = chatAI.processUserInput;
+            chatAI.processUserInput = async function(input) {
+                const normalized = input.toLowerCase().trim();
+                
+                // Handle confirmation when waiting for final confirmation
+                if (this.currentContext.waitingForFinalConfirmation && 
+                    (normalized.includes('sim') || normalized.includes('confirmar') || 
+                     normalized.includes('confirmo') || normalized.includes('pode') ||
+                     normalized.includes('beleza') || normalized.includes('ok'))) {
+                    
+                    this.currentContext.waitingForFinalConfirmation = false;
+                    
+                    // Check if needs HE confirmation
+                    const params = this.currentContext.params;
+                    if (this.needsHEConfirmation(params)) {
+                        const heResponse = this.requestHEConfirmation(params);
+                        this.addMessage(heResponse, 'bot');
+                        return;
+                    }
+                    
+                    // Generate quotation
+                    try {
+                        const quotation = this.generateQuotation(params);
+                        const response = this.formatQuotationResponse(quotation, params);
+                        this.addMessage(response, 'bot');
+                    } catch (error) {
+                        console.error('Error generating quotation:', error);
+                        this.addMessage('❌ Ops! Tive um problema ao gerar a cotação. Tenta de novo?', 'bot');
+                    }
+                    return;
+                }
+                
+                // Handle apply/use commands
+                if ((normalized.includes('aplicar') || normalized.includes('usar')) && 
+                    !normalized.includes('cotação')) {
+                    if (this.currentContext.lastQuotation) {
+                        saveChatQuotation();
+                        return;
+                    }
+                }
+                
+                if (normalized.includes('aplicar') || normalized.includes('usar') || 
+                    (normalized.includes('salvar') && this.currentContext.lastQuotation)) {
+                    saveChatQuotation();
+                    return;
+                }
+                
+                // Handle new quotation request
+                if ((normalized.includes('nova') || normalized.includes('novo')) && 
+                    normalized.includes('cotação')) {
+                    this.currentContext = {
+                        stage: 'initial',
+                        params: {},
+                        lastQuotation: null,
+                        heConfirmed: false,
+                        waitingHEConfirmation: false,
+                        pendingParams: null,
+                        inferredParams: [],
+                        userConfirmations: []
+                    };
+                    this.addMessage('Beleza! Vamos começar uma nova cotação. 🚀\n\nO que você precisa?', 'bot');
+                    return;
+                }
+                
+                // Process normally
+                await originalProcessInput.call(this, input);
+            };
         }
-        
-        if ((normalized.includes('aplicar') || normalized.includes('usar') || normalized.includes('salvar')) 
-            && normalized.includes('cotação')) {
-            saveChatQuotation();
-            return;
-        }
-        
-        // Processar normalmente
-        await originalProcessInput.call(this, input);
-    };
-}
+    }, 1000);
+});
 
 // Exportar funções para uso global
 window.chatUI = {
