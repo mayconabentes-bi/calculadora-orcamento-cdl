@@ -11,10 +11,32 @@ class ChatAI {
     constructor(dataManager) {
         this.dataManager = dataManager;
         this.conversationHistory = [];
-        this.currentContext = {};
+        this.currentContext = {
+            stage: 'initial', // initial, gathering, refining, confirming, completed
+            params: {},
+            lastQuotation: null,
+            heConfirmed: false,
+            waitingHEConfirmation: false,
+            pendingParams: null,
+            inferredParams: [],
+            userConfirmations: []
+        };
         this.isListening = false;
         this.recognition = null;
+        this.silenceTimer = null;
+        this.silenceDelay = 1500; // 1.5 seconds of silence
+        this.currentTranscript = ''; // Accumulated transcript for voice input
         this.initializeSpeechRecognition();
+    }
+
+    /**
+     * Clears the silence detection timer
+     */
+    clearSilenceTimer() {
+        if (this.silenceTimer) {
+            clearTimeout(this.silenceTimer);
+            this.silenceTimer = null;
+        }
     }
 
     /**
@@ -25,32 +47,71 @@ class ChatAI {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             this.recognition = new SpeechRecognition();
             this.recognition.lang = 'pt-BR';
-            this.recognition.continuous = false;
-            this.recognition.interimResults = false;
+            this.recognition.continuous = true; // Keep listening
+            this.recognition.interimResults = true; // Show interim results
             this.recognition.maxAlternatives = 1;
 
             this.recognition.onstart = () => {
                 console.log('Reconhecimento de voz iniciado');
-                this.addMessage('🎤 Estou te ouvindo... Pode falar!', 'bot');
+                this.updateVoiceStatus('listening');
             };
 
             this.recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                console.log('Voz reconhecida:', transcript);
-                this.handleVoiceInput(transcript);
+                // Clear any existing silence timer
+                this.clearSilenceTimer();
+
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Show interim results
+                if (interimTranscript) {
+                    this.updateVoiceStatus('listening', interimTranscript);
+                }
+
+                // Process final results
+                if (finalTranscript) {
+                    console.log('Voz reconhecida:', finalTranscript);
+                    this.updateVoiceStatus('processing');
+                    
+                    // Accumulate final transcript
+                    if (!this.currentTranscript) {
+                        this.currentTranscript = '';
+                    }
+                    this.currentTranscript += ' ' + finalTranscript;
+                    
+                    // Start silence detection timer - will process accumulated transcript
+                    this.silenceTimer = setTimeout(() => {
+                        const textToProcess = this.currentTranscript.trim();
+                        this.currentTranscript = '';
+                        this.stopListening();
+                        this.handleVoiceInput(textToProcess);
+                    }, this.silenceDelay);
+                }
             };
 
             this.recognition.onerror = (event) => {
                 console.error('Erro no reconhecimento de voz:', event.error);
                 this.isListening = false;
                 this.updateVoiceButtonState();
+                this.hideVoiceStatus();
                 
-                let errorMessage = '❌ Ops! Erro no reconhecimento de voz. ';
+                if (event.error === 'no-speech') {
+                    // Silence - just stop, no error message
+                    return;
+                }
+                
+                let errorMessage = '❌ Ops! ';
                 
                 switch(event.error) {
-                    case 'no-speech':
-                        errorMessage += 'Não consegui ouvir nada. Tente novamente!';
-                        break;
                     case 'audio-capture':
                         errorMessage += 'Não consegui acessar o microfone. Verifique as permissões.';
                         break;
@@ -61,7 +122,7 @@ class ChatAI {
                         errorMessage += 'Erro de rede. Verifique sua conexão.';
                         break;
                     default:
-                        errorMessage += 'Tente novamente ou use o texto.';
+                        errorMessage += 'Erro no reconhecimento. Tente novamente ou use o texto.';
                 }
                 
                 this.addMessage(errorMessage, 'bot');
@@ -71,6 +132,8 @@ class ChatAI {
                 console.log('Reconhecimento de voz finalizado');
                 this.isListening = false;
                 this.updateVoiceButtonState();
+                this.hideVoiceStatus();
+                this.clearSilenceTimer();
             };
         } else {
             console.warn('Reconhecimento de voz não suportado neste navegador');
@@ -127,6 +190,51 @@ class ChatAI {
     }
 
     /**
+     * Atualiza o status visual da voz
+     */
+    updateVoiceStatus(status, text = '') {
+        let statusElement = document.getElementById('voice-status');
+        
+        if (!statusElement) {
+            statusElement = document.createElement('div');
+            statusElement.id = 'voice-status';
+            statusElement.className = 'voice-status';
+            const chatStatus = document.getElementById('chat-status');
+            if (chatStatus && chatStatus.parentNode) {
+                chatStatus.parentNode.insertBefore(statusElement, chatStatus.nextSibling);
+            }
+        }
+
+        statusElement.classList.add('active');
+        
+        switch(status) {
+            case 'listening':
+                statusElement.className = 'voice-status active listening';
+                statusElement.innerHTML = `🎤 Ouvindo... ${text ? '<br><em>' + text + '</em>' : ''}`;
+                break;
+            case 'processing':
+                statusElement.className = 'voice-status active processing';
+                statusElement.innerHTML = '⚙️ Processando...';
+                break;
+        }
+    }
+
+    /**
+     * Esconde o status da voz
+     */
+    hideVoiceStatus() {
+        const statusElement = document.getElementById('voice-status');
+        if (statusElement) {
+            statusElement.classList.remove('active');
+            setTimeout(() => {
+                if (statusElement.parentNode) {
+                    statusElement.parentNode.removeChild(statusElement);
+                }
+            }, 300);
+        }
+    }
+
+    /**
      * Processa entrada de voz
      */
     handleVoiceInput(text) {
@@ -166,7 +274,27 @@ class ChatAI {
      * Interpreta comandos em linguagem natural (NLP)
      */
     async interpretCommand(input) {
-        // Detectar tipo de comando
+        // Log command for audit
+        this.logCommandInterpretation(input);
+
+        // Handle confirmation if waiting for HE confirmation
+        if (this.currentContext.waitingHEConfirmation && this.isConfirmation(input)) {
+            return this.confirmHEAndGenerate();
+        }
+
+        // Handle confirmation if waiting for final confirmation (higher priority than closure)
+        if (this.currentContext.waitingForFinalConfirmation && this.isConfirmation(input)) {
+            // This will be handled by chat-ui.js interceptor
+            // Just return to avoid double processing
+            return null;
+        }
+
+        // Check for closure intents (but not if just confirming)
+        if (this.isClosureIntent(input) && !this.isConfirmation(input)) {
+            return this.handleClosure();
+        }
+
+        // Detect intent type
         if (this.isGreeting(input)) {
             return this.handleGreeting();
         }
@@ -177,6 +305,10 @@ class ChatAI {
 
         if (this.isGoodbye(input)) {
             return this.handleGoodbye();
+        }
+
+        if (this.isAuditRequest(input)) {
+            return this.handleAuditRequest();
         }
 
         if (this.isQuotationRequest(input)) {
@@ -199,6 +331,11 @@ class ChatAI {
             return this.handleListEmployees();
         }
 
+        // If in conversation flow, try to infer parameters from natural language
+        if (this.currentContext.stage !== 'initial' && this.currentContext.stage !== 'completed') {
+            return await this.handleConversationFlow(input);
+        }
+
         // Comando não reconhecido
         return this.handleUnknownCommand();
     }
@@ -217,9 +354,9 @@ class ChatAI {
      */
     handleGreeting() {
         const responses = [
-            `Olá! 👋 Fico feliz em ajudar você hoje!\n\nSou especialista em cotações da CDL/UTV. Posso criar orçamentos personalizados de forma rápida e fácil.\n\nPor exemplo, você pode me dizer:\n"Preciso de uma cotação para 3 meses, de segunda a sexta"\n\nOu simplesmente pergunte "como funciona?" para eu te explicar melhor. 😊`,
-            `Oi! 🌟 É um prazer conversar com você!\n\nEstou aqui para facilitar a criação de orçamentos para locação de espaços.\n\nQue tal começarmos? Você pode me dizer:\n"Quero fazer uma proposta para 2 meses aos finais de semana"\n\nOu diga "ajuda" para conhecer todas as minhas funcionalidades! 💡`,
-            `Olá! 👋 Bem-vindo ao assistente de cotações!\n\nVou te ajudar a criar orçamentos de forma simples e conversacional.\n\nExemplo: "Gerar cotação para 3 meses com 5 funcionários aos sábados e domingos"\n\nSe tiver dúvidas, é só perguntar! Estou aqui para isso. 😄`
+            `Olá! 👋 Fico feliz em te ajudar!\n\nSou especialista em cotações. Posso criar orçamentos de forma rápida.\n\nExemplo: "Preciso de cotação para 3 meses, segunda a sexta"\n\nOu pergunte "como funciona?" 😊`,
+            `Oi! 🌟 Prazer em conversar com você!\n\nVou te ajudar com orçamentos de locação.\n\nExemplo: "Proposta para 2 meses aos finais de semana"\n\nDiga "ajuda" para ver mais! 💡`,
+            `Olá! 👋 Bem-vindo!\n\nVou te ajudar a criar orçamentos de forma simples.\n\nExemplo: "Cotação para 3 meses com 5 funcionários"\n\nQualquer dúvida, é só falar! 😄`
         ];
         return responses[Math.floor(Math.random() * responses.length)];
     }
@@ -279,29 +416,38 @@ class ChatAI {
      * Processa pedido de cotação
      */
     async handleQuotationRequest(input) {
+        // Initialize conversation stage
+        this.currentContext.stage = 'gathering';
+        
         // Extrair parâmetros do comando
         const params = this.extractParameters(input);
+        
+        // Store in context
+        this.currentContext.params = params;
+        
+        // Log inferred parameters
+        Object.keys(params).forEach(key => {
+            if (params[key] !== null && 
+                (Array.isArray(params[key]) ? params[key].length > 0 : true)) {
+                this.logInferredParameter(key, params[key]);
+            }
+        });
         
         // Validar parâmetros obrigatórios
         const validation = this.validateParameters(params);
         
         if (!validation.isValid) {
-            return this.requestMissingParameters(validation.missing);
+            return this.requestMissingParametersNaturally(validation.missing);
         }
 
-        // Verificar se precisa confirmar HE
-        if (this.needsHEConfirmation(params)) {
-            return this.requestHEConfirmation(params);
-        }
-
-        // Gerar cotação
-        try {
-            const quotation = this.generateQuotation(params);
-            return this.formatQuotationResponse(quotation, params);
-        } catch (error) {
-            console.error('Erro ao gerar cotação:', error);
-            return `❌ Desculpe, ocorreu um erro ao gerar a cotação. Por favor, verifique os parâmetros e tente novamente.`;
-        }
+        // All params gathered, show summary
+        this.currentContext.stage = 'refining';
+        const summaryResponse = this.showPartialSummaryAndAskConfirmation();
+        
+        // Store that we're waiting for confirmation
+        this.currentContext.waitingForFinalConfirmation = true;
+        
+        return summaryResponse;
     }
 
     /**
@@ -592,58 +738,33 @@ class ChatAI {
     formatQuotationResponse(quotation, params) {
         const { space, resultado, employees } = quotation;
         
+        // Mark as completed
+        this.currentContext.stage = 'completed';
+        
         // Formatar dias selecionados
         const daysNames = {
-            0: 'Domingo',
-            1: 'Segunda-feira',
-            2: 'Terça-feira',
-            3: 'Quarta-feira',
-            4: 'Quinta-feira',
-            5: 'Sexta-feira',
-            6: 'Sábado'
+            0: 'Dom', 1: 'Seg', 2: 'Ter', 
+            3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb'
         };
         const selectedDays = params.days.map(d => daysNames[d]).join(', ');
 
-        let response = `✨ **Prontinho! Sua cotação está pronta!** ✨\n\n`;
-        response += `📋 **Resumo da Proposta:**\n\n`;
-        response += `📍 **Espaço:** ${space.nome} (${space.unidade})\n`;
-        response += `👥 **Equipe:** ${employees} ${employees === 1 ? 'funcionário' : 'funcionários'}\n`;
-        response += `📅 **Duração:** ${params.duration} ${params.durationType}\n`;
-        response += `📆 **Dias da semana:** ${selectedDays}\n`;
-        response += `⏰ **Horário de trabalho:** ${params.startTime} às ${params.endTime}\n\n`;
+        let response = `✨ Prontinho! 🎉\n\n`;
+        response += `📍 ${space.nome} • ${params.duration} ${params.durationType}\n`;
+        response += `📅 ${selectedDays} • ${params.startTime}-${params.endTime}\n`;
+        response += `👥 ${employees} ${employees === 1 ? 'funcionário' : 'funcionários'}\n\n`;
         
-        response += `⏱️ **Carga Horária:**\n`;
-        response += `   • Total: ${resultado.horasTotais.toFixed(1)}h\n`;
-        response += `   • Horas normais: ${resultado.horasNormais.toFixed(1)}h\n`;
-        if (resultado.horasHE50 > 0) {
-            response += `   • HE 50% (Sábados): ${resultado.horasHE50.toFixed(1)}h\n`;
-        }
-        if (resultado.horasHE100 > 0) {
-            response += `   • HE 100% (Domingos): ${resultado.horasHE100.toFixed(1)}h\n`;
+        response += `⏱️ **${resultado.horasTotais.toFixed(0)}h totais**\n`;
+        
+        if (resultado.horasHE50 > 0 || resultado.horasHE100 > 0) {
+            response += `   (${resultado.horasNormais.toFixed(0)}h normais`;
+            if (resultado.horasHE50 > 0) response += ` + ${resultado.horasHE50.toFixed(0)}h HE50%`;
+            if (resultado.horasHE100 > 0) response += ` + ${resultado.horasHE100.toFixed(0)}h HE100%`;
+            response += `)\n`;
         }
         
-        response += `\n💰 **Composição de Custos:**\n`;
-        response += `   • Mão de obra (normal): R$ ${this.formatCurrency(resultado.custoMaoObraNormal)}\n`;
-        if (resultado.custoMaoObraHE50 > 0) {
-            response += `   • Mão de obra (HE 50%): R$ ${this.formatCurrency(resultado.custoMaoObraHE50)}\n`;
-        }
-        if (resultado.custoMaoObraHE100 > 0) {
-            response += `   • Mão de obra (HE 100%): R$ ${this.formatCurrency(resultado.custoMaoObraHE100)}\n`;
-        }
-        response += `   • Vale transporte: R$ ${this.formatCurrency(resultado.custoValeTransporte)}\n`;
-        if (resultado.custoTransporteApp > 0) {
-            response += `   • Transporte por app: R$ ${this.formatCurrency(resultado.custoTransporteApp)}\n`;
-        }
-        if (resultado.custoRefeicao > 0) {
-            response += `   • Refeições: R$ ${this.formatCurrency(resultado.custoRefeicao)}\n`;
-        }
+        response += `\n💰 **VALOR: R$ ${this.formatCurrency(resultado.valorFinal)}**\n\n`;
         
-        response += `\n🎯 **VALOR TOTAL: R$ ${this.formatCurrency(resultado.valorFinal)}**\n\n`;
-        response += `💡 **O que você quer fazer agora?**\n`;
-        response += `• Diga "aplicar" para usar na calculadora\n`;
-        response += `• Diga "salvar" para guardar esta cotação\n`;
-        response += `• Ou peça para "alterar" algo que queira mudar\n\n`;
-        response += `Estou à disposição! 😊`;
+        response += `Quer aplicar na calculadora? É só dizer "aplicar"! 😊`;
 
         // Armazenar cotação no contexto
         this.currentContext.lastQuotation = {
@@ -667,19 +788,34 @@ class ChatAI {
      * Processa atualização de parâmetro
      */
     handleParameterUpdate(input) {
-        if (!this.currentContext.lastQuotation) {
-            return '⚠️ Não há cotação ativa. Por favor, gere uma cotação primeiro.';
+        if (!this.currentContext.lastQuotation && !this.currentContext.params.duration) {
+            return '⚠️ Ainda não temos uma cotação ativa.\n\nQuer começar uma nova? É só me dizer o que precisa!';
         }
 
         // Extrair novos parâmetros
         const newParams = this.extractParameters(input);
         
-        // Mesclar com parâmetros anteriores
-        const updatedParams = { ...this.currentContext.lastQuotation.params, ...newParams };
+        // Log changes
+        Object.keys(newParams).forEach(key => {
+            if (newParams[key] !== null && 
+                (Array.isArray(newParams[key]) ? newParams[key].length > 0 : true)) {
+                this.logInferredParameter(`Alterado ${key}`, newParams[key]);
+            }
+        });
+
+        // Determine source params
+        const baseParams = this.currentContext.lastQuotation ? 
+                          this.currentContext.lastQuotation.params : 
+                          this.currentContext.params;
         
-        // Gerar nova cotação
-        const quotation = this.generateQuotation(updatedParams);
-        return this.formatQuotationResponse(quotation, updatedParams);
+        // Mesclar com parâmetros anteriores
+        const updatedParams = { ...baseParams, ...newParams };
+        
+        // Update context
+        this.currentContext.params = updatedParams;
+        
+        // Show summary again
+        return this.showPartialSummaryAndAskConfirmation();
     }
 
     /**
@@ -695,23 +831,21 @@ class ChatAI {
      * Processa pedido de ajuda
      */
     handleHelp() {
-        return `📚 **COMO POSSO TE AJUDAR:**\n\n` +
-               `Sou seu assistente virtual para criar orçamentos de locação de espaços. Funciono de forma bem natural, como numa conversa!\n\n` +
-               `**💬 Exemplos de como conversar comigo:**\n\n` +
-               `**Para criar cotações:**\n` +
-               `• "Preciso de uma cotação para 3 meses"\n` +
-               `• "Quero orçamento de 30 dias, segunda a sexta, das 8h às 18h"\n` +
-               `• "Fazer proposta para finais de semana com 4 funcionários"\n\n` +
-               `**Para consultar informações:**\n` +
-               `• "Quais espaços estão disponíveis?"\n` +
-               `• "Me mostre os funcionários"\n` +
-               `• "Quanto custa o Auditório?"\n\n` +
-               `**Para modificar cotações:**\n` +
-               `• "Melhor fazer com 6 meses"\n` +
-               `• "Aumenta para 10 funcionários"\n` +
-               `• "Adiciona a quinta-feira também"\n\n` +
-               `💡 **Dica:** Fale naturalmente! Não precisa decorar comandos específicos. Estou aqui para entender você! 😊\n\n` +
-               `🎤 Você pode usar o botão do microfone para falar ao invés de digitar!`;
+        return `📚 **COMO FUNCIONA:**\n\n` +
+               `Crio orçamentos conversando com você!\n\n` +
+               `**💬 Exemplos:**\n\n` +
+               `**Criar cotações:**\n` +
+               `• "Cotação para 3 meses"\n` +
+               `• "Orçamento de 30 dias, seg a sex, 8h-18h"\n` +
+               `• "Proposta para finais de semana com 4 funcionários"\n\n` +
+               `**Consultar:**\n` +
+               `• "Quais espaços?"\n` +
+               `• "Mostrar funcionários"\n\n` +
+               `**Modificar:**\n` +
+               `• "Mudar para 6 meses"\n` +
+               `• "Adicionar quinta-feira"\n\n` +
+               `💡 Fale naturalmente! Estou aqui para entender você! 😊\n\n` +
+               `🎤 Use o microfone para falar ao invés de digitar!`;
     }
 
     /**
@@ -789,6 +923,247 @@ class ChatAI {
             `Estou aqui para ajudar! 💪`
         ];
         return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    /**
+     * Checks if input is a confirmation
+     */
+    isConfirmation(input) {
+        const confirmWords = ['sim', 'confirmar', 'confirmo', 'prosseguir', 'pode', 'ok', 'okay', 
+                             'beleza', 'tá bom', 'ta bom', 'vamos', 'continuar'];
+        return confirmWords.some(w => input.includes(w));
+    }
+
+    /**
+     * Confirms HE and generates quotation
+     */
+    confirmHEAndGenerate() {
+        this.currentContext.heConfirmed = true;
+        this.currentContext.waitingHEConfirmation = false;
+        const params = this.currentContext.pendingParams;
+        
+        // Log confirmation
+        this.logUserConfirmation('Confirmou horas extras');
+        
+        this.addMessage('Certo, entendi. 👍', 'bot');
+        
+        const quotation = this.generateQuotation(params);
+        return this.formatQuotationResponse(quotation, params);
+    }
+
+    /**
+     * Checks if input is a closure intent
+     */
+    isClosureIntent(input) {
+        // More specific closure phrases
+        const closurePhrases = ['pode finalizar', 'pode fechar', 'é isso', 'e isso', 
+                               'finalizar cotação', 'fechar cotação', 'encerrar conversa',
+                               'terminar aqui', 'só isso', 'isso mesmo'];
+        
+        // Check for exact phrases first
+        if (closurePhrases.some(phrase => input.includes(phrase))) {
+            return true;
+        }
+        
+        // Standalone words (only if not part of another phrase)
+        const standaloneWords = ['pronto', 'concluir'];
+        return standaloneWords.some(w => input === w || input.startsWith(w + ' ') || input.endsWith(' ' + w));
+    }
+
+    /**
+     * Handles conversation closure
+     */
+    handleClosure() {
+        if (!this.currentContext.lastQuotation) {
+            return `Hmm, parece que ainda não temos uma cotação pronta.\n\n` +
+                   `Quer que eu te ajude a criar uma? É só me dizer o que precisa! 😊`;
+        }
+
+        this.currentContext.stage = 'completed';
+        
+        const { params, resultado } = this.currentContext.lastQuotation;
+        
+        let response = `Perfeito! Vou fechar sua cotação. ✅\n\n`;
+        response += `📋 **Resumo Final:**\n`;
+        response += `• Duração: ${params.duration} ${params.durationType}\n`;
+        response += `• Total de horas: ${resultado.horasTotais.toFixed(1)}h\n`;
+        response += `• **Valor: R$ ${this.formatCurrency(resultado.valorFinal)}**\n\n`;
+        response += `🎯 **O que você quer fazer agora?**\n`;
+        response += `• Diga "aplicar" para usar na calculadora\n`;
+        response += `• Diga "nova cotação" para começar outra\n`;
+        response += `• Ou "exportar" para salvar\n\n`;
+        response += `Estou à disposição! 😊`;
+        
+        return response;
+    }
+
+    /**
+     * Checks if input is an audit request
+     */
+    isAuditRequest(input) {
+        return input.includes('como') && (input.includes('calculada') || input.includes('calculado') || 
+               input.includes('chegou') || input.includes('composto'));
+    }
+
+    /**
+     * Handles audit requests
+     */
+    handleAuditRequest() {
+        if (!this.currentContext.lastQuotation) {
+            return `Ainda não temos uma cotação para auditar.\n\nQuer criar uma?`;
+        }
+
+        const { params, resultado } = this.currentContext.lastQuotation;
+        
+        let response = `📊 **Auditoria da Cotação:**\n\n`;
+        response += `**Parâmetros Inferidos:**\n`;
+        this.currentContext.inferredParams.forEach(param => {
+            response += `• ${param}\n`;
+        });
+        
+        response += `\n**Confirmações do Usuário:**\n`;
+        this.currentContext.userConfirmations.forEach(conf => {
+            response += `• ${conf}\n`;
+        });
+        
+        response += `\n**Composição do Valor:**\n`;
+        if (resultado.horasNormais > 0) {
+            response += `• Horas normais: ${resultado.horasNormais.toFixed(1)}h × R$ ${this.formatCurrency(resultado.custoMaoObraNormal / resultado.horasNormais)}/h\n`;
+        }
+        if (resultado.horasHE50 > 0) {
+            response += `• HE 50%: ${resultado.horasHE50.toFixed(1)}h × R$ ${this.formatCurrency(resultado.custoMaoObraHE50 / resultado.horasHE50)}/h\n`;
+        }
+        if (resultado.horasHE100 > 0) {
+            response += `• HE 100%: ${resultado.horasHE100.toFixed(1)}h × R$ ${this.formatCurrency(resultado.custoMaoObraHE100 / resultado.horasHE100)}/h\n`;
+        }
+        response += `• Vale transporte: R$ ${this.formatCurrency(resultado.custoValeTransporte)}\n`;
+        response += `• Margem (${params.margin}%): R$ ${this.formatCurrency(resultado.valorMargem)}\n`;
+        response += `• Desconto (${params.discount}%): -R$ ${this.formatCurrency(resultado.valorDesconto)}\n`;
+        response += `\n**Total: R$ ${this.formatCurrency(resultado.valorFinal)}**`;
+        
+        return response;
+    }
+
+    /**
+     * Handles conversation flow when in gathering/refining stage
+     */
+    async handleConversationFlow(input) {
+        // Try to extract parameters from input
+        const extractedParams = this.extractParameters(input);
+        
+        // Merge with current context params
+        Object.keys(extractedParams).forEach(key => {
+            if (extractedParams[key] !== null && 
+                (Array.isArray(extractedParams[key]) ? extractedParams[key].length > 0 : true)) {
+                this.currentContext.params[key] = extractedParams[key];
+                this.logInferredParameter(key, extractedParams[key]);
+            }
+        });
+
+        // Check what's still missing
+        const validation = this.validateParameters(this.currentContext.params);
+        
+        if (!validation.isValid) {
+            this.currentContext.stage = 'gathering';
+            return this.requestMissingParametersNaturally(validation.missing);
+        }
+
+        // All parameters gathered, move to refining stage
+        this.currentContext.stage = 'refining';
+        return this.showPartialSummaryAndAskConfirmation();
+    }
+
+    /**
+     * Requests missing parameters in a natural way
+     */
+    requestMissingParametersNaturally(missing) {
+        const responses = {
+            'duração do contrato': [
+                'Certo! E por quanto tempo você precisa?',
+                'Entendi! Qual a duração do contrato?',
+                'Ótimo! Me conta: por quantos meses/dias?'
+            ],
+            'dias da semana': [
+                'Perfeito! E quais dias da semana você vai usar?',
+                'Beleza! Me diz: que dias da semana funcionará?',
+                'Legal! Serão quais dias? Segunda a sexta, ou finais de semana também?'
+            ],
+            'espaço': [
+                'Certo! Qual espaço você quer?',
+                'Entendi! Me fala: qual espaço prefere?',
+                'Ótimo! Qual sala/espaço vai usar?'
+            ]
+        };
+
+        const missingParam = missing[0];
+        const responseOptions = responses[missingParam] || [`Preciso saber: ${missingParam}`];
+        const response = responseOptions[Math.floor(Math.random() * responseOptions.length)];
+        
+        return response + '\n\n💬 Pode me contar de forma bem natural mesmo!';
+    }
+
+    /**
+     * Shows partial summary and asks for confirmation
+     */
+    showPartialSummaryAndAskConfirmation() {
+        const params = this.currentContext.params;
+        
+        // Format days
+        const daysNames = {
+            0: 'Domingo', 1: 'Segunda', 2: 'Terça', 
+            3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado'
+        };
+        const selectedDays = params.days.map(d => daysNames[d]).join(', ');
+        
+        // Get space info
+        const space = this.dataManager.obterSalaPorId(params.space);
+        
+        let response = `Perfeito, ajustei isso! 👍\n\n`;
+        response += `📋 **Veja o resumo parcial:**\n`;
+        response += `• Espaço: ${space ? space.nome : 'A definir'}\n`;
+        response += `• Duração: ${params.duration} ${params.durationType}\n`;
+        response += `• Dias: ${selectedDays}\n`;
+        response += `• Horário: ${params.startTime} às ${params.endTime}\n`;
+        
+        if (params.employees) {
+            response += `• Funcionários: ${params.employees}\n`;
+        }
+        
+        response += `\n✅ **Quer que eu siga com esse formato?**\n`;
+        response += `Pode confirmar dizendo "sim" ou ajustar algo específico!`;
+        
+        this.currentContext.stage = 'confirming';
+        
+        return response;
+    }
+
+    /**
+     * Logs command interpretation for audit
+     */
+    logCommandInterpretation(input) {
+        this.conversationHistory.push({
+            type: 'command',
+            content: input,
+            timestamp: new Date()
+        });
+    }
+
+    /**
+     * Logs inferred parameter
+     */
+    logInferredParameter(param, value) {
+        const formattedValue = Array.isArray(value) ? value.join(', ') : value;
+        this.currentContext.inferredParams.push(`${param}: ${formattedValue}`);
+    }
+
+    /**
+     * Logs user confirmation
+     */
+    logUserConfirmation(confirmation) {
+        this.currentContext.userConfirmations.push({
+            confirmation,
+            timestamp: new Date()
+        });
     }
 
     /**
