@@ -268,8 +268,15 @@ class ChatAI {
             return this.confirmHEAndGenerate();
         }
 
-        // Check for closure intents first
-        if (this.isClosureIntent(input)) {
+        // Handle confirmation if waiting for final confirmation (higher priority than closure)
+        if (this.currentContext.waitingForFinalConfirmation && this.isConfirmation(input)) {
+            // This will be handled by chat-ui.js interceptor
+            // Just return to avoid double processing
+            return null;
+        }
+
+        // Check for closure intents (but not if just confirming)
+        if (this.isClosureIntent(input) && !this.isConfirmation(input)) {
             return this.handleClosure();
         }
 
@@ -934,10 +941,19 @@ class ChatAI {
      * Checks if input is a closure intent
      */
     isClosureIntent(input) {
-        const closureWords = ['finalizar', 'fechar', 'encerrar', 'gerar', 'é isso', 'e isso', 
-                             'pode finalizar', 'pode fechar', 'pode gerar', 'terminar', 
-                             'concluir', 'pronto'];
-        return closureWords.some(w => input.includes(w));
+        // More specific closure phrases
+        const closurePhrases = ['pode finalizar', 'pode fechar', 'é isso', 'e isso', 
+                               'finalizar cotação', 'fechar cotação', 'encerrar conversa',
+                               'terminar aqui', 'só isso', 'isso mesmo'];
+        
+        // Check for exact phrases first
+        if (closurePhrases.some(phrase => input.includes(phrase))) {
+            return true;
+        }
+        
+        // Standalone words (only if not part of another phrase)
+        const standaloneWords = ['pronto', 'concluir'];
+        return standaloneWords.some(w => input === w || input.startsWith(w + ' ') || input.endsWith(' ' + w));
     }
 
     /**
