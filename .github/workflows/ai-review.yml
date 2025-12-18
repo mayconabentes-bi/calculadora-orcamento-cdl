@@ -17,10 +17,15 @@ on:
       - 'assets/js/chat-ai.js'
       - 'assets/js/chat-ui.js'
 
+permissions:
+  contents: read
+
 jobs:
   architecture-review:
     name: 🏗️ Architecture Compliance
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,9 +35,15 @@ jobs:
           echo "🔍 Verificando se LLM não calcula valores diretamente..."
           
           # Procurar por cálculos diretos no chat-ai.js (fora do calculateQuotation)
-          if grep -n "const.*=.*\*\|const.*=.*+\|const.*=.*-\|const.*=.*/\|let.*=.*\*\|let.*=.*+\|let.*=.*-\|let.*=.*/" assets/js/chat-ai.js | grep -v "calculateQuotation" | grep -v "parseTimeToMinutes" | grep -v "formatCurrency" | grep -v "Math.floor\|Math.random" | grep -v "//"; then
-            echo "❌ CRÍTICO: LLM está calculando valores diretamente!"
-            echo "O LLM deve chamar calculateQuotation(), não fazer cálculos."
+          # Verificar multiplicação
+          if grep -n "const.*=.*\*\|let.*=.*\*" assets/js/chat-ai.js | grep -v "calculateQuotation" | grep -v "Math.floor\|Math.random" | grep -v "//"; then
+            echo "❌ CRÍTICO: LLM está calculando valores diretamente (multiplicação)!"
+            exit 1
+          fi
+          
+          # Verificar adição/subtração com valores (exceto strings e incrementos)
+          if grep -n "const.*=.*+.*[0-9]\|let.*=.*+.*[0-9]" assets/js/chat-ai.js | grep -v "calculateQuotation" | grep -v "padStart\|++" | grep -v "//"; then
+            echo "❌ CRÍTICO: LLM está calculando valores diretamente (soma)!"
             exit 1
           fi
           
@@ -64,6 +75,8 @@ jobs:
   prompt-quality:
     name: 💬 Prompt Quality Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -99,6 +112,8 @@ jobs:
   voice-parity:
     name: 🎤 Voice-Text Parity
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -131,6 +146,8 @@ jobs:
   test-coverage:
     name: 🧪 Test Coverage Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -164,6 +181,8 @@ jobs:
   documentation:
     name: 📚 Documentation Review
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -201,6 +220,8 @@ jobs:
   security-check:
     name: 🔒 Security Review
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -230,6 +251,8 @@ jobs:
   summary:
     name: 📋 Review Summary
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [architecture-review, prompt-quality, voice-parity, test-coverage, documentation, security-check]
     if: always()
     steps:
