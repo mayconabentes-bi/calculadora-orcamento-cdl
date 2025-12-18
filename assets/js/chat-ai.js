@@ -228,7 +228,7 @@ class ChatAI {
      * Verifica se é um agradecimento
      */
     isThankYou(input) {
-        const thanks = ['obrigad', 'obrigad', 'valeu', 'vlw', 'agradeço', 'agradeco', 'thank'];
+        const thanks = ['obrigad', 'valeu', 'vlw', 'agradeço', 'agradeco', 'thank'];
         return thanks.some(t => input.includes(t));
     }
 

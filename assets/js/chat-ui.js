@@ -128,9 +128,6 @@ function initializeChatUI() {
                 minimizeChat(); // Toggle para restaurar
             }
         });
-        
-        // Adicionar estilo de cursor pointer quando minimizado
-        chatHeader.style.cursor = 'pointer';
     }
 
     // Fechar ao clicar fora (opcional)

@@ -82,6 +82,10 @@
     display: none;
 }
 
+.chat-modal.minimized .chat-header-info {
+    cursor: pointer;
+}
+
 @keyframes slideUp {
     from {
         opacity: 0;
