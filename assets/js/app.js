@@ -1538,21 +1538,21 @@ function exportarPDFSuperintendencia() {
             
             // Vale Transporte
             if (func.custoVT > 0) {
-                doc.text(`• Vale Transporte: ${resultado.diasTotais} dias`, 25, y);
+                doc.text(`• Vale Transporte: ${Math.round(resultado.diasTotais)} dias`, 25, y);
                 doc.text(`R$ ${formatarMoeda(func.custoVT)}`, 190, y, { align: 'right' });
                 y += 4;
             }
             
             // Transporte por aplicativo
             if (func.custoTransApp > 0) {
-                doc.text(`• Transporte por Aplicativo: ${resultado.diasTotais} dias`, 25, y);
+                doc.text(`• Transporte por Aplicativo: ${Math.round(resultado.diasTotais)} dias`, 25, y);
                 doc.text(`R$ ${formatarMoeda(func.custoTransApp)}`, 190, y, { align: 'right' });
                 y += 4;
             }
             
             // Refeição
             if (func.custoRefeicao > 0) {
-                doc.text(`• Refeição: ${resultado.diasTotais} dias`, 25, y);
+                doc.text(`• Refeição: ${Math.round(resultado.diasTotais)} dias`, 25, y);
                 doc.text(`R$ ${formatarMoeda(func.custoRefeicao)}`, 190, y, { align: 'right' });
                 y += 4;
             }
@@ -1670,13 +1670,13 @@ function exportarPDFSuperintendencia() {
     let corRisco = [0, 0, 0];
     
     if (riscoMaoObra > 60) {
-        classificacaoRisco = '🔴 ALTO';
+        classificacaoRisco = 'ALTO';
         corRisco = [220, 38, 38]; // Vermelho
     } else if (riscoMaoObra >= 40) {
-        classificacaoRisco = '🟡 MÉDIO';
+        classificacaoRisco = 'MÉDIO';
         corRisco = [234, 179, 8]; // Amarelo
     } else {
-        classificacaoRisco = '🟢 BAIXO';
+        classificacaoRisco = 'BAIXO';
         corRisco = [34, 197, 94]; // Verde
     }
     
