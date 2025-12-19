@@ -111,15 +111,15 @@ function mostrarInfoSala() {
     const multiplicadores = dataManager.obterMultiplicadoresTurno();
     
     infoDiv.innerHTML = `
-        <strong>📍 ${sala.unidade} - ${sala.nome}</strong><br>
-        👥 Capacidade: ${sala.capacidade} pessoas<br>
-        📐 Área: ${sala.area} m²<br>
-        💰 Custo Base: R$ ${formatarMoeda(sala.custoBase)}/h<br>
+        <strong style="display: block; margin-bottom: 8px;">${sala.unidade} - ${sala.nome}</strong>
+        <div style="margin: 4px 0;">Capacidade: ${sala.capacidade} pessoas</div>
+        <div style="margin: 4px 0;">Área: ${sala.area} m²</div>
+        <div style="margin: 4px 0;">Custo Base: R$ ${formatarMoeda(sala.custoBase)}/h</div>
         <br>
         <strong>Valores por Turno:</strong><br>
-        ☀️ Manhã: R$ ${formatarMoeda(sala.custoBase * multiplicadores.manha)}/h (×${multiplicadores.manha})<br>
-        🌤️ Tarde: R$ ${formatarMoeda(sala.custoBase * multiplicadores.tarde)}/h (×${multiplicadores.tarde})<br>
-        🌙 Noite: R$ ${formatarMoeda(sala.custoBase * multiplicadores.noite)}/h (×${multiplicadores.noite})
+        <div style="margin: 4px 0;">Manhã: R$ ${formatarMoeda(sala.custoBase * multiplicadores.manha)}/h (×${multiplicadores.manha})</div>
+        <div style="margin: 4px 0;">Tarde: R$ ${formatarMoeda(sala.custoBase * multiplicadores.tarde)}/h (×${multiplicadores.tarde})</div>
+        <div style="margin: 4px 0;">Noite: R$ ${formatarMoeda(sala.custoBase * multiplicadores.noite)}/h (×${multiplicadores.noite})</div>
     `;
 }
 
@@ -1610,7 +1610,7 @@ function imprimirOrcamento() {
             </div>
             
             <div class="pdf-section">
-                <h2>📍 Informações do Espaço</h2>
+                <h2>Informações do Espaço</h2>
                 <table class="pdf-table">
                     <tr><td>Espaço:</td><td>${sala.unidade} - ${sala.nome}</td></tr>
                     <tr><td>Capacidade:</td><td>${sala.capacidade} pessoas</td></tr>
@@ -1619,7 +1619,7 @@ function imprimirOrcamento() {
             </div>
             
             <div class="pdf-section">
-                <h2>📋 Detalhes do Contrato</h2>
+                <h2>Detalhes do Contrato</h2>
                 <table class="pdf-table">
                     <tr><td>Duração:</td><td>${calculo.duracao} ${calculo.duracaoTipo || 'meses'}</td></tr>
                     <tr><td>Dias:</td><td>${diasSelecionadosTexto}</td></tr>
@@ -1629,7 +1629,7 @@ function imprimirOrcamento() {
             </div>
             
             <div class="pdf-section">
-                <h2>💰 Valores</h2>
+                <h2>Valores</h2>
                 <table class="pdf-table">
                     <tr><td>Valor por hora:</td><td>R$ ${formatarMoeda(resultado.valorPorHora)}</td></tr>
                     <tr><td>Desconto aplicado:</td><td>${resultado.descontoPercent.toFixed(0)}%</td></tr>
