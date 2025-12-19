@@ -17,7 +17,11 @@ const dataManagerCode = fs.readFileSync(
   'utf8'
 );
 
-eval(dataManagerCode);
+// Executar código usando Function para evitar problemas com escopo strict
+const codeWithoutInstance = dataManagerCode.replace('const dataManager = new DataManager();', '');
+const executar = new Function(codeWithoutInstance + '; return DataManager;');
+const DataManager = executar();
+global.DataManager = DataManager;
 
 // Mock das funções de cálculo (baseadas no app.js)
 function calcularValoresCompleto(parametros) {
@@ -430,7 +434,7 @@ describe('Integração - Cenários Diversos', () => {
 
   test('cenário: múltiplos funcionários', () => {
     // Adicionar mais funcionários
-    dm.adicionarFuncionario({
+    const func2 = dm.adicionarFuncionario({
       nome: 'Func 2',
       horaNormal: 18.00,
       he50: 27.00,
@@ -438,13 +442,17 @@ describe('Integração - Cenários Diversos', () => {
       valeTransporte: 6.00
     });
     
-    dm.adicionarFuncionario({
+    const func3 = dm.adicionarFuncionario({
       nome: 'Func 3',
       horaNormal: 22.00,
       he50: 33.00,
       he100: 44.00,
       valeTransporte: 6.00
     });
+    
+    // Ativar os funcionários (default é inativo)
+    const todosFunc = dm.obterFuncionarios();
+    todosFunc.forEach(f => dm.definirFuncionarioAtivo(f.id, true));
     
     const sala = dm.obterSalas()[0];
     const funcionarios = dm.obterFuncionariosAtivos();
