@@ -8,6 +8,13 @@ let ultimoCalculoRealizado = null;
 let horariosCount = 0;
 let horarios = [];
 
+// ========== SVG ICONS ==========
+const ICONS = {
+    edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>',
+    trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    save: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>'
+};
+
 // ========== INICIALIZAÇÃO ==========
 document.addEventListener('DOMContentLoaded', function() {
     inicializarAplicacao();
@@ -210,7 +217,7 @@ function renderizarHorarios() {
                 <button type="button" 
                         class="btn-small btn-delete" 
                         onclick="removerHorario(${horario.id})"
-                        style="margin-bottom: 0;">🗑️</button>
+                        style="margin-bottom: 0;">${ICONS.trash}</button>
             ` : ''}
         `;
         
@@ -278,8 +285,8 @@ function carregarTabelaEspacos() {
             <td>${sala.capacidade} pessoas</td>
             <td>${sala.area} m²</td>
             <td>
-                <button class="btn-small btn-edit" onclick="editarSala(${sala.id})">✏️ Editar</button>
-                <button class="btn-small btn-delete" onclick="removerSala(${sala.id})">🗑️ Remover</button>
+                <button class="btn-small btn-edit" onclick="editarSala(${sala.id})">${ICONS.edit} Editar</button>
+                <button class="btn-small btn-delete" onclick="removerSala(${sala.id})">${ICONS.trash} Remover</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -315,7 +322,7 @@ function carregarTabelaCustos() {
             <td>R$ ${formatarMoeda(sala.custoBase * multiplicadores.tarde)}</td>
             <td>R$ ${formatarMoeda(sala.custoBase * multiplicadores.noite)}</td>
             <td>
-                <button class="btn-small btn-edit" onclick="salvarCustoSala(${sala.id})">💾 Salvar</button>
+                <button class="btn-small btn-edit" onclick="salvarCustoSala(${sala.id})">${ICONS.save} Salvar</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -340,8 +347,8 @@ function carregarExtrasConfig() {
                 <span style="color: #6b7280;">R$ ${formatarMoeda(extra.custo)}/h</span>
             </div>
             <div>
-                <button class="btn-small btn-edit" onclick="editarExtra(${extra.id})">✏️</button>
-                <button class="btn-small btn-delete" onclick="removerExtra(${extra.id})">🗑️</button>
+                <button class="btn-small btn-edit" onclick="editarExtra(${extra.id})">${ICONS.edit}</button>
+                <button class="btn-small btn-delete" onclick="removerExtra(${extra.id})">${ICONS.trash}</button>
             </div>
         `;
         container.appendChild(div);
@@ -393,18 +400,18 @@ function carregarListaFuncionarios() {
                         ${func.ativo ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold;">ATIVO</span>' : ''}
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.9em; color: #6b7280;">
-                        <div>💵 Hora Normal: <strong>R$ ${formatarMoeda(func.horaNormal)}</strong></div>
-                        <div>📈 HE 50%: <strong>R$ ${formatarMoeda(func.he50)}</strong></div>
-                        <div>📊 HE 100%: <strong>R$ ${formatarMoeda(func.he100)}</strong></div>
-                        <div>🎫 Vale Transporte: <strong>R$ ${formatarMoeda(func.valeTransporte)}</strong></div>
-                        <div>🚗 Transporte App: <strong>R$ ${formatarMoeda(func.transporteApp || 0)}</strong></div>
-                        <div>🍽️ Refeição: <strong>R$ ${formatarMoeda(func.refeicao || 0)}</strong></div>
+                        <div>Hora Normal: <strong>R$ ${formatarMoeda(func.horaNormal)}</strong></div>
+                        <div>HE 50%: <strong>R$ ${formatarMoeda(func.he50)}</strong></div>
+                        <div>HE 100%: <strong>R$ ${formatarMoeda(func.he100)}</strong></div>
+                        <div>Vale Transporte: <strong>R$ ${formatarMoeda(func.valeTransporte)}</strong></div>
+                        <div>Transporte App: <strong>R$ ${formatarMoeda(func.transporteApp || 0)}</strong></div>
+                        <div>Refeição: <strong>R$ ${formatarMoeda(func.refeicao || 0)}</strong></div>
                         ${dataEscalaInfo}
                     </div>
                 </div>
                 <div style="display: flex; gap: 5px; margin-left: 15px;">
-                    <button class="btn-small btn-edit" onclick="editarFuncionario(${func.id})" title="Editar">✏️</button>
-                    ${funcionarios.length > 1 ? `<button class="btn-small btn-delete" onclick="removerFuncionario(${func.id})" title="Remover">🗑️</button>` : ''}
+                    <button class="btn-small btn-edit" onclick="editarFuncionario(${func.id})" title="Editar">${ICONS.edit}</button>
+                    ${funcionarios.length > 1 ? `<button class="btn-small btn-delete" onclick="removerFuncionario(${func.id})" title="Remover">${ICONS.trash}</button>` : ''}
                 </div>
             </div>
         `;
