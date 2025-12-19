@@ -1233,6 +1233,21 @@ function resetarDados() {
 // ========== EXPORTAÇÃO DE PDF ==========
 
 /**
+ * Verifica se há espaço suficiente na página e adiciona nova se necessário
+ * @param {jsPDF} doc - Instância do jsPDF
+ * @param {number} yAtual - Posição Y atual
+ * @param {number} espacoNecessario - Espaço necessário em mm
+ * @returns {number} Nova posição Y
+ */
+function verificarEAdicionarPagina(doc, yAtual, espacoNecessario = 20) {
+    if (yAtual + espacoNecessario > 280) {
+        doc.addPage();
+        return 20;
+    }
+    return yAtual;
+}
+
+/**
  * Exporta PDF versão cliente (proposta comercial)
  */
 function exportarPDFCliente() {
@@ -1470,6 +1485,95 @@ function exportarPDFSuperintendencia() {
         y += 5;
     });
     
+    // === 3.1. BREAKDOWN DETALHADO - MÃO DE OBRA ===
+    if (resultado.detalhamentoFuncionarios && resultado.detalhamentoFuncionarios.length > 0) {
+        y += 8;
+        y = verificarEAdicionarPagina(doc, y, 25);
+        
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(30, 71, 138);
+        doc.text('3.1. BREAKDOWN DETALHADO - MÃO DE OBRA', 15, y);
+        
+        y += 7;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        
+        resultado.detalhamentoFuncionarios.forEach((func, index) => {
+            // Verificar espaço para o funcionário completo (precisa ~35mm)
+            y = verificarEAdicionarPagina(doc, y, 35);
+            
+            // Nome do funcionário com fundo cinza claro
+            doc.setFillColor(240, 240, 240);
+            doc.rect(20, y - 3, 170, 6, 'F');
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(10);
+            doc.text(`Funcionário ${index + 1}: ${func.nome}`, 22, y);
+            
+            y += 7;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(9);
+            
+            // Horas normais
+            if (func.horasNormais > 0) {
+                doc.text(`• Horas Normais: ${func.horasNormais.toFixed(1)}h`, 25, y);
+                doc.text(`R$ ${formatarMoeda(func.custoNormal)}`, 190, y, { align: 'right' });
+                y += 4;
+            }
+            
+            // HE 50% (Sábado)
+            if (func.horasHE50 > 0) {
+                doc.text(`• HE 50% (Sábado): ${func.horasHE50.toFixed(1)}h`, 25, y);
+                doc.text(`R$ ${formatarMoeda(func.custoHE50)}`, 190, y, { align: 'right' });
+                y += 4;
+            }
+            
+            // HE 100% (Domingo)
+            if (func.horasHE100 > 0) {
+                doc.text(`• HE 100% (Domingo): ${func.horasHE100.toFixed(1)}h`, 25, y);
+                doc.text(`R$ ${formatarMoeda(func.custoHE100)}`, 190, y, { align: 'right' });
+                y += 4;
+            }
+            
+            // Vale Transporte
+            if (func.custoVT > 0) {
+                const diasVT = Math.round(func.custoVT / (func.custoVT / resultado.diasTotais));
+                doc.text(`• Vale Transporte: ${resultado.diasTotais} dias`, 25, y);
+                doc.text(`R$ ${formatarMoeda(func.custoVT)}`, 190, y, { align: 'right' });
+                y += 4;
+            }
+            
+            // Transporte por aplicativo
+            if (func.custoTransApp > 0) {
+                doc.text(`• Transporte por Aplicativo: ${resultado.diasTotais} dias`, 25, y);
+                doc.text(`R$ ${formatarMoeda(func.custoTransApp)}`, 190, y, { align: 'right' });
+                y += 4;
+            }
+            
+            // Refeição
+            if (func.custoRefeicao > 0) {
+                doc.text(`• Refeição: ${resultado.diasTotais} dias`, 25, y);
+                doc.text(`R$ ${formatarMoeda(func.custoRefeicao)}`, 190, y, { align: 'right' });
+                y += 4;
+            }
+            
+            // Linha e subtotal do funcionário
+            y += 1;
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.3);
+            doc.line(25, y, 190, y);
+            y += 4;
+            
+            doc.setFont(undefined, 'bold');
+            doc.text(`Subtotal ${func.nome}:`, 25, y);
+            doc.text(`R$ ${formatarMoeda(func.custoTotal)}`, 190, y, { align: 'right' });
+            
+            y += 7;
+            doc.setFont(undefined, 'normal');
+        });
+    }
+    
     y += 3;
     doc.setDrawColor(0, 0, 0);
     doc.line(20, y, 190, y);
@@ -1532,11 +1636,104 @@ function exportarPDFSuperintendencia() {
     y += 5;
     doc.text(`• Economia total para cliente: R$ ${formatarMoeda(resultado.economia)}`, 20, y);
     
-    // Observações
+    // === 5. ANÁLISE DE VIABILIDADE ===
     y += 12;
+    y = verificarEAdicionarPagina(doc, y, 50);
+    
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text('5. OBSERVAÇÕES', 15, y);
+    doc.setTextColor(30, 71, 138);
+    doc.text('5. ANÁLISE DE VIABILIDADE', 15, y);
+    
+    y += 7;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(0, 0, 0);
+    
+    // Calcular custos fixos e variáveis
+    const custoFixo = resultado.custoOperacionalBase;
+    const custoVariavel = resultado.custoMaoObraTotal + resultado.custoValeTransporte + 
+                          resultado.custoTransporteApp + resultado.custoRefeicao;
+    const custoTotal = custoFixo + custoVariavel + resultado.custoExtras;
+    const percentualFixo = (custoFixo / custoTotal * 100);
+    const percentualVariavel = (custoVariavel / custoTotal * 100);
+    
+    // Margem de contribuição
+    const margemContribuicao = resultado.valorFinal - custoVariavel;
+    const percentualMargemContrib = (margemContribuicao / resultado.valorFinal * 100);
+    
+    // Ponto de equilíbrio
+    const pontoEquilibrio = custoFixo / (percentualMargemContrib / 100);
+    
+    // Análise de risco operacional
+    const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
+    let classificacaoRisco = '';
+    let corRisco = [0, 0, 0];
+    
+    if (riscoMaoObra > 60) {
+        classificacaoRisco = '🔴 ALTO';
+        corRisco = [220, 38, 38]; // Vermelho
+    } else if (riscoMaoObra >= 40) {
+        classificacaoRisco = '🟡 MÉDIO';
+        corRisco = [234, 179, 8]; // Amarelo
+    } else {
+        classificacaoRisco = '🟢 BAIXO';
+        corRisco = [34, 197, 94]; // Verde
+    }
+    
+    // Exibir análise
+    doc.setFont(undefined, 'bold');
+    doc.text('Estrutura de Custos:', 20, y);
+    y += 6;
+    
+    doc.setFont(undefined, 'normal');
+    doc.text(`• Custos Fixos (Operacional): R$ ${formatarMoeda(custoFixo)} (${percentualFixo.toFixed(1)}%)`, 25, y);
+    y += 5;
+    doc.text(`• Custos Variáveis (Pessoal): R$ ${formatarMoeda(custoVariavel)} (${percentualVariavel.toFixed(1)}%)`, 25, y);
+    y += 5;
+    doc.text(`• Custos Extras: R$ ${formatarMoeda(resultado.custoExtras)} (${(resultado.custoExtras/custoTotal*100).toFixed(1)}%)`, 25, y);
+    
+    y += 8;
+    doc.setFont(undefined, 'bold');
+    doc.text('Indicadores de Viabilidade:', 20, y);
+    y += 6;
+    
+    doc.setFont(undefined, 'normal');
+    doc.text(`• Margem de Contribuição: R$ ${formatarMoeda(margemContribuicao)} (${percentualMargemContrib.toFixed(1)}%)`, 25, y);
+    y += 5;
+    doc.text(`• Ponto de Equilíbrio: R$ ${formatarMoeda(pontoEquilibrio)}`, 25, y);
+    
+    y += 8;
+    doc.setFont(undefined, 'bold');
+    doc.text('Análise de Risco Operacional:', 20, y);
+    y += 6;
+    
+    doc.setFont(undefined, 'normal');
+    doc.text(`• Percentual de Custos Variáveis sobre Receita: ${riscoMaoObra.toFixed(1)}%`, 25, y);
+    y += 5;
+    
+    // Classificação de risco com cor
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(corRisco[0], corRisco[1], corRisco[2]);
+    doc.text(`• Classificação de Risco: ${classificacaoRisco}`, 25, y);
+    
+    y += 5;
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('(Alto: >60% | Médio: 40-60% | Baixo: <40%)', 27, y);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    
+    // Observações
+    y += 12;
+    y = verificarEAdicionarPagina(doc, y, 25);
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(30, 71, 138);
+    doc.text('6. OBSERVAÇÕES', 15, y);
     
     y += 7;
     doc.setFontSize(9);
@@ -1548,6 +1745,74 @@ function exportarPDFSuperintendencia() {
     doc.text('• Vale transporte calculado por dia trabalhado', 20, y);
     y += 4;
     doc.text('• Esta análise é de uso interno e confidencial', 20, y);
+    
+    // === APROVAÇÃO GERENCIAL ===
+    y += 15;
+    y = verificarEAdicionarPagina(doc, y, 40);
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(30, 71, 138);
+    doc.text('APROVAÇÃO GERENCIAL', 15, y);
+    
+    y += 10;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    
+    // Três caixas de assinatura lado a lado
+    const boxWidth = 55;
+    const boxHeight = 20;
+    const boxSpacing = 5;
+    const startX = 15;
+    
+    // Caixa 1: Analista Responsável
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(0.3);
+    doc.rect(startX, y, boxWidth, boxHeight);
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(9);
+    doc.text('Analista Responsável', startX + 2, y + 5);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(8);
+    doc.setDrawColor(150, 150, 150);
+    doc.line(startX + 2, y + 13, startX + boxWidth - 2, y + 13);
+    doc.text('Assinatura', startX + 2, y + 16);
+    doc.text('Data: ___/___/______', startX + 2, y + 19);
+    
+    // Caixa 2: Coordenação
+    const box2X = startX + boxWidth + boxSpacing;
+    doc.setDrawColor(100, 100, 100);
+    doc.rect(box2X, y, boxWidth, boxHeight);
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(9);
+    doc.text('Coordenação', box2X + 2, y + 5);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(8);
+    doc.setDrawColor(150, 150, 150);
+    doc.line(box2X + 2, y + 13, box2X + boxWidth - 2, y + 13);
+    doc.text('Assinatura', box2X + 2, y + 16);
+    doc.text('Data: ___/___/______', box2X + 2, y + 19);
+    
+    // Caixa 3: Superintendência
+    const box3X = box2X + boxWidth + boxSpacing;
+    doc.setDrawColor(100, 100, 100);
+    doc.rect(box3X, y, boxWidth, boxHeight);
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(9);
+    doc.text('Superintendência', box3X + 2, y + 5);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(8);
+    doc.setDrawColor(150, 150, 150);
+    doc.line(box3X + 2, y + 13, box3X + boxWidth - 2, y + 13);
+    doc.text('Assinatura', box3X + 2, y + 16);
+    doc.text('Data: ___/___/______', box3X + 2, y + 19);
     
     // Footer
     y = 280;
