@@ -1,0 +1,19 @@
+<svg width="120" height="60" viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle for C -->
+  <circle cx="20" cy="30" r="15" fill="#1e40af" opacity="0.1"/>
+  
+  <!-- Letter C -->
+  <path d="M20 12C11.163 12 4 19.163 4 28C4 36.837 11.163 44 20 44C23.314 44 26.392 42.946 28.899 41.172L25.657 36.828C24.157 37.892 22.354 38.5 20.414 38.5C14.624 38.5 9.914 33.79 9.914 28C9.914 22.21 14.624 17.5 20.414 17.5C22.354 17.5 24.157 18.108 25.657 19.172L28.899 14.828C26.392 13.054 23.314 12 20 12Z" fill="#1e40af"/>
+  
+  <!-- Letter D -->
+  <path d="M40 12V44H50C58.837 44 66 36.837 66 28C66 19.163 58.837 12 50 12H40ZM46 17.5H50C55.79 17.5 60.5 22.21 60.5 28C60.5 33.79 55.79 38.5 50 38.5H46V17.5Z" fill="#1e40af"/>
+  
+  <!-- Letter L -->
+  <path d="M74 12V44H94V38.5H80V12H74Z" fill="#1e40af"/>
+  
+  <!-- Decorative line -->
+  <rect x="4" y="52" width="92" height="2" fill="#2563eb" opacity="0.5"/>
+  
+  <!-- Subtitle text -->
+  <text x="4" y="59" font-family="Arial, sans-serif" font-size="6" fill="#64748b" font-weight="600">CÂMARA DE DIRIGENTES LOJISTAS</text>
+</svg>

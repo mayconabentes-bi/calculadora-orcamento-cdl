@@ -147,6 +147,18 @@ body {
     font-weight: var(--font-medium);
 }
 
+.header-logo {
+    margin-bottom: var(--spacing-lg);
+}
+
+.cdl-logo {
+    height: 50px;
+    width: auto;
+    display: block;
+    filter: brightness(0) invert(1);
+    opacity: 0.95;
+}
+
 .status-badge {
     display: inline-flex;
     align-items: center;

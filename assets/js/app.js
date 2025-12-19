@@ -15,6 +15,9 @@ const ICONS = {
     save: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>'
 };
 
+// ========== CDL LOGO (Base64 encoded SVG) ==========
+const CDL_LOGO_BASE64 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiB2aWV3Qm94PSIwIDAgMTIwIDYwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDwhLS0gQmFja2dyb3VuZCBjaXJjbGUgZm9yIEMgLS0+CiAgPGNpcmNsZSBjeD0iMjAiIGN5PSIzMCIgcj0iMTUiIGZpbGw9IiMxZTQwYWYiIG9wYWNpdHk9IjAuMSIvPgogIAogIDwhLS0gTGV0dGVyIEMgLS0+CiAgPHBhdGggZD0iTTIwIDEyQzExLjE2MyAxMiA0IDE5LjE2MyA0IDI4QzQgMzYuODM3IDExLjE2MyA0NCAyMCA0NEMyMy4zMTQgNDQgMjYuMzkyIDQyLjk0NiAyOC44OTkgNDEuMTcyTDI1LjY1NyAzNi44MjhDMjQuMTU3IDM3Ljg5MiAyMi4zNTQgMzguNSAyMC40MTQgMzguNUMxNC42MjQgMzguNSA5LjkxNCAzMy43OSA5LjkxNCAyOEM5LjkxNCAyMi4yMSAxNC42MjQgMTcuNSAyMC40MTQgMTcuNUMyMi4zNTQgMTcuNSAyNC4xNTcgMTguMTA4IDI1LjY1NyAxOS4xNzJMMjguODk5IDE0LjgyOEMyNi4zOTIgMTMuMDU0IDIzLjMxNCAxMiAyMCAxMloiIGZpbGw9IiMxZTQwYWYiLz4KICAKICA8IS0tIExldHRlciBEIC0tPgogIDxwYXRoIGQ9Ik00MCAxMlY0NEg1MEM1OC44MzcgNDQgNjYgMzYuODM3IDY2IDI4QzY2IDE5LjE2MyA1OC44MzcgMTIgNTAgMTJINDBaTTQ2IDE3LjVINTBDNTUuNzkgMTcuNSA2MC41IDIyLjIxIDYwLjUgMjhDNjAuNSAzMy43OSA1NS43OSAzOC41IDUwIDM4LjVINDZWMTcuNVoiIGZpbGw9IiMxZTQwYWYiLz4KICAKICA8IS0tIExldHRlciBMIC0tPgogIDxwYXRoIGQ9Ik03NCAxMlY0NEg5NFYzOC41SDgwVjEySDc0WiIgZmlsbD0iIzFlNDBhZiIvPgogIAogIDwhLS0gRGVjb3JhdGl2ZSBsaW5lIC0tPgogIDxyZWN0IHg9IjQiIHk9IjUyIiB3aWR0aD0iOTIiIGhlaWdodD0iMiIgZmlsbD0iIzI1NjNlYiIgb3BhY2l0eT0iMC41Ii8+CiAgCiAgPCEtLSBTdWJ0aXRsZSB0ZXh0IC0tPgogIDx0ZXh0IHg9IjQiIHk9IjU5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNiIgZmlsbD0iIzY0NzQ4YiIgZm9udC13ZWlnaHQ9IjYwMCI+Q8OiTUFSQSBERSBESVJJR0VOVEVTIExPSklTVEFTPC90ZXh0Pgo8L3N2Zz4=';
+
 // ========== INICIALIZAÇÃO ==========
 document.addEventListener('DOMContentLoaded', function() {
     inicializarAplicacao();
@@ -1263,6 +1266,13 @@ function exportarPDFCliente() {
     const sala = calculo.sala;
     const resultado = calculo.resultado;
     
+    // Add CDL Logo at the top
+    try {
+        doc.addImage(CDL_LOGO_BASE64, 'SVG', 15, 8, 40, 20);
+    } catch (e) {
+        console.error('Error adding logo:', e);
+    }
+    
     // Header
     doc.setFontSize(20);
     doc.setTextColor(30, 71, 138);
@@ -1384,6 +1394,13 @@ function exportarPDFSuperintendencia() {
     const calculo = ultimoCalculoRealizado;
     const sala = calculo.sala;
     const resultado = calculo.resultado;
+    
+    // Add CDL Logo at the top
+    try {
+        doc.addImage(CDL_LOGO_BASE64, 'SVG', 15, 5, 40, 20);
+    } catch (e) {
+        console.error('Error adding logo:', e);
+    }
     
     // Header
     doc.setFontSize(18);
@@ -1869,6 +1886,7 @@ function imprimirOrcamento() {
     printSection.innerHTML = `
         <div class="pdf-content">
             <div class="pdf-header">
+                <img src="assets/images/logo-cdl.svg" alt="Logo CDL" style="width: 120px; height: 60px; margin-bottom: 20px;">
                 <h1>🏢 PROPOSTA DE ORÇAMENTO</h1>
                 <p>CDL/UTV - Locação de Espaços para Eventos</p>
             </div>
