@@ -499,6 +499,33 @@ doc.text('Título', x, y);
 doc.save('arquivo.pdf');
 ```
 
+### Função Auxiliar de Paginação (v5.1.0)
+
+```javascript
+/**
+ * Verifica se há espaço suficiente na página e adiciona nova se necessário
+ * @param {jsPDF} doc - Instância do jsPDF
+ * @param {number} yAtual - Posição Y atual
+ * @param {number} espacoNecessario - Espaço necessário em mm (padrão: 20)
+ * @returns {number} Nova posição Y (20 se nova página, yAtual caso contrário)
+ */
+function verificarEAdicionarPagina(doc, yAtual, espacoNecessario = 20) {
+    if (yAtual + espacoNecessario > 280) {  // Margem inferior ~280mm
+        doc.addPage();
+        return 20;  // Posição inicial da nova página
+    }
+    return yAtual;
+}
+
+// Uso:
+y = verificarEAdicionarPagina(doc, y, 35);  // Verifica se precisa de 35mm
+```
+
+**Quando usar**:
+- Antes de adicionar seções grandes
+- Antes de loops que podem adicionar muito conteúdo
+- Ao adicionar blocos de informação que não devem ser cortados
+
 ### PDF Cliente - Proposta Comercial
 
 **Conteúdo**:
@@ -517,18 +544,41 @@ doc.save('arquivo.pdf');
 
 ### PDF Superintendência - Análise Financeira
 
-**Conteúdo adicional**:
-1. Breakdown completo de custos
-2. Detalhamento de mão de obra
-3. Indicadores financeiros (margem líquida, markup)
-4. Observações técnicas
-5. Marcação de confidencialidade
+**Estrutura do documento** (v5.1.0):
+1. **Dados do Espaço** - Informações básicas do local
+2. **Parâmetros do Contrato** - Duração, dias, horários, margem e desconto
+3. **Detalhamento de Custos** - Breakdown por categoria
+   - **3.1. Breakdown Detalhado - Mão de Obra** ⭐ NOVO - Lista individual de funcionários com:
+     - Horas normais e custos
+     - HE 50% (sábados) e custos
+     - HE 100% (domingos) e custos
+     - Vale transporte por dias trabalhados
+     - Transporte por aplicativo (se aplicável)
+     - Refeições (se aplicável)
+     - Subtotal por funcionário
+4. **Indicadores Financeiros** - Valor por hora, margem líquida, markup, economia
+5. **Análise de Viabilidade** ⭐ NOVO - Indicadores gerenciais:
+   - Estrutura de custos (fixos vs variáveis com percentuais)
+   - Margem de contribuição (valor e %)
+   - Ponto de equilíbrio
+   - Análise de risco operacional com classificação colorida:
+     - 🔴 ALTO: Custos variáveis > 60% (vermelho)
+     - 🟡 MÉDIO: Entre 40-60% (amarelo)
+     - 🟢 BAIXO: < 40% (verde)
+6. **Observações** - Notas técnicas sobre os cálculos
+7. **Aprovação Gerencial** ⭐ NOVO - Três caixas de assinatura:
+   - Analista Responsável
+   - Coordenação
+   - Superintendência
 
 **Características**:
-- ✅ Detalhamento completo
-- ✅ Análise financeira profunda
-- ✅ Uso interno
-- ✅ Formato de relatório gerencial
+- ✅ Detalhamento completo por funcionário
+- ✅ Análise de viabilidade financeira
+- ✅ Paginação automática quando necessário
+- ✅ Classificação de risco visual
+- ✅ Área para aprovações gerenciais
+- ✅ Uso interno e confidencial
+- ✅ Formato de relatório gerencial profissional
 
 ### Customização de PDFs
 
