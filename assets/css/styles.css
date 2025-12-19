@@ -155,6 +155,7 @@ body {
     height: 50px;
     width: auto;
     display: block;
+    /* Convert logo to white: brightness(0) makes it black, invert(1) converts to white */
     filter: brightness(0) invert(1);
     opacity: 0.95;
 }
