@@ -34,3 +34,10 @@ build/
 # Environment
 .env
 .env.local
+
+# Test artifacts
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+*.lcov
