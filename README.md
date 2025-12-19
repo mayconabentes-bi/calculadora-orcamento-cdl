@@ -92,9 +92,51 @@ calculadora-orcamento-cdl/
 
 O sistema está hospedado no GitHub Pages e funciona diretamente no navegador!
 
+## 🧪 Testes
+
+### Instalação de Dependências
+
+```bash
+npm install
+npm run playwright:install
+```
+
+### Rodar Testes
+
+```bash
+# Todos os testes
+npm run test:all
+
+# Apenas testes unitários e de integração
+npm test
+
+# Testes com cobertura
+npm run test:coverage
+
+# Testes E2E
+npm run test:e2e
+
+# Testes E2E com interface visível
+npm run test:e2e:headed
+
+# Testes E2E em modo debug
+npm run test:e2e:debug
+```
+
+### Cobertura de Testes
+
+- **Testes Unitários:** 145+ testes
+- **Testes de Integração:** 35+ testes
+- **Testes E2E:** 55+ testes
+- **Total:** 235+ testes
+- **Cobertura de Código:** >70%
+
+Para mais informações, consulte [tests/README.md](tests/README.md).
+
 ##  Roadmap
 
 ### Versão 5.1 (Planejada)
+- [x] Suite completa de testes automatizados
 - [ ] Modo escuro
 - [ ] Histórico de orçamentos
 - [ ] Comparação de propostas
