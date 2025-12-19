@@ -11,7 +11,6 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="assets/css/styles.css">
-    <link rel="stylesheet" href="assets/css/chat-ai.css">
     
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -373,69 +372,8 @@
         <span id="notification-text">Operação realizada com sucesso!</span>
     </div>
 
-    <!-- Chat IA -->
-    <button class="chat-float-button" id="chat-float-btn" title="Abrir Chat IA">
-        🤖
-    </button>
-
-    <div class="chat-modal" id="chat-modal">
-        <!-- Cabeçalho -->
-        <div class="chat-header">
-            <div class="chat-header-info">
-                <div class="chat-avatar">🤖</div>
-                <div class="chat-header-text">
-                    <h3>Chat IA - Cotações</h3>
-                    <p>Assistente Virtual CDL/UTV</p>
-                </div>
-            </div>
-            <div class="chat-header-actions">
-                <button class="chat-header-btn" id="chat-clear-btn" title="Limpar chat">🗑️</button>
-                <button class="chat-header-btn" id="chat-export-btn" title="Exportar histórico">💾</button>
-                <button class="chat-header-btn" id="chat-minimize-btn" title="Minimizar">➖</button>
-                <button class="chat-header-btn" id="chat-close-btn" title="Fechar">✖️</button>
-            </div>
-        </div>
-
-        <!-- Status (opcional) -->
-        <div class="chat-status online active" id="chat-status">
-            ✓ Sistema Online
-        </div>
-
-        <!-- Mensagens -->
-        <div class="chat-messages" id="chat-messages">
-            <div class="chat-message bot">
-                Olá! 👋 Sou o assistente de cotações da CDL/UTV.<br><br>
-                Posso ajudá-lo a gerar cotações automaticamente usando comandos de <strong>texto</strong> ou <strong>voz</strong>.<br><br>
-                Experimente: <em>"Gerar cotação para 3 meses com 5 funcionários"</em>
-            </div>
-        </div>
-
-        <!-- Sugestões rápidas -->
-        <div class="chat-suggestions" id="chat-suggestions">
-            <button class="chat-suggestion-btn" data-suggestion="Gerar cotação para 3 meses">📊 Cotação 3 meses</button>
-            <button class="chat-suggestion-btn" data-suggestion="Listar espaços">🏛️ Ver espaços</button>
-            <button class="chat-suggestion-btn" data-suggestion="Listar funcionários">👥 Ver funcionários</button>
-            <button class="chat-suggestion-btn" data-suggestion="Ajuda">❓ Ajuda</button>
-        </div>
-
-        <!-- Input -->
-        <div class="chat-input-area">
-            <div class="chat-input-wrapper">
-                <button class="chat-input-btn chat-voice-btn" id="chat-voice-btn" title="Falar comando">🎤</button>
-                <input type="text" 
-                       class="chat-input" 
-                       id="chat-input" 
-                       placeholder="Digite sua mensagem ou use o microfone..."
-                       autocomplete="off">
-                <button class="chat-input-btn chat-send-btn" id="chat-send-btn" title="Enviar">📤</button>
-            </div>
-        </div>
-    </div>
-
     <!-- JavaScript -->
     <script src="assets/js/data-manager.js"></script>
     <script src="assets/js/app.js"></script>
-    <script src="assets/js/chat-ai.js"></script>
-    <script src="assets/js/chat-ui.js"></script>
 </body>
 </html>
