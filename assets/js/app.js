@@ -1538,7 +1538,6 @@ function exportarPDFSuperintendencia() {
             
             // Vale Transporte
             if (func.custoVT > 0) {
-                const diasVT = Math.round(func.custoVT / (func.custoVT / resultado.diasTotais));
                 doc.text(`• Vale Transporte: ${resultado.diasTotais} dias`, 25, y);
                 doc.text(`R$ ${formatarMoeda(func.custoVT)}`, 190, y, { align: 'right' });
                 y += 4;
@@ -1662,8 +1661,8 @@ function exportarPDFSuperintendencia() {
     const margemContribuicao = resultado.valorFinal - custoVariavel;
     const percentualMargemContrib = (margemContribuicao / resultado.valorFinal * 100);
     
-    // Ponto de equilíbrio
-    const pontoEquilibrio = custoFixo / (percentualMargemContrib / 100);
+    // Ponto de equilíbrio (evitar divisão por zero)
+    const pontoEquilibrio = percentualMargemContrib > 0 ? custoFixo / (percentualMargemContrib / 100) : 0;
     
     // Análise de risco operacional
     const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
