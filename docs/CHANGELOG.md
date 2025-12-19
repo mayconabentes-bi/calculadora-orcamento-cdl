@@ -5,6 +5,33 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [5.1.0] - 2025-12-19
+
+### Adicionado
+- **PDF Superintendência - Seção 3.1**: Breakdown detalhado de mão de obra com custos individuais por funcionário
+  - Lista cada funcionário com horas normais, HE 50%, HE 100%, vale transporte, transporte app e refeições
+  - Subtotal por funcionário para análise granular
+  - Paginação automática quando há muitos funcionários
+- **PDF Superintendência - Seção 5**: Análise de viabilidade financeira
+  - Estrutura de custos (fixos vs variáveis com percentuais)
+  - Margem de contribuição (valor e percentual)
+  - Ponto de equilíbrio
+  - Análise de risco operacional com classificação colorida (🔴 Alto >60%, 🟡 Médio 40-60%, 🟢 Baixo <40%)
+- **PDF Superintendência**: Seção de aprovação gerencial com três caixas de assinatura
+  - Analista Responsável
+  - Coordenação
+  - Superintendência
+- Função auxiliar `verificarEAdicionarPagina()` para gerenciamento automático de paginação
+
+### Melhorado
+- PDF Superintendência agora possui 6 seções numeradas (adicionadas seções 3.1 e 5)
+- Análise financeira mais completa com indicadores de viabilidade do negócio
+- Documentação gerencial mais profissional com área para aprovações
+
+### Corrigido
+- Proteção contra divisão por zero no cálculo de ponto de equilíbrio
+- Removida redundância no cálculo de dias de vale transporte
+
 ## [5.0.0] - 2025-12-17
 
 ### Adicionado
