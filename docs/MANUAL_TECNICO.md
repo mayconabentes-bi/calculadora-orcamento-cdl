@@ -402,6 +402,78 @@ markup = ((subtotalComMargem / subtotalSemMargem) - 1) × 100;
 - Margem líquida: 3,84%
 - Markup: 30%
 
+### Métricas de Viabilidade Dinâmica (v5.2.0)
+
+O sistema agora inclui análise de viabilidade em tempo real com as seguintes métricas:
+
+#### 1. Margem de Contribuição
+
+```javascript
+custoFixo = custoOperacionalBase;
+custoVariavel = custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao;
+margemContribuicao = valorFinal - custoVariavel;
+percentualMargemContrib = (margemContribuicao / valorFinal) × 100;
+```
+
+**Interpretação**:
+- Representa quanto sobra após cobrir custos variáveis
+- Usado para cobrir custos fixos e gerar lucro
+- Quanto maior, melhor a viabilidade do projeto
+
+#### 2. Ponto de Equilíbrio
+
+```javascript
+pontoEquilibrio = custoFixo / (percentualMargemContrib / 100);
+```
+
+**Interpretação**:
+- Valor mínimo necessário para cobrir todos os custos
+- Se valorFinal < pontoEquilibrio: projeto deficitário
+- Se valorFinal > pontoEquilibrio: projeto viável
+
+#### 3. Classificação de Risco Operacional
+
+```javascript
+riscoMaoObra = (custoVariavel / valorFinal) × 100;
+
+if (riscoMaoObra > 60 || margemLiquida < 0) {
+    classificacao = "ALTO"; // 🔴 Vermelho
+} else if (riscoMaoObra >= 40 || margemLiquida < 5) {
+    classificacao = "MÉDIO"; // 🟡 Amarelo
+} else {
+    classificacao = "BAIXO"; // 🟢 Verde
+}
+```
+
+**Critérios de Classificação**:
+- **🔴 ALTO**: Custos variáveis > 60% OU margem líquida negativa
+  - Risco elevado de prejuízo
+  - Requer aprovação especial
+- **🟡 MÉDIO**: Custos variáveis entre 40-60% OU margem líquida < 5%
+  - Atenção necessária
+  - Avaliar possibilidade de otimização
+- **🟢 BAIXO**: Custos variáveis < 40% E margem líquida ≥ 5%
+  - Projeto saudável
+  - Boa margem de segurança
+
+**Complexidade Algorítmica**: O(1) - Todas as operações são constantes
+
+#### 4. Estrutura de Custos
+
+```javascript
+custoTotal = custoFixo + custoVariavel + custoExtras;
+percentualFixo = (custoFixo / custoTotal) × 100;
+percentualVariavel = (custoVariavel / custoTotal) × 100;
+percentualExtras = (custoExtras / custoTotal) × 100;
+```
+
+**Visualização**:
+- Gráfico de barras horizontal em CSS
+- Cores: Azul (Fixos), Laranja (Variáveis), Roxo (Extras)
+- Percentuais exibidos quando segmento > 10%
+
+**Complexidade Algorítmica**: O(1) - Operações de divisão e atualização DOM
+
 ---
 
 ## 💾 Sistema de Persistência
@@ -680,6 +752,71 @@ dataManager.restaurarPadrao(): Boolean
 
 // Limpar todos os dados
 dataManager.limparDados(): Boolean
+```
+
+#### Métodos de Histórico e BI (v5.2.0)
+
+```javascript
+// Adicionar cálculo ao histórico
+dataManager.adicionarCalculoHistorico(calculo: Object): Object
+
+// Obter histórico de cálculos
+dataManager.obterHistoricoCalculos(): Array<Object>
+
+// Limpar histórico de cálculos
+dataManager.limparHistoricoCalculos(): Boolean
+
+// Exportar histórico como CSV
+dataManager.exportarHistoricoCSV(): String | null
+
+// Exportar cálculo atual como CSV
+dataManager.exportarCalculoAtualCSV(calculoAtual: Object): String | null
+
+// Obter configurações de BI
+dataManager.obterConfiguracoesBI(): Object
+
+// Atualizar configurações de BI
+dataManager.atualizarConfiguracoesBI(novasConfigs: Object): Boolean
+
+// Calcular classificação de risco
+dataManager.calcularClassificacaoRisco(resultado: Object): String
+```
+
+**Exemplo de Uso - Histórico e CSV**:
+
+```javascript
+// Após calcular orçamento
+const calculo = {
+    sala: { id: 1, nome: "Auditório", unidade: "UTV" },
+    duracao: 6,
+    duracaoTipo: "meses",
+    resultado: { /* dados do resultado */ }
+};
+
+// Adicionar ao histórico (feito automaticamente na calculadora)
+dataManager.adicionarCalculoHistorico(calculo);
+
+// Obter histórico completo
+const historico = dataManager.obterHistoricoCalculos();
+console.log(`Total de cálculos: ${historico.length}`);
+
+// Exportar histórico como CSV
+const csvHistorico = dataManager.exportarHistoricoCSV();
+if (csvHistorico) {
+    // CSV com dados tabulares para análise
+    console.log(csvHistorico);
+}
+
+// Exportar cálculo atual como CSV
+const csvAtual = dataManager.exportarCalculoAtualCSV(ultimoCalculo);
+
+// Obter e atualizar configurações de BI
+const configBI = dataManager.obterConfiguracoesBI();
+dataManager.atualizarConfiguracoesBI({
+    exibirAlertaViabilidade: true,
+    exibirEstruturaCustos: true,
+    exibirClassificacaoRisco: true
+});
 ```
 
 ### Funções Utilitárias Globais
@@ -1014,6 +1151,193 @@ window.addEventListener('error', function(e) {
   // logService.send(errorData);
 });
 ```
+
+---
+
+## 📊 Módulo de Inteligência Preditiva e BI (v5.2.0)
+
+### Visão Geral
+
+O sistema agora inclui um módulo completo de Business Intelligence que fornece análise de viabilidade em tempo real, visualização de dados e exportação para análises externas.
+
+### Componentes Principais
+
+#### 1. Alerta de Viabilidade
+
+**Localização**: Exibido automaticamente após o cálculo do orçamento
+
+**Funcionalidades**:
+- Detecção de propostas deficitárias (margem líquida negativa)
+- Verificação de ponto de equilíbrio
+- Classificação de risco operacional
+- Alertas visuais com cores semafóricas
+
+**Implementação**:
+```javascript
+function exibirAlertaViabilidade(resultado) {
+    // Calcula margem líquida
+    const margemLiquida = ((resultado.valorFinal - resultado.subtotalSemMargem) / resultado.valorFinal * 100);
+    
+    // Classifica risco
+    const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
+    
+    // Exibe alerta apropriado
+    if (margemLiquida < 0) {
+        // 🔴 ALERTA: Proposta Deficitária
+    } else if (pontoEquilibrio > resultado.valorFinal) {
+        // ⚠️ ATENÇÃO: Abaixo do Ponto de Equilíbrio
+    } else {
+        // Classificação de Risco (Alto/Médio/Baixo)
+    }
+}
+```
+
+**Complexidade**: O(1) - Operações constantes
+
+#### 2. Estrutura de Custos Visualizada
+
+**Localização**: Card "Estrutura de Custos" na tela de resultados
+
+**Funcionalidades**:
+- Gráfico de barras horizontal em CSS puro
+- Três categorias: Fixos (Azul), Variáveis (Laranja), Extras (Roxo)
+- Percentuais calculados automaticamente
+- Animações suaves
+
+**Estrutura HTML**:
+```html
+<div id="cost-structure">
+    <div id="cost-bar-fixed" style="width: 40%">40%</div>
+    <div id="cost-bar-variable" style="width: 50%">50%</div>
+    <div id="cost-bar-extras" style="width: 10%">10%</div>
+</div>
+```
+
+**CSS Utilizado**:
+- Gradientes lineares para cada categoria
+- Transições suaves (0.3s ease)
+- Flexbox para layout responsivo
+
+**Complexidade**: O(1) - Operações constantes
+
+#### 3. Exportação CSV
+
+**Funcionalidades**:
+- Exportação do cálculo atual com detalhamento completo
+- Exportação do histórico de cálculos (últimos 100)
+- Formato UTF-8 com BOM para Excel
+- Colunas incluem: Data, Espaço, Duração, Valores, Margem Líquida, Risco
+
+**Uso**:
+```javascript
+// Exportar cálculo atual ou histórico
+exportarCSV();
+
+// Estrutura do CSV de histórico:
+// Data, ID, Unidade, Espaço, Duração, Tipo Duração, Horas Totais, 
+// Subtotal Sem Margem, Valor da Margem, Valor do Desconto, 
+// Valor Final, Valor por Hora, Margem Líquida, Classificação de Risco
+
+// Estrutura do CSV de cálculo atual:
+// Categoria, Descrição, Valor (R$), Percentual (%)
+```
+
+**Análises Possíveis com CSV**:
+- Elasticidade de preço por período
+- Sazonalidade de demanda
+- Tendências de margem líquida
+- Análise de risco por tipo de espaço
+- Comparativo de descontos aplicados
+
+**Complexidade**: O(n) onde n = número de registros (máximo 100)
+
+#### 4. Loading Skeleton
+
+**Funcionalidades**:
+- Overlay semi-transparente durante geração de PDF
+- Spinner animado
+- Mensagem de feedback
+- Bloqueia interação durante processamento
+
+**Implementação**:
+```javascript
+async function exportarPDFClienteComLoading() {
+    mostrarLoading();
+    await new Promise(resolve => setTimeout(resolve, 100)); // Delay para renderização
+    try {
+        exportarPDFCliente();
+    } finally {
+        esconderLoading();
+    }
+}
+```
+
+**Performance**: Delay de 100ms para garantir renderização visual antes do processamento
+
+#### 5. Histórico de Cálculos
+
+**Armazenamento**: LocalStorage com limite de 100 registros
+
+**Estrutura de Dados**:
+```javascript
+{
+    id: 1640123456789,
+    data: "2025-12-22T19:30:00.000Z",
+    sala: {
+        id: 3,
+        nome: "Sala 2",
+        unidade: "UTV"
+    },
+    duracao: 6,
+    duracaoTipo: "meses",
+    horasTotais: 960,
+    valorFinal: 73751.06,
+    margemLiquida: 3.84,
+    classificacaoRisco: "BAIXO",
+    subtotalSemMargem: 70914.48,
+    valorMargem: 21274.34,
+    valorDesconto: 18437.76
+}
+```
+
+**Gerenciamento**:
+- Adição automática após cada cálculo
+- FIFO (First In, First Out) quando excede 100 registros
+- Validação de schema antes de salvar
+- Migração automática de dados antigos
+
+### Configurações de BI
+
+**Controles Disponíveis**:
+```javascript
+{
+    exibirAlertaViabilidade: true,      // Mostrar alerta de ponto de equilíbrio
+    exibirEstruturaCustos: true,        // Mostrar gráfico de estrutura
+    exibirClassificacaoRisco: true      // Mostrar classificação de risco
+}
+```
+
+**Acesso**:
+```javascript
+// Obter configurações atuais
+const config = dataManager.obterConfiguracoesBI();
+
+// Atualizar configurações
+dataManager.atualizarConfiguracoesBI({
+    exibirAlertaViabilidade: false
+});
+```
+
+### Análise de Performance
+
+**Métricas de Complexidade**:
+- `exibirAlertaViabilidade()`: **O(1)** - Operações constantes
+- `exibirEstruturaCustos()`: **O(1)** - Operações constantes
+- `adicionarCalculoHistorico()`: **O(1)** - Inserção no início do array
+- `exportarHistoricoCSV()`: **O(n)** - Linear sobre histórico (máx 100)
+- `exportarCalculoAtualCSV()`: **O(1)** - Operações constantes
+
+**Garantia de Performance**: Todas as operações críticas mantêm complexidade linear O(n) ou melhor, garantindo performance em dispositivos de lojistas.
 
 ---
 

@@ -502,9 +502,10 @@ function configurarEventListeners() {
     document.getElementById('adicionar-horario').addEventListener('click', () => adicionarNovoHorario());
     
     // Exportação e impressão
-    document.getElementById('exportar-pdf-cliente').addEventListener('click', exportarPDFCliente);
-    document.getElementById('exportar-pdf-super').addEventListener('click', exportarPDFSuperintendencia);
+    document.getElementById('exportar-pdf-cliente').addEventListener('click', exportarPDFClienteComLoading);
+    document.getElementById('exportar-pdf-super').addEventListener('click', exportarPDFSuperintendenciaComLoading);
     document.getElementById('imprimir').addEventListener('click', imprimirOrcamento);
+    document.getElementById('exportar-csv').addEventListener('click', exportarCSV);
     
     // Espaços
     document.getElementById('adicionar-espaco').addEventListener('click', adicionarNovoEspaco);
@@ -609,6 +610,9 @@ function calcularOrcamento() {
         resultado,
         data: new Date().toLocaleDateString('pt-BR')
     };
+    
+    // Salvar no histórico
+    dataManager.adicionarCalculoHistorico(ultimoCalculoRealizado);
     
     // Exibir resultados
     exibirResultados(resultado);
@@ -820,6 +824,12 @@ function exibirResultados(resultado) {
     document.getElementById('custo-hora').textContent = formatarMoeda(sala.custoBase);
     document.getElementById('economia').textContent = formatarMoeda(resultado.economia);
     
+    // Exibir alertas de viabilidade e classificação de risco
+    exibirAlertaViabilidade(resultado);
+    
+    // Exibir estrutura de custos
+    exibirEstruturaCustos(resultado);
+    
     // Detalhamento
     document.getElementById('custo-base').textContent = formatarMoeda(resultado.custoOperacionalBase);
     
@@ -894,6 +904,145 @@ function exibirResultados(resultado) {
     document.getElementById('desconto-percent').textContent = resultado.descontoPercent.toFixed(0);
     document.getElementById('valor-desconto').textContent = formatarMoeda(resultado.valorDesconto);
     document.getElementById('valor-final').textContent = formatarMoeda(resultado.valorFinal);
+}
+
+/**
+ * Exibe alerta de viabilidade e classificação de risco
+ * Complexidade: O(1) - Operações constantes de cálculo e atualização DOM
+ */
+function exibirAlertaViabilidade(resultado) {
+    const alertDiv = document.getElementById('viability-alert');
+    const configBI = dataManager.obterConfiguracoesBI();
+    
+    if (!configBI.exibirAlertaViabilidade && !configBI.exibirClassificacaoRisco) {
+        alertDiv.style.display = 'none';
+        return;
+    }
+    
+    // Calcular margem líquida e ponto de equilíbrio
+    const margemLiquida = ((resultado.valorFinal - resultado.subtotalSemMargem) / resultado.valorFinal * 100);
+    
+    // Calcular custos fixos e variáveis
+    const custoFixo = resultado.custoOperacionalBase;
+    const custoVariavel = resultado.custoMaoObraTotal + resultado.custoValeTransporte + 
+                         (resultado.custoTransporteApp || 0) + (resultado.custoRefeicao || 0);
+    
+    // Margem de contribuição e ponto de equilíbrio
+    const margemContribuicao = resultado.valorFinal - custoVariavel;
+    const percentualMargemContrib = (margemContribuicao / resultado.valorFinal * 100);
+    const pontoEquilibrio = percentualMargemContrib > 0 ? custoFixo / (percentualMargemContrib / 100) : 0;
+    
+    // Classificação de risco operacional
+    const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
+    let classificacaoRisco, corRisco, bgColor, borderColor, iconPath;
+    
+    if (riscoMaoObra > 60 || margemLiquida < 0) {
+        classificacaoRisco = 'ALTO';
+        corRisco = '#dc2626'; // Vermelho
+        bgColor = '#fee2e2';
+        borderColor = '#dc2626';
+        iconPath = '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>';
+    } else if (riscoMaoObra >= 40 || margemLiquida < 5) {
+        classificacaoRisco = 'MÉDIO';
+        corRisco = '#d97706'; // Amarelo/Laranja
+        bgColor = '#fef3c7';
+        borderColor = '#d97706';
+        iconPath = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+    } else {
+        classificacaoRisco = 'BAIXO';
+        corRisco = '#16a34a'; // Verde
+        bgColor = '#dcfce7';
+        borderColor = '#16a34a';
+        iconPath = '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>';
+    }
+    
+    // Configurar visual do alerta
+    alertDiv.style.display = 'block';
+    alertDiv.style.background = bgColor;
+    alertDiv.style.borderColor = borderColor;
+    
+    const iconElement = alertDiv.querySelector('#viability-icon');
+    iconElement.innerHTML = iconPath;
+    iconElement.style.color = corRisco;
+    
+    const titleElement = alertDiv.querySelector('#viability-title');
+    const messageElement = alertDiv.querySelector('#viability-message');
+    
+    titleElement.style.color = corRisco;
+    messageElement.style.color = corRisco;
+    
+    // Montar mensagem
+    if (margemLiquida < 0) {
+        titleElement.textContent = '⚠️ ALERTA: Proposta Deficitária!';
+        messageElement.innerHTML = `Margem líquida <strong>negativa de ${Math.abs(margemLiquida).toFixed(2)}%</strong>. Este projeto gerará prejuízo. Recomenda-se aumentar a margem ou reduzir o desconto.`;
+    } else if (pontoEquilibrio > resultado.valorFinal) {
+        titleElement.textContent = '⚠️ ATENÇÃO: Abaixo do Ponto de Equilíbrio';
+        messageElement.innerHTML = `O valor final (R$ ${formatarMoeda(resultado.valorFinal)}) está <strong>abaixo do ponto de equilíbrio</strong> (R$ ${formatarMoeda(pontoEquilibrio)}). Margem líquida: ${margemLiquida.toFixed(2)}%.`;
+    } else {
+        titleElement.textContent = `Classificação de Risco: ${classificacaoRisco}`;
+        messageElement.innerHTML = `Custos variáveis: <strong>${riscoMaoObra.toFixed(1)}%</strong> da receita | Margem líquida: <strong>${margemLiquida.toFixed(2)}%</strong> | Ponto de equilíbrio: R$ ${formatarMoeda(pontoEquilibrio)}`;
+    }
+}
+
+/**
+ * Exibe a estrutura de custos em formato visual
+ * Complexidade: O(1) - Operações constantes de cálculo e atualização DOM
+ */
+function exibirEstruturaCustos(resultado) {
+    const costDiv = document.getElementById('cost-structure');
+    const configBI = dataManager.obterConfiguracoesBI();
+    
+    if (!configBI.exibirEstruturaCustos) {
+        costDiv.style.display = 'none';
+        return;
+    }
+    
+    costDiv.style.display = 'block';
+    
+    // Calcular custos
+    const custoFixo = resultado.custoOperacionalBase;
+    const custoVariavel = resultado.custoMaoObraTotal + resultado.custoValeTransporte + 
+                         (resultado.custoTransporteApp || 0) + (resultado.custoRefeicao || 0);
+    const custoExtras = resultado.custoExtras || 0;
+    const custoTotal = custoFixo + custoVariavel + custoExtras;
+    
+    // Calcular percentuais
+    const percentualFixo = (custoFixo / custoTotal * 100);
+    const percentualVariavel = (custoVariavel / custoTotal * 100);
+    const percentualExtras = (custoExtras / custoTotal * 100);
+    
+    // Atualizar barras
+    const barFixed = document.getElementById('cost-bar-fixed');
+    const barVariable = document.getElementById('cost-bar-variable');
+    const barExtras = document.getElementById('cost-bar-extras');
+    
+    barFixed.style.width = `${percentualFixo}%`;
+    barVariable.style.width = `${percentualVariavel}%`;
+    barExtras.style.width = `${percentualExtras}%`;
+    
+    // Adicionar texto nas barras se houver espaço (>10%)
+    if (percentualFixo > 10) {
+        barFixed.textContent = `${percentualFixo.toFixed(1)}%`;
+    } else {
+        barFixed.textContent = '';
+    }
+    
+    if (percentualVariavel > 10) {
+        barVariable.textContent = `${percentualVariavel.toFixed(1)}%`;
+    } else {
+        barVariable.textContent = '';
+    }
+    
+    if (percentualExtras > 10) {
+        barExtras.textContent = `${percentualExtras.toFixed(1)}%`;
+    } else {
+        barExtras.textContent = '';
+    }
+    
+    // Atualizar labels
+    document.getElementById('cost-fixed-percent').textContent = `${percentualFixo.toFixed(1)}%`;
+    document.getElementById('cost-variable-percent').textContent = `${percentualVariavel.toFixed(1)}%`;
+    document.getElementById('cost-extras-percent').textContent = `${percentualExtras.toFixed(1)}%`;
 }
 
 // ========== GERENCIAMENTO DE ESPAÇOS ==========
@@ -1323,6 +1472,112 @@ function resetarDados() {
     carregarListaFuncionarios();
     
     mostrarNotificacao('Dados restaurados para o padrão!');
+}
+
+// ========== EXPORTAÇÃO CSV ==========
+
+/**
+ * Exporta o cálculo atual ou histórico em formato CSV
+ */
+function exportarCSV() {
+    if (!ultimoCalculoRealizado) {
+        // Tentar exportar histórico
+        const csvHistorico = dataManager.exportarHistoricoCSV();
+        if (csvHistorico) {
+            baixarCSV(csvHistorico, `historico-calculos-${new Date().getTime()}.csv`);
+            mostrarNotificacao('Histórico exportado em CSV!');
+        } else {
+            alert('Nenhum cálculo disponível para exportar!');
+        }
+        return;
+    }
+    
+    // Perguntar ao usuário o que deseja exportar
+    const opcao = confirm('Deseja exportar o cálculo atual?\n\nOK = Cálculo Atual\nCancelar = Histórico Completo');
+    
+    if (opcao) {
+        // Exportar cálculo atual
+        const csvAtual = dataManager.exportarCalculoAtualCSV(ultimoCalculoRealizado);
+        if (csvAtual) {
+            const sala = ultimoCalculoRealizado.sala;
+            baixarCSV(csvAtual, `orcamento-${sala.unidade}-${sala.nome}-${new Date().getTime()}.csv`);
+            mostrarNotificacao('Orçamento exportado em CSV!');
+        }
+    } else {
+        // Exportar histórico
+        const csvHistorico = dataManager.exportarHistoricoCSV();
+        if (csvHistorico) {
+            baixarCSV(csvHistorico, `historico-calculos-${new Date().getTime()}.csv`);
+            mostrarNotificacao('Histórico exportado em CSV!');
+        } else {
+            alert('Nenhum histórico disponível para exportar!');
+        }
+    }
+}
+
+/**
+ * Baixa um arquivo CSV
+ * @param {string} conteudoCSV - Conteúdo do CSV
+ * @param {string} nomeArquivo - Nome do arquivo
+ */
+function baixarCSV(conteudoCSV, nomeArquivo) {
+    const blob = new Blob(['\ufeff' + conteudoCSV], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ========== LOADING OVERLAY ==========
+
+/**
+ * Mostra o overlay de carregamento
+ */
+function mostrarLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+    }
+}
+
+/**
+ * Esconde o overlay de carregamento
+ */
+function esconderLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+/**
+ * Wrapper para exportarPDFCliente com loading
+ */
+async function exportarPDFClienteComLoading() {
+    mostrarLoading();
+    // Pequeno delay para o overlay aparecer antes do processamento pesado
+    await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+        exportarPDFCliente();
+    } finally {
+        esconderLoading();
+    }
+}
+
+/**
+ * Wrapper para exportarPDFSuperintendencia com loading
+ */
+async function exportarPDFSuperintendenciaComLoading() {
+    mostrarLoading();
+    // Pequeno delay para o overlay aparecer antes do processamento pesado
+    await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+        exportarPDFSuperintendencia();
+    } finally {
+        esconderLoading();
+    }
 }
 
 // ========== EXPORTAÇÃO DE PDF ==========
