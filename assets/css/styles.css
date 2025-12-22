@@ -47,6 +47,13 @@
     --border: #e2e8f0;
     --shadow: rgba(15, 23, 42, 0.08);
     
+    /* Text Colors */
+    --text-primary: var(--gray-900);
+    --text-secondary: var(--gray-700);
+    
+    /* Zebra Stripes */
+    --zebra-stripe: rgba(241, 245, 249, 0.5);
+    
     /* Tipografia */
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
@@ -136,6 +143,13 @@
     --bg-card: #1e293b;
     --border: #334155;
     --shadow: rgba(0, 0, 0, 0.3);
+    
+    /* Text Colors - Dark Theme */
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    
+    /* Zebra Stripes - Dark Theme */
+    --zebra-stripe: rgba(30, 41, 59, 0.5);
 }
 
 /* -----------------------------------------------------------------
@@ -159,7 +173,7 @@ body {
 
 /* Dark theme text color override for absolute readability */
 .dark-theme body {
-    color: #f8fafc;
+    color: var(--text-primary);
 }
 
 /* -----------------------------------------------------------------
@@ -303,7 +317,7 @@ body {
 
 /* Dark theme card title */
 .dark-theme .card-title {
-    color: #f8fafc;
+    color: var(--text-primary);
 }
 
 /* -----------------------------------------------------------------
@@ -323,7 +337,7 @@ body {
 
 /* Dark theme label */
 .dark-theme .form-group label {
-    color: #cbd5e1;
+    color: var(--text-secondary);
 }
 
 .form-control {
@@ -340,7 +354,7 @@ body {
 
 /* Dark theme form control */
 .dark-theme .form-control {
-    color: #f8fafc;
+    color: var(--text-primary);
     background: var(--gray-800);
 }
 
@@ -408,7 +422,7 @@ body {
 }
 
 .dark-theme .checkbox-group label {
-    color: #cbd5e1;
+    color: var(--text-secondary);
 }
 
 /* Range Inputs */
@@ -833,7 +847,7 @@ body {
 
 /* Zebra stripes for tables - subtle gray */
 .data-table tbody tr:nth-child(even) {
-    background: rgba(241, 245, 249, 0.5);
+    background: var(--zebra-stripe);
 }
 
 .data-table tbody tr:hover {
@@ -869,7 +883,7 @@ body {
 
 /* Dark theme zebra stripes */
 .dark-theme .data-table tbody tr:nth-child(even) {
-    background: rgba(30, 41, 59, 0.5);
+    background: var(--zebra-stripe);
 }
 
 .dark-theme .data-table td {
