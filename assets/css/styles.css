@@ -957,7 +957,7 @@ body {
 }
 
 /* Forçar cores claras para impressão mesmo em dark theme */
-@media print, (prefers-color-scheme: dark) {
+@media print {
     .pdf-content,
     #print-section,
     .pdf-content *,
