@@ -46,7 +46,14 @@ class DataManager {
                     // Adicionar novos campos em funcionários existentes que não os têm
                     dados = this.migrarCamposNovosFuncionarios(dados);
                     if (dados.funcionarios) {
-                        return dados;
+                        // Validar schema antes de retornar
+                        const validacao = this.validarSchema(dados);
+                        if (validacao.valido) {
+                            return dados;
+                        } else {
+                            console.error('Dados corrompidos no LocalStorage:', validacao.erros);
+                            console.warn('Restaurando dados padrão devido à corrupção detectada');
+                        }
                     }
                 }
             }
@@ -61,6 +68,13 @@ class DataManager {
      */
     salvarDados() {
         try {
+            // Validar antes de salvar para prevenir corrupção
+            const validacao = this.validarSchema(this.dados);
+            if (!validacao.valido) {
+                console.error('Tentativa de salvar dados inválidos:', validacao.erros);
+                return false;
+            }
+
             localStorage.setItem(this.storageKey, JSON.stringify(this.dados));
             return true;
         } catch (error) {
@@ -82,6 +96,122 @@ class DataManager {
             }));
         }
         return dados;
+    }
+
+    /**
+     * Valida o schema dos dados para prevenir corrupção
+     * @param {Object} dados - Dados a serem validados
+     * @returns {Object} { valido: boolean, erros: Array<string> }
+     */
+    validarSchema(dados) {
+        const erros = [];
+
+        // Validar estrutura principal
+        if (!dados || typeof dados !== 'object') {
+            erros.push('Dados devem ser um objeto');
+            return { valido: false, erros };
+        }
+
+        // Validar salas
+        if (!Array.isArray(dados.salas)) {
+            erros.push('salas deve ser um array');
+        } else {
+            dados.salas.forEach((sala, index) => {
+                if (!sala.id || typeof sala.id !== 'number') {
+                    erros.push(`sala[${index}]: id inválido`);
+                }
+                if (!sala.nome || typeof sala.nome !== 'string') {
+                    erros.push(`sala[${index}]: nome inválido`);
+                }
+                if (!sala.unidade || typeof sala.unidade !== 'string') {
+                    erros.push(`sala[${index}]: unidade inválida`);
+                }
+                if (typeof sala.capacidade !== 'number' || sala.capacidade < 0) {
+                    erros.push(`sala[${index}]: capacidade inválida`);
+                }
+                if (typeof sala.area !== 'number' || sala.area < 0) {
+                    erros.push(`sala[${index}]: área inválida`);
+                }
+                if (typeof sala.custoBase !== 'number' || sala.custoBase < 0) {
+                    erros.push(`sala[${index}]: custoBase inválido`);
+                }
+            });
+        }
+
+        // Validar extras
+        if (!Array.isArray(dados.extras)) {
+            erros.push('extras deve ser um array');
+        } else {
+            dados.extras.forEach((extra, index) => {
+                if (!extra.id || typeof extra.id !== 'number') {
+                    erros.push(`extra[${index}]: id inválido`);
+                }
+                if (!extra.nome || typeof extra.nome !== 'string') {
+                    erros.push(`extra[${index}]: nome inválido`);
+                }
+                if (typeof extra.custo !== 'number' || extra.custo < 0) {
+                    erros.push(`extra[${index}]: custo inválido`);
+                }
+            });
+        }
+
+        // Validar funcionários
+        if (!Array.isArray(dados.funcionarios)) {
+            erros.push('funcionarios deve ser um array');
+        } else if (dados.funcionarios.length === 0) {
+            erros.push('deve haver pelo menos um funcionário');
+        } else {
+            dados.funcionarios.forEach((func, index) => {
+                if (!func.id || typeof func.id !== 'number') {
+                    erros.push(`funcionario[${index}]: id inválido`);
+                }
+                if (!func.nome || typeof func.nome !== 'string') {
+                    erros.push(`funcionario[${index}]: nome inválido`);
+                }
+                if (typeof func.horaNormal !== 'number' || func.horaNormal < 0) {
+                    erros.push(`funcionario[${index}]: horaNormal inválido`);
+                }
+                if (typeof func.he50 !== 'number' || func.he50 < 0) {
+                    erros.push(`funcionario[${index}]: he50 inválido`);
+                }
+                if (typeof func.he100 !== 'number' || func.he100 < 0) {
+                    erros.push(`funcionario[${index}]: he100 inválido`);
+                }
+                if (typeof func.valeTransporte !== 'number' || func.valeTransporte < 0) {
+                    erros.push(`funcionario[${index}]: valeTransporte inválido`);
+                }
+                if (func.transporteApp !== undefined && (typeof func.transporteApp !== 'number' || func.transporteApp < 0)) {
+                    erros.push(`funcionario[${index}]: transporteApp inválido`);
+                }
+                if (func.refeicao !== undefined && (typeof func.refeicao !== 'number' || func.refeicao < 0)) {
+                    erros.push(`funcionario[${index}]: refeicao inválido`);
+                }
+                if (typeof func.ativo !== 'boolean') {
+                    erros.push(`funcionario[${index}]: ativo deve ser boolean`);
+                }
+            });
+        }
+
+        // Validar multiplicadores de turno
+        if (!dados.multiplicadoresTurno || typeof dados.multiplicadoresTurno !== 'object') {
+            erros.push('multiplicadoresTurno deve ser um objeto');
+        } else {
+            const mult = dados.multiplicadoresTurno;
+            if (typeof mult.manha !== 'number' || mult.manha <= 0) {
+                erros.push('multiplicadoresTurno.manha inválido');
+            }
+            if (typeof mult.tarde !== 'number' || mult.tarde <= 0) {
+                erros.push('multiplicadoresTurno.tarde inválido');
+            }
+            if (typeof mult.noite !== 'number' || mult.noite <= 0) {
+                erros.push('multiplicadoresTurno.noite inválido');
+            }
+        }
+
+        return {
+            valido: erros.length === 0,
+            erros
+        };
     }
 
     /**
