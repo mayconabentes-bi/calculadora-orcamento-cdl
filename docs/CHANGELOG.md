@@ -3,7 +3,77 @@
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
-e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
+e este projeto adhere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
+
+## [5.2.0] - 2025-12-22
+
+### Adicionado
+- **Módulo de Inteligência Preditiva**: Sistema de alertas de viabilidade em tempo real
+  - Alerta de Ponto de Equilíbrio com classificação de risco operacional
+  - Classificação visual (🔴 Alto, 🟡 Médio, 🟢 Baixo) baseada em percentual de custos variáveis
+  - Detecção automática de propostas deficitárias (margem líquida negativa)
+  - Alertas quando valor final está abaixo do ponto de equilíbrio
+- **Visualização de Estrutura de Custos**: Gráfico de barras em CSS puro
+  - Representação visual de Custos Fixos (Azul), Variáveis (Laranja) e Extras (Roxo)
+  - Cálculo automático de percentuais
+  - Animações suaves na atualização dos dados
+- **Exportação CSV**: Sistema completo de exportação de dados
+  - Exportação do cálculo atual com detalhamento completo
+  - Exportação do histórico de cálculos (últimos 100)
+  - Formato UTF-8 com BOM para compatibilidade com Excel
+  - Análise de elasticidade de preço e tendências
+- **Histórico de Cálculos**: Armazenamento automático no LocalStorage
+  - Limite de 100 registros mais recentes
+  - Dados incluem: ID, data, espaço, valores, margem líquida, classificação de risco
+  - Schema validado para prevenir corrupção de dados
+- **Loading Skeleton**: Estados de carregamento para geração de PDFs
+  - Overlay semi-transparente com spinner animado
+  - Mensagem de feedback para o usuário
+  - Melhora percepção de performance em dispositivos móveis
+- **Configurações de BI**: Sistema de configuração de visualizações
+  - Controle de exibição de alerta de viabilidade
+  - Controle de exibição de estrutura de custos
+  - Controle de exibição de classificação de risco
+  - Persistência no LocalStorage
+
+### Melhorado
+- **Validação de Schema**: Suporte para novas configurações de BI
+  - Validação de configuracoes.visualizacaoBI
+  - Validação de historicoCalculos
+  - Proteção contra corrupção de dados
+- **Complexidade Algorítmica**: Mantida linear O(n)
+  - exibirAlertaViabilidade(): O(1) - operações constantes
+  - exibirEstruturaCustos(): O(1) - operações constantes
+  - exportarHistoricoCSV(): O(n) - linear sobre histórico (máx 100)
+- **Performance**: Otimizações para dispositivos de lojistas
+  - Cálculos eficientes sem loops aninhados
+  - Atualização DOM otimizada
+  - Histórico limitado a 100 registros
+
+### Técnico
+- **Novas Funções em data-manager.js**:
+  - `adicionarCalculoHistorico(calculo)`: Adiciona cálculo ao histórico
+  - `calcularClassificacaoRisco(resultado)`: Calcula classificação de risco
+  - `obterHistoricoCalculos()`: Obtém histórico de cálculos
+  - `limparHistoricoCalculos()`: Limpa histórico
+  - `exportarHistoricoCSV()`: Exporta histórico em CSV
+  - `exportarCalculoAtualCSV(calculoAtual)`: Exporta cálculo atual em CSV
+  - `obterConfiguracoesBI()`: Obtém configurações de BI
+  - `atualizarConfiguracoesBI(novasConfigs)`: Atualiza configurações de BI
+- **Novas Funções em app.js**:
+  - `exibirAlertaViabilidade(resultado)`: Exibe alertas de viabilidade
+  - `exibirEstruturaCustos(resultado)`: Exibe gráfico de custos
+  - `exportarCSV()`: Gerencia exportação CSV
+  - `baixarCSV(conteudoCSV, nomeArquivo)`: Realiza download do CSV
+  - `mostrarLoading()`: Mostra overlay de carregamento
+  - `esconderLoading()`: Esconde overlay de carregamento
+  - `exportarPDFClienteComLoading()`: Wrapper para PDF cliente com loading
+  - `exportarPDFSuperintendenciaComLoading()`: Wrapper para PDF superintendência com loading
+
+### Compatibilidade
+- Mantém compatibilidade com dados existentes
+- Migração automática de dados antigos
+- Sem breaking changes
 
 ## [5.1.0] - 2025-12-19
 
