@@ -38,6 +38,7 @@
     /* Cores CDL - High-Contrast Dark */
     --accent-gold: #ffcc00;
     --success-cdl: #008444;
+    --success-cdl-dark: #006633;
     
     /* Superfícies */
     --bg-primary: #ffffff;
@@ -515,7 +516,7 @@ body {
 }
 
 .btn-success:hover {
-    background: #006633;
+    background: var(--success-cdl-dark);
 }
 
 .btn-danger {
