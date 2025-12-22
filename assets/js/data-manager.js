@@ -45,6 +45,10 @@ class DataManager {
                     }
                     // Adicionar novos campos em funcionários existentes que não os têm
                     dados = this.migrarCamposNovosFuncionarios(dados);
+                    // Migração: adicionar configuracoes se não existir
+                    if (!dados.configuracoes) {
+                        dados.configuracoes = { tema: 'sistema' };
+                    }
                     if (dados.funcionarios) {
                         // Validar schema antes de retornar
                         const validacao = this.validarSchema(dados);
@@ -326,6 +330,9 @@ class DataManager {
                 manha: 1.00,
                 tarde: 1.15,
                 noite: 1.40
+            },
+            configuracoes: {
+                tema: 'sistema'
             }
         };
     }
@@ -635,6 +642,40 @@ class DataManager {
      */
     obterMultiplicadoresTurno() {
         return this.dados.multiplicadoresTurno;
+    }
+
+    // ========== MÉTODOS DE CONFIGURAÇÃO ==========
+
+    /**
+     * Obtém o tema atual
+     */
+    obterTema() {
+        return this.dados.configuracoes?.tema || 'sistema';
+    }
+
+    /**
+     * Define o tema da aplicação
+     * @param {string} novoTema - Tema a ser definido ('claro', 'escuro', 'sistema')
+     * @returns {boolean} True se o tema foi definido com sucesso
+     */
+    definirTema(novoTema) {
+        // Validar entrada
+        const temasValidos = ['claro', 'escuro', 'sistema'];
+        if (!temasValidos.includes(novoTema)) {
+            console.error(`Tema inválido: ${novoTema}. Use: ${temasValidos.join(', ')}`);
+            return false;
+        }
+
+        // Garantir que configuracoes existe
+        if (!this.dados.configuracoes) {
+            this.dados.configuracoes = {};
+        }
+
+        // Definir o tema
+        this.dados.configuracoes.tema = novoTema;
+
+        // Persistir
+        return this.salvarDados();
     }
 
     // ========== MÉTODOS DE BACKUP E RESTORE ==========

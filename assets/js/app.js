@@ -33,6 +33,16 @@ function inicializarAplicacao() {
     carregarListaFuncionarios();
     inicializarHorarios();
     configurarEventListeners();
+    aplicarTema();
+    
+    // Listener para mudanças na preferência de tema do sistema
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    prefersDark.addEventListener('change', () => {
+        // Só reaplicar se o tema estiver em modo sistema
+        if (dataManager.obterTema() === 'sistema') {
+            aplicarTema();
+        }
+    });
     
     mostrarNotificacao('Sistema carregado com sucesso!');
 }
@@ -69,6 +79,49 @@ function configurarNavegacaoAbas() {
             }
         });
     });
+}
+
+// ========== GERENCIAMENTO DE TEMA ==========
+
+/**
+ * Aplica o tema selecionado ao documento
+ */
+function aplicarTema() {
+    const temaSelecionado = dataManager.obterTema();
+    let aplicarEscuro = false;
+
+    if (temaSelecionado === 'escuro') {
+        aplicarEscuro = true;
+    } else if (temaSelecionado === 'sistema') {
+        // Detectar preferência do sistema operacional
+        const prefereDark = window.matchMedia('(prefers-color-scheme: dark)');
+        aplicarEscuro = prefereDark.matches;
+    }
+    // Se temaSelecionado === 'claro', aplicarEscuro permanece false
+
+    // Aplicar ou remover a classe dark-theme
+    if (aplicarEscuro) {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+
+    // Atualizar o select de tema se existir
+    const temaSelect = document.getElementById('tema-select');
+    if (temaSelect) {
+        temaSelect.value = temaSelecionado;
+    }
+}
+
+/**
+ * Altera o tema da aplicação
+ * @param {string} novoTema - O tema a ser aplicado ('claro', 'escuro', 'sistema')
+ */
+function alterarTema(novoTema) {
+    if (dataManager.definirTema(novoTema)) {
+        aplicarTema();
+        mostrarNotificacao(`Tema alterado para: ${novoTema}`);
+    }
 }
 
 // ========== CARREGAMENTO DE DADOS NA INTERFACE ==========
@@ -472,6 +525,14 @@ function configurarEventListeners() {
     });
     document.getElementById('import-file').addEventListener('change', importarDados);
     document.getElementById('resetar-dados').addEventListener('click', resetarDados);
+    
+    // Configurações - Tema
+    const temaSelect = document.getElementById('tema-select');
+    if (temaSelect) {
+        temaSelect.addEventListener('change', (e) => {
+            alterarTema(e.target.value);
+        });
+    }
 }
 
 /**

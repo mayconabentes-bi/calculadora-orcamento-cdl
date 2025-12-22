@@ -95,6 +95,45 @@
 }
 
 /* -----------------------------------------------------------------
+   1.1. DARK THEME VARIABLES
+   ----------------------------------------------------------------- */
+.dark-theme {
+    /* Cores Principais - mantém os azuis da CDL */
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
+    --primary-light: #1e3a8a;
+    
+    /* Cores Secundárias */
+    --secondary: #94a3b8;
+    --accent: #38bdf8;
+    
+    /* Neutros - invertidos para dark */
+    --gray-50: #1e293b;
+    --gray-100: #0f172a;
+    --gray-200: #334155;
+    --gray-300: #475569;
+    --gray-400: #64748b;
+    --gray-500: #94a3b8;
+    --gray-600: #cbd5e1;
+    --gray-700: #e2e8f0;
+    --gray-800: #f1f5f9;
+    --gray-900: #f8fafc;
+    
+    /* Cores Semânticas - ajustadas para dark */
+    --success: #22c55e;
+    --warning: #fbbf24;
+    --error: #f87171;
+    --info: #60a5fa;
+    
+    /* Superfícies - tons escuros */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #1e293b;
+    --border: #334155;
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* -----------------------------------------------------------------
    2. RESET E ESTILOS BASE
    ----------------------------------------------------------------- */
 * {
@@ -908,11 +947,24 @@ body {
 }
 
 /* Estilos para geração de PDF */
-.pdf-content {
+.pdf-content,
+#print-section {
     padding: var(--spacing-2xl);
-    background: var(--bg-primary);
+    background: #ffffff !important;
+    color: #0f172a !important;
     max-width: 800px;
     margin: 0 auto;
+}
+
+/* Forçar cores claras para impressão mesmo em dark theme */
+@media print, (prefers-color-scheme: dark) {
+    .pdf-content,
+    #print-section,
+    .pdf-content *,
+    #print-section * {
+        background: #ffffff !important;
+        color: #0f172a !important;
+    }
 }
 
 .pdf-header {
