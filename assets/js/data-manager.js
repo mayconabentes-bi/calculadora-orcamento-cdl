@@ -212,6 +212,32 @@ class DataManager {
             }
         }
 
+        // Validar configurações (opcional, mas se existir deve ser válida)
+        if (dados.configuracoes) {
+            if (typeof dados.configuracoes !== 'object') {
+                erros.push('configuracoes deve ser um objeto');
+            } else {
+                // Validar visualizacaoBI se existir
+                if (dados.configuracoes.visualizacaoBI) {
+                    const bi = dados.configuracoes.visualizacaoBI;
+                    if (bi.exibirAlertaViabilidade !== undefined && typeof bi.exibirAlertaViabilidade !== 'boolean') {
+                        erros.push('configuracoes.visualizacaoBI.exibirAlertaViabilidade deve ser boolean');
+                    }
+                    if (bi.exibirEstruturaCustos !== undefined && typeof bi.exibirEstruturaCustos !== 'boolean') {
+                        erros.push('configuracoes.visualizacaoBI.exibirEstruturaCustos deve ser boolean');
+                    }
+                    if (bi.exibirClassificacaoRisco !== undefined && typeof bi.exibirClassificacaoRisco !== 'boolean') {
+                        erros.push('configuracoes.visualizacaoBI.exibirClassificacaoRisco deve ser boolean');
+                    }
+                }
+            }
+        }
+
+        // Validar histórico de cálculos (opcional)
+        if (dados.historicoCalculos !== undefined && !Array.isArray(dados.historicoCalculos)) {
+            erros.push('historicoCalculos deve ser um array');
+        }
+
         return {
             valido: erros.length === 0,
             erros
@@ -332,8 +358,14 @@ class DataManager {
                 noite: 1.40
             },
             configuracoes: {
-                tema: 'sistema'
-            }
+                tema: 'sistema',
+                visualizacaoBI: {
+                    exibirAlertaViabilidade: true,
+                    exibirEstruturaCustos: true,
+                    exibirClassificacaoRisco: true
+                }
+            },
+            historicoCalculos: []
         };
     }
 
@@ -747,6 +779,227 @@ class DataManager {
             console.error('Erro ao limpar dados:', error);
             return false;
         }
+    }
+
+    // ========== MÉTODOS DE HISTÓRICO DE CÁLCULOS ==========
+
+    /**
+     * Adiciona um cálculo ao histórico
+     * @param {Object} calculo - Dados do cálculo realizado
+     */
+    adicionarCalculoHistorico(calculo) {
+        if (!this.dados.historicoCalculos) {
+            this.dados.historicoCalculos = [];
+        }
+
+        const registroHistorico = {
+            id: Date.now(),
+            data: new Date().toISOString(),
+            sala: {
+                id: calculo.sala.id,
+                nome: calculo.sala.nome,
+                unidade: calculo.sala.unidade
+            },
+            duracao: calculo.duracao,
+            duracaoTipo: calculo.duracaoTipo,
+            horasTotais: calculo.resultado.horasTotais,
+            valorFinal: calculo.resultado.valorFinal,
+            margemLiquida: ((calculo.resultado.valorFinal - calculo.resultado.subtotalSemMargem) / calculo.resultado.valorFinal * 100),
+            classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado),
+            subtotalSemMargem: calculo.resultado.subtotalSemMargem,
+            valorMargem: calculo.resultado.valorMargem,
+            valorDesconto: calculo.resultado.valorDesconto
+        };
+
+        // Limitar histórico a 100 registros mais recentes
+        this.dados.historicoCalculos.unshift(registroHistorico);
+        if (this.dados.historicoCalculos.length > 100) {
+            this.dados.historicoCalculos = this.dados.historicoCalculos.slice(0, 100);
+        }
+
+        this.salvarDados();
+        return registroHistorico;
+    }
+
+    /**
+     * Calcula classificação de risco baseada nos custos
+     */
+    calcularClassificacaoRisco(resultado) {
+        const custoVariavel = resultado.custoMaoObraTotal + resultado.custoValeTransporte + 
+                             (resultado.custoTransporteApp || 0) + (resultado.custoRefeicao || 0);
+        const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
+        
+        if (riscoMaoObra > 60) return 'ALTO';
+        if (riscoMaoObra >= 40) return 'MÉDIO';
+        return 'BAIXO';
+    }
+
+    /**
+     * Obtém o histórico de cálculos
+     */
+    obterHistoricoCalculos() {
+        return this.dados.historicoCalculos || [];
+    }
+
+    /**
+     * Limpa o histórico de cálculos
+     */
+    limparHistoricoCalculos() {
+        this.dados.historicoCalculos = [];
+        this.salvarDados();
+        return true;
+    }
+
+    /**
+     * Exporta histórico de cálculos como CSV
+     * @returns {string} Dados em formato CSV
+     */
+    exportarHistoricoCSV() {
+        const historico = this.obterHistoricoCalculos();
+        
+        if (historico.length === 0) {
+            return null;
+        }
+
+        // Cabeçalhos do CSV
+        const headers = [
+            'Data',
+            'ID',
+            'Unidade',
+            'Espaço',
+            'Duração',
+            'Tipo Duração',
+            'Horas Totais',
+            'Subtotal Sem Margem (R$)',
+            'Valor da Margem (R$)',
+            'Valor do Desconto (R$)',
+            'Valor Final (R$)',
+            'Valor por Hora (R$)',
+            'Margem Líquida (%)',
+            'Classificação de Risco'
+        ];
+
+        // Construir linhas CSV
+        const linhas = [headers.join(',')];
+
+        historico.forEach(calc => {
+            const valorPorHora = calc.valorFinal / calc.horasTotais;
+            const linha = [
+                new Date(calc.data).toLocaleDateString('pt-BR'),
+                calc.id,
+                calc.sala.unidade,
+                `"${calc.sala.nome}"`, // Aspas para nomes com vírgula
+                calc.duracao,
+                calc.duracaoTipo,
+                calc.horasTotais.toFixed(2),
+                calc.subtotalSemMargem.toFixed(2),
+                calc.valorMargem.toFixed(2),
+                calc.valorDesconto.toFixed(2),
+                calc.valorFinal.toFixed(2),
+                valorPorHora.toFixed(2),
+                calc.margemLiquida.toFixed(2),
+                calc.classificacaoRisco
+            ];
+            linhas.push(linha.join(','));
+        });
+
+        return linhas.join('\n');
+    }
+
+    /**
+     * Exporta o cálculo atual como CSV
+     * @param {Object} calculoAtual - Dados do cálculo atual
+     * @returns {string} Dados em formato CSV
+     */
+    exportarCalculoAtualCSV(calculoAtual) {
+        if (!calculoAtual || !calculoAtual.resultado) {
+            return null;
+        }
+
+        const resultado = calculoAtual.resultado;
+        const sala = calculoAtual.sala;
+
+        // Cabeçalhos
+        const headers = [
+            'Categoria',
+            'Descrição',
+            'Valor (R$)',
+            'Percentual (%)'
+        ];
+
+        const linhas = [headers.join(',')];
+
+        // Informações básicas
+        linhas.push(`"Espaço","${sala.unidade} - ${sala.nome}","",""` );
+        linhas.push(`"Duração","${calculoAtual.duracao} ${calculoAtual.duracaoTipo}","",""` );
+        linhas.push(`"Horas Totais","${resultado.horasTotais.toFixed(2)}h","",""` );
+        linhas.push('');
+
+        // Custos
+        const total = resultado.subtotalSemMargem;
+        linhas.push(`"Custo Operacional Base","",${resultado.custoOperacionalBase.toFixed(2)},${((resultado.custoOperacionalBase/total)*100).toFixed(2)}`);
+        linhas.push(`"Mão de Obra - Horas Normais","",${resultado.custoMaoObraNormal.toFixed(2)},${((resultado.custoMaoObraNormal/total)*100).toFixed(2)}`);
+        linhas.push(`"Mão de Obra - HE 50%","",${resultado.custoMaoObraHE50.toFixed(2)},${((resultado.custoMaoObraHE50/total)*100).toFixed(2)}`);
+        linhas.push(`"Mão de Obra - HE 100%","",${resultado.custoMaoObraHE100.toFixed(2)},${((resultado.custoMaoObraHE100/total)*100).toFixed(2)}`);
+        linhas.push(`"Vale Transporte","",${resultado.custoValeTransporte.toFixed(2)},${((resultado.custoValeTransporte/total)*100).toFixed(2)}`);
+        
+        if (resultado.custoTransporteApp > 0) {
+            linhas.push(`"Transporte App","",${resultado.custoTransporteApp.toFixed(2)},${((resultado.custoTransporteApp/total)*100).toFixed(2)}`);
+        }
+        if (resultado.custoRefeicao > 0) {
+            linhas.push(`"Refeição","",${resultado.custoRefeicao.toFixed(2)},${((resultado.custoRefeicao/total)*100).toFixed(2)}`);
+        }
+        if (resultado.custoExtras > 0) {
+            linhas.push(`"Itens Extras","",${resultado.custoExtras.toFixed(2)},${((resultado.custoExtras/total)*100).toFixed(2)}`);
+        }
+
+        linhas.push('');
+        linhas.push(`"Subtotal Sem Margem","",${resultado.subtotalSemMargem.toFixed(2)},100.00`);
+        linhas.push(`"Margem de Lucro","${resultado.margemPercent.toFixed(0)}%",${resultado.valorMargem.toFixed(2)},""`);
+        linhas.push(`"Subtotal Com Margem","",${resultado.subtotalComMargem.toFixed(2)},""`);
+        linhas.push(`"Desconto","${resultado.descontoPercent.toFixed(0)}%",${resultado.valorDesconto.toFixed(2)},""`);
+        linhas.push(`"VALOR FINAL","",${resultado.valorFinal.toFixed(2)},""`);
+        
+        linhas.push('');
+        const margemLiquida = ((resultado.valorFinal - resultado.subtotalSemMargem) / resultado.valorFinal * 100);
+        linhas.push(`"Margem Líquida","",${margemLiquida.toFixed(2)},""` );
+        linhas.push(`"Valor por Hora","",${resultado.valorPorHora.toFixed(2)},""`);
+
+        return linhas.join('\n');
+    }
+
+    // ========== MÉTODOS DE CONFIGURAÇÃO DE BI ==========
+
+    /**
+     * Obtém configurações de visualização de BI
+     */
+    obterConfiguracoesBI() {
+        if (!this.dados.configuracoes) {
+            this.dados.configuracoes = {};
+        }
+        if (!this.dados.configuracoes.visualizacaoBI) {
+            this.dados.configuracoes.visualizacaoBI = {
+                exibirAlertaViabilidade: true,
+                exibirEstruturaCustos: true,
+                exibirClassificacaoRisco: true
+            };
+        }
+        return this.dados.configuracoes.visualizacaoBI;
+    }
+
+    /**
+     * Atualiza configurações de visualização de BI
+     */
+    atualizarConfiguracoesBI(novasConfigs) {
+        if (!this.dados.configuracoes) {
+            this.dados.configuracoes = {};
+        }
+        this.dados.configuracoes.visualizacaoBI = {
+            ...this.obterConfiguracoesBI(),
+            ...novasConfigs
+        };
+        this.salvarDados();
+        return true;
     }
 }
 
