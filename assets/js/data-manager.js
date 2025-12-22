@@ -217,6 +217,14 @@ class DataManager {
             if (typeof dados.configuracoes !== 'object') {
                 erros.push('configuracoes deve ser um objeto');
             } else {
+                // Validar tema se existir
+                if (dados.configuracoes.tema !== undefined) {
+                    const temasValidos = ['claro', 'escuro', 'sistema'];
+                    if (typeof dados.configuracoes.tema !== 'string' || !temasValidos.includes(dados.configuracoes.tema)) {
+                        erros.push(`configuracoes.tema inválido. Deve ser um de: ${temasValidos.join(', ')}`);
+                    }
+                }
+                
                 // Validar visualizacaoBI se existir
                 if (dados.configuracoes.visualizacaoBI) {
                     const bi = dados.configuracoes.visualizacaoBI;

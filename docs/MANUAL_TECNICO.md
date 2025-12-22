@@ -3,15 +3,16 @@
 ## 📑 Sumário
 
 1. [Visão Geral da Arquitetura](#visão-geral-da-arquitetura)
-2. [Estrutura de Dados e Modelos](#estrutura-de-dados-e-modelos)
-3. [Fluxo de Cálculos e Fórmulas](#fluxo-de-cálculos-e-fórmulas)
-4. [Sistema de Persistência](#sistema-de-persistência)
-5. [Geração de PDFs](#geração-de-pdfs)
-6. [API Interna](#api-interna)
-7. [Customização e Extensão](#customização-e-extensão)
-8. [Deploy e Hospedagem](#deploy-e-hospedagem)
-9. [Manutenção e Atualizações](#manutenção-e-atualizações)
-10. [Troubleshooting Técnico](#troubleshooting-técnico)
+2. [Layout Executivo e Paleta High-Contrast Dark](#layout-executivo-e-paleta-high-contrast-dark)
+3. [Estrutura de Dados e Modelos](#estrutura-de-dados-e-modelos)
+4. [Fluxo de Cálculos e Fórmulas](#fluxo-de-cálculos-e-fórmulas)
+5. [Sistema de Persistência](#sistema-de-persistência)
+6. [Geração de PDFs](#geração-de-pdfs)
+7. [API Interna](#api-interna)
+8. [Customização e Extensão](#customização-e-extensão)
+9. [Deploy e Hospedagem](#deploy-e-hospedagem)
+10. [Manutenção e Atualizações](#manutenção-e-atualizações)
+11. [Troubleshooting Técnico](#troubleshooting-técnico)
 
 ---
 
@@ -86,6 +87,96 @@ O sistema utiliza um padrão **MVC simplificado** adaptado para frontend:
 - ✅ **Zero dependências backend**: Totalmente frontend
 - ✅ **Modular**: Código separado por responsabilidade
 - ✅ **Performático**: Carregamento rápido e execução eficiente
+
+---
+
+## 🎨 Layout Executivo e Paleta High-Contrast Dark
+
+### Conceito de Design Executivo
+
+A interface foi otimizada para visualização executiva com foco em densidade de informação e eficiência na análise. O layout condensado elimina espaços em branco excessivos ("vácuos"), permitindo que a Superintendência visualize todos os dados críticos de uma aba sem necessidade de scroll.
+
+### Paleta de Cores High-Contrast Dark (Identidade CDL)
+
+A nova paleta de cores foi projetada para alto contraste e alinhamento com a identidade visual da CDL:
+
+#### Cores Base
+```css
+--bg-primary: #0f172a;    /* Fundo azul marinho profundo */
+--bg-secondary: #1e293b;  /* Fundo secundário */
+--bg-card: #1e293b;       /* Fundo dos cartões */
+--border: #334155;        /* Bordas com contraste */
+```
+
+#### Cores Funcionais (Logo CDL)
+```css
+--accent-gold: #ffcc00;   /* Amarelo para valores finais e destaques */
+--success-cdl: #008444;   /* Verde para botões de ação positiva e lucros */
+--primary: #2563eb;       /* Azul para elementos primários */
+```
+
+#### Contraste e Tipografia
+- **Textos principais**: `#e2e8f0` (Off-white) sobre fundos escuros
+- **Textos secundários**: `#cbd5e1` (Gray-200) para labels
+- **Valores destacados**: `#ffcc00` (Accent Gold) para valores monetários finais
+- **Valores positivos**: `#008444` (Success CDL) para lucros e ações positivas
+
+### Condensação do Layout
+
+#### Header (Cabeçalho)
+- **Padding reduzido**: De `40px 0` para `20px 0` (vertical)
+- **Espaçamento entre elementos**: Margin-bottom do h1 reduzida para `4px`
+- **Status badge**: Margin-top definida como `0` para aproximação
+
+#### Tabelas e Dados
+- **Densidade aumentada**: Padding de células reduzido de `1rem 1.25rem` para `0.625rem 1rem`
+- **Espaçamento entre tabelas**: Margin-bottom reduzida para `15px`
+- **Header de tabelas**: Padding otimizado para `0.75rem 1rem`
+
+#### Cards e Grid Administrativo
+- **Margin-bottom**: Reduzida para `var(--spacing-md)` (16px)
+- **Admin-grid**: Configurado com `align-items: start` para evitar gaps verticais artificiais
+- **Densidade consistente**: Todos os componentes seguem o mesmo padrão de espaçamento compacto
+
+### Modo de Impressão
+
+**IMPORTANTE**: O modo de impressão permanece com fundo branco e texto preto para garantir economia de recursos:
+
+```css
+@media print {
+    body {
+        background: white !important;
+    }
+    
+    .pdf-content,
+    #print-section {
+        background: #ffffff !important;
+        color: #0f172a !important;
+    }
+}
+```
+
+### Validação de Schema para Tema
+
+O sistema inclui validação robusta para persistência de preferências de tema no LocalStorage:
+
+```javascript
+// Validação no data-manager.js
+if (dados.configuracoes.tema !== undefined) {
+    const temasValidos = ['claro', 'escuro', 'sistema'];
+    if (!temasValidos.includes(dados.configuracoes.tema)) {
+        erros.push('Tema inválido');
+    }
+}
+```
+
+### Vantagens do Design Executivo
+
+1. **Eficiência de Análise**: Layout denso permite visualização completa sem scroll
+2. **Alto Contraste**: Melhor legibilidade em ambientes com iluminação variável
+3. **Identidade Visual**: Alinhamento com cores da marca CDL
+4. **Foco em Dados**: Destaque visual para informações críticas (valores em amarelo ouro)
+5. **Profissionalismo**: Estética séria e compacta adequada para uso executivo
 
 ---
 

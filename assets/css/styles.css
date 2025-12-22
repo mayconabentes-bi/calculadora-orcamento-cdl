@@ -35,12 +35,16 @@
     --error: #ef4444;
     --info: #3b82f6;
     
-    /* Superfícies */
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --bg-card: #ffffff;
-    --border: #e2e8f0;
-    --shadow: rgba(15, 23, 42, 0.08);
+    /* Cores CDL - High-Contrast Dark */
+    --accent-gold: #ffcc00;
+    --success-cdl: #008444;
+    
+    /* Superfícies - High-Contrast Dark */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #1e293b;
+    --border: #334155;
+    --shadow: rgba(0, 0, 0, 0.3);
     
     /* Tipografia */
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -144,9 +148,9 @@
 
 body {
     font-family: var(--font-primary);
-    background: var(--gray-100);
+    background: var(--bg-primary);
     min-height: 100vh;
-    color: var(--gray-900);
+    color: #e2e8f0;
     line-height: var(--leading-normal);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -168,14 +172,14 @@ body {
 .header {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: white;
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-lg) var(--spacing-2xl);
     box-shadow: var(--shadow-md);
 }
 
 .header h1 {
     font-size: var(--text-3xl);
     font-weight: var(--font-bold);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
     letter-spacing: -0.025em;
     line-height: var(--leading-tight);
 }
@@ -184,6 +188,7 @@ body {
     font-size: var(--text-sm);
     opacity: 0.95;
     font-weight: var(--font-medium);
+    margin-bottom: var(--spacing-xs);
 }
 
 .status-badge {
@@ -197,6 +202,7 @@ body {
     font-size: var(--text-xs);
     font-weight: var(--font-medium);
     backdrop-filter: blur(10px);
+    margin-top: 0;
 }
 
 /* -----------------------------------------------------------------
@@ -205,7 +211,7 @@ body {
 .tabs {
     display: flex;
     gap: var(--spacing-sm);
-    background: var(--bg-secondary);
+    background: var(--gray-900);
     padding: 0.75rem;
     border-bottom: 1px solid var(--border);
 }
@@ -220,7 +226,7 @@ body {
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: var(--gray-600);
+    color: #94a3b8;
     cursor: pointer;
     transition: all var(--transition-base);
     font-family: var(--font-primary);
@@ -228,14 +234,14 @@ body {
 }
 
 .tab-btn:hover {
-    background: var(--bg-primary);
-    color: var(--primary);
+    background: var(--gray-800);
+    color: var(--accent-gold);
     transform: translateY(-1px);
 }
 
 .tab-btn.active {
-    background: var(--bg-primary);
-    color: var(--primary);
+    background: var(--gray-800);
+    color: var(--accent-gold);
     box-shadow: var(--shadow-sm);
 }
 
@@ -258,7 +264,7 @@ body {
     border-radius: var(--radius-xl);
     padding: var(--spacing-2xl);
     box-shadow: var(--shadow-sm);
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
     transition: all var(--transition-slow);
 }
 
@@ -273,10 +279,10 @@ body {
     gap: 0.75rem;
     font-size: var(--text-xl);
     font-weight: var(--font-semibold);
-    color: var(--gray-900);
+    color: #f1f5f9;
     margin: 0 0 var(--spacing-lg);
     padding-bottom: var(--spacing-md);
-    border-bottom: 2px solid var(--gray-100);
+    border-bottom: 2px solid var(--gray-700);
 }
 
 /* -----------------------------------------------------------------
@@ -290,7 +296,7 @@ body {
     display: block;
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: var(--gray-700);
+    color: #cbd5e1;
     margin-bottom: var(--spacing-sm);
 }
 
@@ -298,8 +304,8 @@ body {
     width: 100%;
     padding: 0.75rem 1rem;
     font-size: var(--text-base);
-    color: var(--gray-900);
-    background: var(--bg-primary);
+    color: #e2e8f0;
+    background: var(--gray-800);
     border: 1.5px solid var(--border);
     border-radius: var(--radius-md);
     transition: all var(--transition-base);
@@ -330,20 +336,20 @@ body {
     align-items: center;
     gap: var(--spacing-sm);
     padding: 0.875rem;
-    background: var(--gray-50);
+    background: var(--gray-800);
     border-radius: var(--radius-md);
     transition: all var(--transition-base);
 }
 
 .checkbox-group:hover {
-    background: var(--gray-100);
+    background: var(--gray-700);
 }
 
 .checkbox-group input[type="checkbox"] {
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: var(--primary);
+    accent-color: var(--accent-gold);
     border-radius: 4px;
 }
 
@@ -353,7 +359,7 @@ body {
     flex: 1;
     font-weight: var(--font-medium);
     font-size: var(--text-sm);
-    color: var(--gray-700);
+    color: #cbd5e1;
 }
 
 /* Range Inputs */
@@ -478,11 +484,11 @@ body {
 }
 
 .btn-success {
-    background: var(--success);
+    background: var(--success-cdl);
 }
 
 .btn-success:hover {
-    background: #059669;
+    background: #006633;
 }
 
 .btn-danger {
@@ -564,6 +570,7 @@ body {
     font-weight: var(--font-bold);
     font-family: var(--font-mono);
     letter-spacing: -0.025em;
+    color: var(--accent-gold);
 }
 
 /* Métricas Grid */
@@ -575,7 +582,7 @@ body {
 }
 
 .metric-card {
-    background: var(--gray-50);
+    background: var(--gray-800);
     padding: var(--spacing-lg);
     border-radius: var(--radius-lg);
     text-align: center;
@@ -584,15 +591,15 @@ body {
 }
 
 .metric-card:hover {
-    border-color: var(--primary);
+    border-color: var(--accent-gold);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
-    background: var(--bg-primary);
+    background: var(--gray-700);
 }
 
 .metric-card .label {
     font-size: var(--text-xs);
-    color: var(--gray-600);
+    color: #94a3b8;
     margin-bottom: var(--spacing-sm);
     font-weight: var(--font-semibold);
     text-transform: uppercase;
@@ -602,20 +609,20 @@ body {
 .metric-card .value {
     font-size: var(--text-2xl);
     font-weight: var(--font-bold);
-    color: var(--primary);
+    color: var(--accent-gold);
     font-family: var(--font-mono);
 }
 
 /* Detalhamento do Cálculo */
 .breakdown {
-    background: var(--gray-50);
+    background: var(--gray-800);
     padding: var(--spacing-xl);
     border-radius: var(--radius-lg);
     margin-bottom: var(--spacing-lg);
 }
 
 .breakdown h4 {
-    color: var(--gray-900);
+    color: #f1f5f9;
     margin-bottom: var(--spacing-lg);
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);
@@ -626,7 +633,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 0.875rem 0;
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--border);
     font-size: var(--text-sm);
 }
 
@@ -635,26 +642,26 @@ body {
 }
 
 .breakdown-item span:first-child {
-    color: var(--gray-700);
+    color: #cbd5e1;
     font-weight: var(--font-medium);
 }
 
 .breakdown-item span:last-child {
     font-weight: var(--font-semibold);
-    color: var(--gray-900);
+    color: #e2e8f0;
     font-family: var(--font-mono);
 }
 
 .breakdown-item.total {
     margin-top: var(--spacing-md);
     padding-top: var(--spacing-lg);
-    border-top: 2px solid var(--primary);
+    border-top: 2px solid var(--accent-gold);
     border-bottom: none;
     font-size: var(--text-base);
 }
 
 .breakdown-item.total span {
-    color: var(--primary-dark);
+    color: var(--accent-gold);
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
 }
@@ -692,22 +699,23 @@ body {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    background: var(--bg-primary);
+    background: var(--bg-card);
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-md);
 }
 
 .data-table thead {
-    background: var(--gray-50);
+    background: var(--gray-800);
 }
 
 .data-table th {
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     text-align: left;
     font-size: var(--text-sm);
     font-weight: var(--font-semibold);
-    color: var(--gray-700);
+    color: #cbd5e1;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border-bottom: 2px solid var(--border);
@@ -719,7 +727,7 @@ body {
 }
 
 .data-table tbody tr:hover {
-    background: var(--gray-50);
+    background: var(--gray-800);
 }
 
 .data-table tbody tr:last-child {
@@ -727,9 +735,9 @@ body {
 }
 
 .data-table td {
-    padding: 1rem 1.25rem;
+    padding: 0.625rem 1rem;
     font-size: var(--text-sm);
-    color: var(--gray-600);
+    color: #94a3b8;
 }
 
 .data-table input[type="number"] {
@@ -755,6 +763,7 @@ body {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-xl);
+    align-items: start;
 }
 
 .admin-grid .card:last-child {
@@ -766,15 +775,15 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--bg-primary);
+    background: var(--gray-800);
     border: 1.5px solid var(--border);
     padding: var(--spacing-md);
     margin-bottom: var(--spacing-sm);
 }
 
 #extras-list .checkbox-group:hover {
-    border-color: var(--primary);
-    background: var(--gray-50);
+    border-color: var(--accent-gold);
+    background: var(--gray-700);
 }
 
 /* Lista de Funcionários */
@@ -782,15 +791,15 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--bg-primary);
+    background: var(--gray-800);
     border: 1.5px solid var(--border);
     padding: var(--spacing-md);
     margin-bottom: var(--spacing-sm);
 }
 
 #funcionarios-list .checkbox-group:hover {
-    border-color: var(--primary);
-    background: var(--gray-50);
+    border-color: var(--accent-gold);
+    background: var(--gray-700);
 }
 
 /* -----------------------------------------------------------------
@@ -803,10 +812,10 @@ body {
     min-width: 320px;
     max-width: 400px;
     padding: 1rem 1.25rem;
-    background: var(--bg-primary);
+    background: var(--gray-800);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
-    border-left: 4px solid var(--success);
+    border-left: 4px solid var(--success-cdl);
     transform: translateX(450px);
     transition: transform var(--transition-slow);
     z-index: 9999;
@@ -815,7 +824,7 @@ body {
     gap: var(--spacing-sm);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: var(--gray-900);
+    color: #e2e8f0;
 }
 
 .notification.show {
@@ -830,7 +839,7 @@ body {
     justify-content: center;
     width: 20px;
     height: 20px;
-    background: var(--success);
+    background: var(--success-cdl);
     color: white;
     border-radius: 50%;
     font-weight: var(--font-bold);
