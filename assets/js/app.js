@@ -88,22 +88,24 @@ function configurarNavegacaoAbas() {
  */
 function aplicarTema() {
     const temaSelecionado = dataManager.obterTema();
-    let aplicarEscuro = false;
+    let aplicarEscuro = true; // Dark mode por padrão
 
-    if (temaSelecionado === 'escuro') {
-        aplicarEscuro = true;
+    if (temaSelecionado === 'claro') {
+        aplicarEscuro = false;
     } else if (temaSelecionado === 'sistema') {
         // Detectar preferência do sistema operacional
         const prefereDark = window.matchMedia('(prefers-color-scheme: dark)');
         aplicarEscuro = prefereDark.matches;
     }
-    // Se temaSelecionado === 'claro', aplicarEscuro permanece false
+    // Se temaSelecionado === 'escuro', aplicarEscuro permanece true
 
     // Aplicar ou remover a classe dark-theme
-    if (aplicarEscuro) {
-        document.body.classList.add('dark-theme');
+    // Com o novo design, o modo escuro é o padrão, então não precisa adicionar classe
+    // A classe dark-theme agora é apenas para retrocompatibilidade
+    if (!aplicarEscuro) {
+        document.body.classList.add('light-theme');
     } else {
-        document.body.classList.remove('dark-theme');
+        document.body.classList.remove('light-theme');
     }
 
     // Atualizar o select de tema se existir
