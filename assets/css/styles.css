@@ -8,9 +8,9 @@
    1. DESIGN SYSTEM - CSS VARIABLES
    ----------------------------------------------------------------- */
 :root {
-    /* Cores Principais */
-    --primary: #2563eb;
-    --primary-dark: #1e40af;
+    /* Cores Principais - CDL Blue */
+    --primary: #1e478a;
+    --primary-dark: #163769;
     --primary-light: #dbeafe;
     
     /* Cores Secundárias */
@@ -42,10 +42,17 @@
     
     /* Superfícies */
     --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
+    --bg-secondary: #f1f5f9;
     --bg-card: #ffffff;
     --border: #e2e8f0;
     --shadow: rgba(15, 23, 42, 0.08);
+    
+    /* Text Colors */
+    --text-primary: var(--gray-900);
+    --text-secondary: var(--gray-700);
+    
+    /* Zebra Stripes */
+    --zebra-stripe: rgba(241, 245, 249, 0.5);
     
     /* Tipografia */
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -103,10 +110,10 @@
    1.1. DARK THEME VARIABLES - HIGH-CONTRAST CDL
    ----------------------------------------------------------------- */
 .dark-theme {
-    /* Cores Principais - mantém os azuis da CDL */
+    /* Cores Principais - CDL Blue for dark mode */
     --primary: #3b82f6;
     --primary-dark: #2563eb;
-    --primary-light: #1e3a8a;
+    --primary-light: #1e478a;
     
     /* Cores Secundárias */
     --secondary: #94a3b8;
@@ -136,6 +143,13 @@
     --bg-card: #1e293b;
     --border: #334155;
     --shadow: rgba(0, 0, 0, 0.3);
+    
+    /* Text Colors - Dark Theme */
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    
+    /* Zebra Stripes - Dark Theme */
+    --zebra-stripe: rgba(30, 41, 59, 0.5);
 }
 
 /* -----------------------------------------------------------------
@@ -157,6 +171,11 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Dark theme text color override for absolute readability */
+.dark-theme body {
+    color: var(--text-primary);
+}
+
 /* -----------------------------------------------------------------
    3. LAYOUT - Container e estrutura principal
    ----------------------------------------------------------------- */
@@ -173,7 +192,7 @@ body {
 .header {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: white;
-    padding: var(--spacing-lg) var(--spacing-2xl);
+    padding: 1rem 2rem;
     box-shadow: var(--shadow-md);
 }
 
@@ -258,7 +277,7 @@ body {
 
 .tab-content {
     display: none;
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-lg);
 }
 
 .tab-content.active {
@@ -273,7 +292,7 @@ body {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-lg);
     box-shadow: var(--shadow-sm);
     margin-bottom: var(--spacing-md);
     transition: all var(--transition-slow);
@@ -296,6 +315,11 @@ body {
     border-bottom: 2px solid var(--gray-200);
 }
 
+/* Dark theme card title */
+.dark-theme .card-title {
+    color: var(--text-primary);
+}
+
 /* -----------------------------------------------------------------
    7. FORMULÁRIOS (Inputs, Selects, Checkboxes)
    ----------------------------------------------------------------- */
@@ -311,6 +335,11 @@ body {
     margin-bottom: var(--spacing-sm);
 }
 
+/* Dark theme label */
+.dark-theme .form-group label {
+    color: var(--text-secondary);
+}
+
 .form-control {
     width: 100%;
     padding: 0.75rem 1rem;
@@ -321,6 +350,12 @@ body {
     border-radius: var(--radius-md);
     transition: all var(--transition-base);
     font-family: var(--font-primary);
+}
+
+/* Dark theme form control */
+.dark-theme .form-control {
+    color: var(--text-primary);
+    background: var(--gray-800);
 }
 
 .form-control:focus {
@@ -387,7 +422,7 @@ body {
 }
 
 .dark-theme .checkbox-group label {
-    color: #cbd5e1;
+    color: var(--text-secondary);
 }
 
 /* Range Inputs */
@@ -516,6 +551,15 @@ body {
 }
 
 .btn-success:hover {
+    background: var(--success-cdl-dark);
+}
+
+/* Primary calculate button uses CDL Green for trust and progress */
+#calcular {
+    background: var(--success-cdl);
+}
+
+#calcular:hover {
     background: var(--success-cdl-dark);
 }
 
@@ -786,7 +830,7 @@ body {
 }
 
 .data-table th {
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.875rem;
     text-align: left;
     font-size: var(--text-sm);
     font-weight: var(--font-semibold);
@@ -801,6 +845,11 @@ body {
     border-bottom: 1px solid var(--border);
 }
 
+/* Zebra stripes for tables - subtle gray */
+.data-table tbody tr:nth-child(even) {
+    background: var(--zebra-stripe);
+}
+
 .data-table tbody tr:hover {
     background: var(--gray-50);
 }
@@ -810,7 +859,7 @@ body {
 }
 
 .data-table td {
-    padding: 0.625rem 1rem;
+    padding: 0.5rem 0.875rem;
     font-size: var(--text-sm);
     color: var(--gray-600);
 }
@@ -830,6 +879,11 @@ body {
 
 .dark-theme .data-table tbody tr:hover {
     background: var(--gray-800);
+}
+
+/* Dark theme zebra stripes */
+.dark-theme .data-table tbody tr:nth-child(even) {
+    background: var(--zebra-stripe);
 }
 
 .dark-theme .data-table td {
