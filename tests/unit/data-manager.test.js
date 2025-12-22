@@ -759,3 +759,201 @@ describe('DataManager - Validações', () => {
     expect(idsUnicos.size).toBe(3);
   });
 });
+
+describe('DataManager - Schema Validation', () => {
+  let dm;
+  
+  beforeEach(() => {
+    localStorage.clear();
+    dm = new DataManager();
+  });
+
+  test('deve validar schema de dados válidos', () => {
+    const validacao = dm.validarSchema(dm.dados);
+    expect(validacao.valido).toBe(true);
+    expect(validacao.erros).toHaveLength(0);
+  });
+
+  test('deve rejeitar dados sem salas', () => {
+    const dadosInvalidos = {
+      extras: [],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: 10, he50: 15, he100: 20, valeTransporte: 5, ativo: true }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros).toContain('salas deve ser um array');
+  });
+
+  test('deve rejeitar dados sem extras', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: 10, he50: 15, he100: 20, valeTransporte: 5, ativo: true }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros).toContain('extras deve ser um array');
+  });
+
+  test('deve rejeitar dados sem funcionários', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros).toContain('funcionarios deve ser um array');
+  });
+
+  test('deve rejeitar dados com funcionários vazios', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros).toContain('deve haver pelo menos um funcionário');
+  });
+
+  test('deve rejeitar sala com campos inválidos', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: -10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: 10, he50: 15, he100: 20, valeTransporte: 5, ativo: true }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros.some(e => e.includes('capacidade inválida'))).toBe(true);
+  });
+
+  test('deve rejeitar sala com custoBase negativo', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: -100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: 10, he50: 15, he100: 20, valeTransporte: 5, ativo: true }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros.some(e => e.includes('custoBase inválido'))).toBe(true);
+  });
+
+  test('deve rejeitar extra com custo negativo', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: -50 }],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: 10, he50: 15, he100: 20, valeTransporte: 5, ativo: true }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros.some(e => e.includes('custo inválido'))).toBe(true);
+  });
+
+  test('deve rejeitar funcionário com valores negativos', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: -10, he50: 15, he100: 20, valeTransporte: 5, ativo: true }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros.some(e => e.includes('horaNormal inválido'))).toBe(true);
+  });
+
+  test('deve rejeitar funcionário sem campo ativo', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: 10, he50: 15, he100: 20, valeTransporte: 5 }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros.some(e => e.includes('ativo deve ser boolean'))).toBe(true);
+  });
+
+  test('deve rejeitar multiplicadores inválidos', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: 10, he50: 15, he100: 20, valeTransporte: 5, ativo: true }],
+      multiplicadoresTurno: { manha: 0, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros.some(e => e.includes('multiplicadoresTurno.manha inválido'))).toBe(true);
+  });
+
+  test('deve rejeitar dados sem multiplicadoresTurno', () => {
+    const dadosInvalidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [{ id: 1, nome: 'F1', horaNormal: 10, he50: 15, he100: 20, valeTransporte: 5, ativo: true }]
+    };
+    const validacao = dm.validarSchema(dadosInvalidos);
+    expect(validacao.valido).toBe(false);
+    expect(validacao.erros).toContain('multiplicadoresTurno deve ser um objeto');
+  });
+
+  test('deve prevenir salvamento de dados inválidos', () => {
+    // Corromper dados diretamente
+    dm.dados.salas = null;
+    
+    const resultado = dm.salvarDados();
+    expect(resultado).toBe(false);
+    
+    // LocalStorage não deve ter sido atualizado
+    const stored = localStorage.getItem(dm.storageKey);
+    expect(stored).toBeNull();
+  });
+
+  test('deve detectar e recuperar de dados corrompidos no carregamento', () => {
+    // Salvar dados corrompidos no LocalStorage
+    const dadosInvalidos = JSON.stringify({
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [], // Vazio - inválido
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    });
+    localStorage.setItem('cdl-calculadora-v5-data', dadosInvalidos);
+    
+    // Criar nova instância - deve detectar corrupção e usar dados padrão
+    const novaDm = new DataManager();
+    expect(novaDm.dados.funcionarios.length).toBeGreaterThan(0);
+    
+    // Validar que dados carregados são válidos
+    const validacao = novaDm.validarSchema(novaDm.dados);
+    expect(validacao.valido).toBe(true);
+  });
+
+  test('deve aceitar funcionários com campos opcionais', () => {
+    const dadosValidos = {
+      salas: [{ id: 1, nome: 'S1', unidade: 'U1', capacidade: 10, area: 50, custoBase: 100 }],
+      extras: [{ id: 1, nome: 'E1', custo: 50 }],
+      funcionarios: [{ 
+        id: 1, 
+        nome: 'F1', 
+        horaNormal: 10, 
+        he50: 15, 
+        he100: 20, 
+        valeTransporte: 5, 
+        transporteApp: 10,
+        refeicao: 25,
+        ativo: true,
+        dataEscala: '2025-01-15'
+      }],
+      multiplicadoresTurno: { manha: 1, tarde: 1.15, noite: 1.4 }
+    };
+    const validacao = dm.validarSchema(dadosValidos);
+    expect(validacao.valido).toBe(true);
+    expect(validacao.erros).toHaveLength(0);
+  });
+});
+
