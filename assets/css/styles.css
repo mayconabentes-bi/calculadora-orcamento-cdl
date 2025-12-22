@@ -39,12 +39,12 @@
     --accent-gold: #ffcc00;
     --success-cdl: #008444;
     
-    /* Superfícies - High-Contrast Dark */
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-card: #1e293b;
-    --border: #334155;
-    --shadow: rgba(0, 0, 0, 0.3);
+    /* Superfícies */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-card: #ffffff;
+    --border: #e2e8f0;
+    --shadow: rgba(15, 23, 42, 0.08);
     
     /* Tipografia */
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -99,7 +99,7 @@
 }
 
 /* -----------------------------------------------------------------
-   1.1. DARK THEME VARIABLES
+   1.1. DARK THEME VARIABLES - HIGH-CONTRAST CDL
    ----------------------------------------------------------------- */
 .dark-theme {
     /* Cores Principais - mantém os azuis da CDL */
@@ -129,7 +129,7 @@
     --error: #f87171;
     --info: #60a5fa;
     
-    /* Superfícies - tons escuros */
+    /* Superfícies - High-Contrast Dark (CDL Identity) */
     --bg-primary: #0f172a;
     --bg-secondary: #1e293b;
     --bg-card: #1e293b;
@@ -148,9 +148,9 @@
 
 body {
     font-family: var(--font-primary);
-    background: var(--bg-primary);
+    background: var(--bg-secondary);
     min-height: 100vh;
-    color: #e2e8f0;
+    color: var(--gray-900);
     line-height: var(--leading-normal);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -226,7 +226,7 @@ body {
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: #94a3b8;
+    color: var(--gray-600);
     cursor: pointer;
     transition: all var(--transition-base);
     font-family: var(--font-primary);
@@ -235,15 +235,24 @@ body {
 
 .tab-btn:hover {
     background: var(--bg-primary);
-    color: var(--accent-gold);
+    color: var(--primary);
     transform: translateY(-1px);
 }
 
 .tab-btn.active {
     background: var(--bg-primary);
-    color: var(--accent-gold);
+    color: var(--primary);
     box-shadow: var(--shadow-sm);
     font-weight: var(--font-semibold);
+}
+
+/* Dark theme overrides for tabs */
+.dark-theme .tab-btn:hover {
+    color: var(--accent-gold);
+}
+
+.dark-theme .tab-btn.active {
+    color: var(--accent-gold);
 }
 
 .tab-content {
@@ -280,10 +289,10 @@ body {
     gap: 0.75rem;
     font-size: var(--text-xl);
     font-weight: var(--font-semibold);
-    color: #f1f5f9;
+    color: var(--gray-900);
     margin: 0 0 var(--spacing-lg);
     padding-bottom: var(--spacing-md);
-    border-bottom: 2px solid var(--gray-700);
+    border-bottom: 2px solid var(--gray-200);
 }
 
 /* -----------------------------------------------------------------
@@ -297,7 +306,7 @@ body {
     display: block;
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: #cbd5e1;
+    color: var(--gray-700);
     margin-bottom: var(--spacing-sm);
 }
 
@@ -305,8 +314,8 @@ body {
     width: 100%;
     padding: 0.75rem 1rem;
     font-size: var(--text-base);
-    color: #e2e8f0;
-    background: var(--gray-800);
+    color: var(--gray-900);
+    background: var(--bg-primary);
     border: 1.5px solid var(--border);
     border-radius: var(--radius-md);
     transition: all var(--transition-base);
@@ -337,20 +346,20 @@ body {
     align-items: center;
     gap: var(--spacing-sm);
     padding: 0.875rem;
-    background: var(--gray-800);
+    background: var(--gray-50);
     border-radius: var(--radius-md);
     transition: all var(--transition-base);
 }
 
 .checkbox-group:hover {
-    background: var(--gray-700);
+    background: var(--gray-100);
 }
 
 .checkbox-group input[type="checkbox"] {
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: var(--accent-gold);
+    accent-color: var(--primary);
     border-radius: 4px;
 }
 
@@ -360,6 +369,23 @@ body {
     flex: 1;
     font-weight: var(--font-medium);
     font-size: var(--text-sm);
+    color: var(--gray-700);
+}
+
+/* Dark theme overrides for checkboxes */
+.dark-theme .checkbox-group {
+    background: var(--gray-800);
+}
+
+.dark-theme .checkbox-group:hover {
+    background: var(--gray-700);
+}
+
+.dark-theme .checkbox-group input[type="checkbox"] {
+    accent-color: var(--accent-gold);
+}
+
+.dark-theme .checkbox-group label {
     color: #cbd5e1;
 }
 
@@ -583,7 +609,7 @@ body {
 }
 
 .metric-card {
-    background: var(--gray-800);
+    background: var(--gray-50);
     padding: var(--spacing-lg);
     border-radius: var(--radius-lg);
     text-align: center;
@@ -592,15 +618,15 @@ body {
 }
 
 .metric-card:hover {
-    border-color: var(--accent-gold);
+    border-color: var(--primary);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
-    background: var(--gray-700);
+    background: var(--bg-primary);
 }
 
 .metric-card .label {
     font-size: var(--text-xs);
-    color: #94a3b8;
+    color: var(--gray-600);
     margin-bottom: var(--spacing-sm);
     font-weight: var(--font-semibold);
     text-transform: uppercase;
@@ -610,20 +636,38 @@ body {
 .metric-card .value {
     font-size: var(--text-2xl);
     font-weight: var(--font-bold);
-    color: var(--accent-gold);
+    color: var(--primary);
     font-family: var(--font-mono);
+}
+
+/* Dark theme overrides for metrics */
+.dark-theme .metric-card {
+    background: var(--gray-800);
+}
+
+.dark-theme .metric-card:hover {
+    border-color: var(--accent-gold);
+    background: var(--gray-700);
+}
+
+.dark-theme .metric-card .label {
+    color: #94a3b8;
+}
+
+.dark-theme .metric-card .value {
+    color: var(--accent-gold);
 }
 
 /* Detalhamento do Cálculo */
 .breakdown {
-    background: var(--gray-800);
+    background: var(--gray-50);
     padding: var(--spacing-xl);
     border-radius: var(--radius-lg);
     margin-bottom: var(--spacing-lg);
 }
 
 .breakdown h4 {
-    color: #f1f5f9;
+    color: var(--gray-900);
     margin-bottom: var(--spacing-lg);
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);
@@ -634,7 +678,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 0.875rem 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--gray-200);
     font-size: var(--text-sm);
 }
 
@@ -643,28 +687,57 @@ body {
 }
 
 .breakdown-item span:first-child {
-    color: #cbd5e1;
+    color: var(--gray-700);
     font-weight: var(--font-medium);
 }
 
 .breakdown-item span:last-child {
     font-weight: var(--font-semibold);
-    color: #e2e8f0;
+    color: var(--gray-900);
     font-family: var(--font-mono);
 }
 
 .breakdown-item.total {
     margin-top: var(--spacing-md);
     padding-top: var(--spacing-lg);
-    border-top: 2px solid var(--accent-gold);
+    border-top: 2px solid var(--primary);
     border-bottom: none;
     font-size: var(--text-base);
 }
 
 .breakdown-item.total span {
-    color: var(--accent-gold);
+    color: var(--primary);
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
+}
+
+/* Dark theme overrides for breakdown */
+.dark-theme .breakdown {
+    background: var(--gray-800);
+}
+
+.dark-theme .breakdown h4 {
+    color: #f1f5f9;
+}
+
+.dark-theme .breakdown-item {
+    border-bottom-color: var(--border);
+}
+
+.dark-theme .breakdown-item span:first-child {
+    color: #cbd5e1;
+}
+
+.dark-theme .breakdown-item span:last-child {
+    color: #e2e8f0;
+}
+
+.dark-theme .breakdown-item.total {
+    border-top-color: var(--accent-gold);
+}
+
+.dark-theme .breakdown-item.total span {
+    color: var(--accent-gold);
 }
 
 /* Funcionários Detalhamento */
@@ -700,7 +773,7 @@ body {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    background: var(--bg-card);
+    background: var(--bg-primary);
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
@@ -708,7 +781,7 @@ body {
 }
 
 .data-table thead {
-    background: var(--gray-800);
+    background: var(--gray-50);
 }
 
 .data-table th {
@@ -716,7 +789,7 @@ body {
     text-align: left;
     font-size: var(--text-sm);
     font-weight: var(--font-semibold);
-    color: #cbd5e1;
+    color: var(--gray-700);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border-bottom: 2px solid var(--border);
@@ -728,7 +801,7 @@ body {
 }
 
 .data-table tbody tr:hover {
-    background: var(--gray-800);
+    background: var(--gray-50);
 }
 
 .data-table tbody tr:last-child {
@@ -738,6 +811,27 @@ body {
 .data-table td {
     padding: 0.625rem 1rem;
     font-size: var(--text-sm);
+    color: var(--gray-600);
+}
+
+/* Dark theme overrides for tables */
+.dark-theme .data-table {
+    background: var(--bg-card);
+}
+
+.dark-theme .data-table thead {
+    background: var(--gray-800);
+}
+
+.dark-theme .data-table th {
+    color: #cbd5e1;
+}
+
+.dark-theme .data-table tbody tr:hover {
+    background: var(--gray-800);
+}
+
+.dark-theme .data-table td {
     color: #94a3b8;
 }
 
@@ -776,15 +870,15 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--gray-800);
+    background: var(--bg-primary);
     border: 1.5px solid var(--border);
     padding: var(--spacing-md);
     margin-bottom: var(--spacing-sm);
 }
 
 #extras-list .checkbox-group:hover {
-    border-color: var(--accent-gold);
-    background: var(--gray-700);
+    border-color: var(--primary);
+    background: var(--gray-50);
 }
 
 /* Lista de Funcionários */
@@ -792,13 +886,25 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--gray-800);
+    background: var(--bg-primary);
     border: 1.5px solid var(--border);
     padding: var(--spacing-md);
     margin-bottom: var(--spacing-sm);
 }
 
 #funcionarios-list .checkbox-group:hover {
+    border-color: var(--primary);
+    background: var(--gray-50);
+}
+
+/* Dark theme overrides for lists */
+.dark-theme #extras-list .checkbox-group,
+.dark-theme #funcionarios-list .checkbox-group {
+    background: var(--gray-800);
+}
+
+.dark-theme #extras-list .checkbox-group:hover,
+.dark-theme #funcionarios-list .checkbox-group:hover {
     border-color: var(--accent-gold);
     background: var(--gray-700);
 }
@@ -813,10 +919,10 @@ body {
     min-width: 320px;
     max-width: 400px;
     padding: 1rem 1.25rem;
-    background: var(--gray-800);
+    background: var(--bg-primary);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
-    border-left: 4px solid var(--success-cdl);
+    border-left: 4px solid var(--success);
     transform: translateX(450px);
     transition: transform var(--transition-slow);
     z-index: 9999;
@@ -825,7 +931,7 @@ body {
     gap: var(--spacing-sm);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: #e2e8f0;
+    color: var(--gray-900);
 }
 
 .notification.show {
@@ -840,11 +946,22 @@ body {
     justify-content: center;
     width: 20px;
     height: 20px;
-    background: var(--success-cdl);
+    background: var(--success);
     color: white;
     border-radius: 50%;
     font-weight: var(--font-bold);
     font-size: var(--text-xs);
+}
+
+/* Dark theme overrides for notification */
+.dark-theme .notification {
+    background: var(--gray-800);
+    border-left-color: var(--success-cdl);
+    color: #e2e8f0;
+}
+
+.dark-theme .notification::before {
+    background: var(--success-cdl);
 }
 
 /* -----------------------------------------------------------------
