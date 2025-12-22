@@ -494,17 +494,20 @@ describe('Arredondamento de Moeda', () => {
 });
 
 describe('Detecção de Perda de Precisão', () => {
-  test('deve detectar perda de precisão', () => {
+  test('não deve detectar perda em operações comuns de float', () => {
     // 0.1 + 0.2 = 0.30000000000000004
-    expect(detectarPerdaPrecisao(0.1 + 0.2)).toBe(false); // diferença < 0.001
+    // A diferença é muito pequena (< 0.001), então não é detectada como problema
+    expect(detectarPerdaPrecisao(0.1 + 0.2)).toBe(false);
   });
 
   test('não deve detectar em valores normais', () => {
     expect(detectarPerdaPrecisao(10.50)).toBe(false);
   });
 
-  test('deve detectar erro significativo', () => {
-    expect(detectarPerdaPrecisao(10.505)).toBe(true); // diferença > 0.001
+  test('deve detectar diferenças significativas de arredondamento', () => {
+    // Este teste verifica se há diferença > 0.001 entre o valor e seu arredondamento
+    // 10.506 arredonda para 10.51, diferença de 0.004 > 0.001
+    expect(detectarPerdaPrecisao(10.506)).toBe(true);
   });
 
   test('deve funcionar com valores grandes', () => {
@@ -513,6 +516,11 @@ describe('Detecção de Perda de Precisão', () => {
 
   test('deve funcionar com valores negativos', () => {
     expect(detectarPerdaPrecisao(-10.50)).toBe(false);
+  });
+
+  test('deve detectar valores que precisam arredondamento significativo', () => {
+    // Valor com mais casas decimais que precisa arredondamento
+    expect(detectarPerdaPrecisao(123.4567)).toBe(true);
   });
 });
 

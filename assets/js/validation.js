@@ -35,7 +35,24 @@ function validarValorMonetario(valor) {
     }
 
     // Verificar número de casas decimais (mais de 2 pode indicar erro de precisão)
-    const decimal = (valor.toString().split('.')[1] || '').length;
+    // Nota: Usamos uma abordagem de string que funciona para a maioria dos casos.
+    // Para números em notação científica, tratamos separadamente.
+    const valorStr = valor.toString();
+    
+    // Se está em notação científica (muito grande ou pequeno), validar separadamente
+    if (valorStr.includes('e') || valorStr.includes('E')) {
+        // Valores em notação científica muito pequenos ou muito grandes podem ser problemáticos
+        const absValor = Math.abs(valor);
+        if (absValor < 0.01 && absValor > 0) {
+            // Valores monetários muito pequenos podem indicar erro de precisão
+            return { 
+                valido: false, 
+                erro: 'Valor muito pequeno, possível erro de precisão flutuante' 
+            };
+        }
+    }
+    
+    const decimal = (valorStr.split('.')[1] || '').replace(/[eE].*/, '').length;
     if (decimal > 10) {
         return { 
             valido: false, 
@@ -201,9 +218,15 @@ function arredondarMoeda(valor) {
 }
 
 /**
- * Verifica se há perda de precisão em operações monetárias
+ * Verifica se há diferença significativa entre o valor e seu arredondamento
+ * Útil para detectar valores que precisam ser arredondados antes de uso
+ * 
+ * Nota: Esta função detecta diferenças > 0.001 entre o valor original e
+ * o valor arredondado. Não detecta todos os erros de precisão flutuante,
+ * apenas aqueles que resultam em diferenças perceptíveis após arredondamento.
+ * 
  * @param {number} valor - Valor calculado
- * @returns {boolean} true se detectou perda de precisão
+ * @returns {boolean} true se detectou diferença > 0.001 do valor arredondado
  */
 function detectarPerdaPrecisao(valor) {
     const arredondado = arredondarMoeda(valor);
