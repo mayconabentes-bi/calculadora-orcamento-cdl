@@ -235,10 +235,17 @@ function parseTimeToMinutes(timeString) {
 
 /**
  * Calcula o total de horas de todos os horários
+ * 
+ * Complexidade: O(h) onde h = número de horários configurados
+ * Espaço: O(1) - apenas variáveis escalares
+ * 
+ * Performance: Linear - eficiente mesmo com múltiplos horários
+ * Nota: Número típico de horários é pequeno (1-5), então performance excelente
  */
 function calcularTotalHorasPorDia() {
     let totalHoras = 0;
     
+    // Loop O(h) - linear sobre horários
     for (const horario of horarios) {
         const minutosInicio = parseTimeToMinutes(horario.inicio);
         const minutosFim = parseTimeToMinutes(horario.fim);
@@ -550,6 +557,29 @@ function calcularOrcamento() {
 
 /**
  * Realiza todos os cálculos do orçamento
+ * 
+ * Complexidade Algoritmica: O(d + f) onde:
+ * - d = número de dias selecionados na semana (max 7)
+ * - f = número de funcionários ativos
+ * 
+ * Análise de Performance:
+ * - Processamento de dias: O(d) - dois loops sobre diasSelecionados (max 7 elementos)
+ * - Processamento de funcionários: O(f) - um loop sobre funcionários ativos
+ * - Total: O(d + f) que é linear e eficiente
+ * 
+ * Nota sobre Precisão Numérica:
+ * Esta função realiza múltiplas operações com valores monetários.
+ * Para aplicações críticas ou valores muito grandes, considere usar
+ * bibliotecas de precisão decimal como decimal.js
+ * 
+ * @param {Object} sala - Dados da sala/espaço
+ * @param {number} duracao - Duração do contrato
+ * @param {string} duracaoTipo - Tipo: 'dias' ou 'meses'
+ * @param {Array<number>} diasSelecionados - Array com dias da semana (0-6)
+ * @param {number} horasPorDia - Horas por dia de trabalho
+ * @param {number} margem - Margem de lucro (0-1, ex: 0.20 = 20%)
+ * @param {number} desconto - Desconto (0-1, ex: 0.10 = 10%)
+ * @returns {Object} Resultado dos cálculos
  */
 function calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto) {
     const funcionariosAtivos = dataManager.obterFuncionariosAtivos();
@@ -572,6 +602,7 @@ function calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorD
     };
     
     // Contar dias por tipo nas semanas completas
+    // Complexidade: O(d) onde d = diasSelecionados.length (max 7)
     diasSelecionados.forEach(dia => {
         if (dia === 6) {
             diasTrabalhadosPorTipo.sabado += semanas;
@@ -583,6 +614,7 @@ function calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorD
     });
     
     // Adicionar dias restantes (proporcional)
+    // Complexidade: O(d) onde d = diasSelecionados.length (max 7)
     if (diasRestantes > 0) {
         diasSelecionados.forEach(dia => {
             const proporcao = diasRestantes / 7;
@@ -609,6 +641,8 @@ function calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorD
     const custoOperacionalBase = sala.custoBase * multiplicadorMedio * horasTotais;
     
     // Calcular custos de mão de obra para cada funcionário
+    // Complexidade: O(f) onde f = funcionariosAtivos.length
+    // IMPORTANTE: Este loop é linear, não aninhado - mantém eficiência O(n)
     const detalhamentoFuncionarios = [];
     let custoMaoObraNormal = 0;
     let custoMaoObraHE50 = 0;
