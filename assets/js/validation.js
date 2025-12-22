@@ -3,6 +3,11 @@
    Funções para validar dados e prevenir problemas de precisão
    ================================================================= */
 
+// Constantes de validação
+const MAX_SAFE_MONETARY_VALUE = Number.MAX_SAFE_INTEGER / 100;
+const MAX_DECIMAL_PLACES = 10;
+const PRECISION_THRESHOLD = 0.001;
+
 /**
  * Valida valores monetários
  * Verifica se o valor está dentro dos limites seguros para cálculos financeiros
@@ -29,12 +34,11 @@ function validarValorMonetario(valor) {
     }
 
     // Verificar valores extremamente grandes que podem causar perda de precisão
-    // Number.MAX_SAFE_INTEGER = 9007199254740991
-    if (valor > Number.MAX_SAFE_INTEGER / 100) {
+    if (valor > MAX_SAFE_MONETARY_VALUE) {
         return { valido: false, erro: 'Valor muito grande, pode causar perda de precisão' };
     }
 
-    // Verificar número de casas decimais (mais de 2 pode indicar erro de precisão)
+    // Verificar número de casas decimais (mais de MAX_DECIMAL_PLACES pode indicar erro de precisão)
     // Nota: Usamos uma abordagem de string que funciona para a maioria dos casos.
     // Para números em notação científica, tratamos separadamente.
     const valorStr = valor.toString();
@@ -53,7 +57,7 @@ function validarValorMonetario(valor) {
     }
     
     const decimal = (valorStr.split('.')[1] || '').replace(/[eE].*/, '').length;
-    if (decimal > 10) {
+    if (decimal > MAX_DECIMAL_PLACES) {
         return { 
             valido: false, 
             erro: 'Valor com muitas casas decimais, possível erro de precisão flutuante' 
@@ -221,19 +225,19 @@ function arredondarMoeda(valor) {
  * Verifica se há diferença significativa entre o valor e seu arredondamento
  * Útil para detectar valores que precisam ser arredondados antes de uso
  * 
- * Nota: Esta função detecta diferenças > 0.001 entre o valor original e
+ * Nota: Esta função detecta diferenças > PRECISION_THRESHOLD entre o valor original e
  * o valor arredondado. Não detecta todos os erros de precisão flutuante,
  * apenas aqueles que resultam em diferenças perceptíveis após arredondamento.
  * 
  * @param {number} valor - Valor calculado
- * @returns {boolean} true se detectou diferença > 0.001 do valor arredondado
+ * @returns {boolean} true se detectou diferença > PRECISION_THRESHOLD do valor arredondado
  */
 function detectarPerdaPrecisao(valor) {
     const arredondado = arredondarMoeda(valor);
     const diferenca = Math.abs(valor - arredondado);
     
-    // Se a diferença for maior que 0.001, pode haver problema
-    return diferenca > 0.001;
+    // Se a diferença for maior que o limite, pode haver problema
+    return diferenca > PRECISION_THRESHOLD;
 }
 
 // Exportar funções (se estiver usando módulos)
