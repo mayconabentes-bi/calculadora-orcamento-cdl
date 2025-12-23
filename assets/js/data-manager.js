@@ -1204,6 +1204,156 @@ class DataManager {
         return oportunidades;
     }
 
+    // ========== MÉTODOS DE ANÁLISE DE DADOS (OLAP) ==========
+
+    /**
+     * Obtém dados analíticos agregados para Dashboard
+     * Agrupa orçamentos por unidade e calcula métricas financeiras
+     * @returns {Object} Dados agregados para visualização
+     */
+    obterDadosAnaliticos() {
+        const historico = this.obterHistoricoCalculos();
+        
+        if (historico.length === 0) {
+            return {
+                kpis: {
+                    receitaTotal: 0,
+                    receitaConfirmada: 0,
+                    margemMedia: 0,
+                    ticketMedio: 0
+                },
+                porUnidade: {},
+                evolucaoMensal: []
+            };
+        }
+        
+        // Filtrar apenas orçamentos dos últimos 12 meses
+        const dataLimite = new Date();
+        dataLimite.setMonth(dataLimite.getMonth() - 12);
+        
+        const historicoRecente = historico.filter(calc => {
+            const dataCalc = new Date(calc.data);
+            return dataCalc >= dataLimite;
+        });
+        
+        if (historicoRecente.length === 0) {
+            return {
+                kpis: {
+                    receitaTotal: 0,
+                    receitaConfirmada: 0,
+                    margemMedia: 0,
+                    ticketMedio: 0
+                },
+                porUnidade: {},
+                evolucaoMensal: []
+            };
+        }
+        
+        // Calcular KPIs gerais
+        let receitaTotal = 0;
+        let receitaConfirmada = 0;
+        let somaMargens = 0;
+        let countConvertidos = 0;
+        
+        // Agregação por unidade
+        const porUnidade = {};
+        
+        // Evolução mensal (últimos 6 meses)
+        const evolucaoMensal = [];
+        const dataLimite6Meses = new Date();
+        dataLimite6Meses.setMonth(dataLimite6Meses.getMonth() - 6);
+        
+        historicoRecente.forEach(calc => {
+            const unidade = calc.sala.unidade;
+            const valorFinal = calc.valorFinal || 0;
+            const subtotalSemMargem = calc.subtotalSemMargem || 0;
+            const convertido = calc.convertido === true;
+            
+            // KPIs gerais
+            receitaTotal += valorFinal;
+            if (convertido) {
+                receitaConfirmada += valorFinal;
+                countConvertidos++;
+            }
+            somaMargens += calc.margemLiquida || 0;
+            
+            // Agregação por unidade
+            if (!porUnidade[unidade]) {
+                porUnidade[unidade] = {
+                    receita: 0,
+                    custoVariavel: 0,
+                    custoFixo: 0,
+                    margemContribuicao: 0,
+                    count: 0
+                };
+            }
+            
+            // Calcular custos
+            const custoFixo = calc.custoOperacionalBase || (subtotalSemMargem * 0.3); // Estimativa se não disponível
+            const custoVariavel = subtotalSemMargem - custoFixo;
+            const margemContribuicao = valorFinal - custoVariavel;
+            
+            porUnidade[unidade].receita += valorFinal;
+            porUnidade[unidade].custoVariavel += custoVariavel;
+            porUnidade[unidade].custoFixo += custoFixo;
+            porUnidade[unidade].margemContribuicao += margemContribuicao;
+            porUnidade[unidade].count += 1;
+        });
+        
+        // Calcular evolução mensal
+        const mesesMap = {};
+        historicoRecente.forEach(calc => {
+            const dataCalc = new Date(calc.data);
+            if (dataCalc >= dataLimite6Meses) {
+                const mesAno = `${dataCalc.getFullYear()}-${String(dataCalc.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!mesesMap[mesAno]) {
+                    mesesMap[mesAno] = {
+                        mes: mesAno,
+                        receita: 0,
+                        custos: 0,
+                        margemLiquida: 0,
+                        count: 0
+                    };
+                }
+                
+                const valorFinal = calc.valorFinal || 0;
+                const subtotalSemMargem = calc.subtotalSemMargem || 0;
+                const margemLiquidaValor = valorFinal - subtotalSemMargem;
+                
+                mesesMap[mesAno].receita += valorFinal;
+                mesesMap[mesAno].custos += subtotalSemMargem;
+                mesesMap[mesAno].margemLiquida += margemLiquidaValor;
+                mesesMap[mesAno].count += 1;
+            }
+        });
+        
+        // Converter para array e ordenar
+        Object.keys(mesesMap).forEach(mesAno => {
+            const mes = mesesMap[mesAno];
+            // Calcular percentual de margem líquida
+            mes.margemLiquidaPercent = mes.receita > 0 ? (mes.margemLiquida / mes.receita * 100) : 0;
+            evolucaoMensal.push(mes);
+        });
+        
+        evolucaoMensal.sort((a, b) => a.mes.localeCompare(b.mes));
+        
+        // Calcular médias
+        const margemMedia = historicoRecente.length > 0 ? somaMargens / historicoRecente.length : 0;
+        const ticketMedio = historicoRecente.length > 0 ? receitaTotal / historicoRecente.length : 0;
+        
+        return {
+            kpis: {
+                receitaTotal: receitaTotal,
+                receitaConfirmada: receitaConfirmada,
+                margemMedia: margemMedia,
+                ticketMedio: ticketMedio
+            },
+            porUnidade: porUnidade,
+            evolucaoMensal: evolucaoMensal
+        };
+    }
+
     // ========== MÉTODOS DE CONFIGURAÇÃO DE BI ==========
 
     /**
