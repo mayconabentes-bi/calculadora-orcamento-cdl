@@ -76,6 +76,8 @@ function configurarNavegacaoAbas() {
             } else if (targetTab === 'config') {
                 carregarExtrasConfig();
                 carregarListaFuncionarios();
+            } else if (targetTab === 'history') {
+                carregarTabelaHistorico();
             }
         });
     });
@@ -534,6 +536,10 @@ function configurarEventListeners() {
             alterarTema(e.target.value);
         });
     }
+    
+    // Histórico & Conversão
+    document.getElementById('exportar-dataset-bi').addEventListener('click', exportarDatasetBI);
+    document.getElementById('limpar-historico').addEventListener('click', limparHistoricoConfirmacao);
 }
 
 /**
@@ -2448,6 +2454,144 @@ function imprimirOrcamento() {
     printSection.style.display = 'block';
     window.print();
     printSection.style.display = 'none';
+}
+
+// ========== HISTÓRICO & CONVERSÃO ==========
+
+/**
+ * Carrega a tabela de histórico de orçamentos
+ */
+function carregarTabelaHistorico() {
+    const tbody = document.getElementById('historico-body');
+    const historico = dataManager.obterHistoricoCalculos();
+    const divVazio = document.getElementById('historico-vazio');
+    
+    // Limpar tabela
+    tbody.innerHTML = '';
+    
+    if (historico.length === 0) {
+        divVazio.style.display = 'block';
+        return;
+    }
+    
+    divVazio.style.display = 'none';
+    
+    historico.forEach(calc => {
+        const tr = document.createElement('tr');
+        
+        // Data
+        const dataFormatada = new Date(calc.data).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        // Espaço
+        const espaco = `${calc.sala.unidade} - ${calc.sala.nome}`;
+        
+        // Valor Final
+        const valorFinal = `R$ ${formatarMoeda(calc.valorFinal)}`;
+        
+        // Margem Líquida
+        const margemLiquida = `${calc.margemLiquida.toFixed(2)}%`;
+        
+        // Classificação de Risco com cor
+        let corRisco = '';
+        let bgRisco = '';
+        if (calc.classificacaoRisco === 'ALTO') {
+            corRisco = '#dc2626';
+            bgRisco = '#fee2e2';
+        } else if (calc.classificacaoRisco === 'MÉDIO') {
+            corRisco = '#d97706';
+            bgRisco = '#fef3c7';
+        } else {
+            corRisco = '#16a34a';
+            bgRisco = '#dcfce7';
+        }
+        
+        const risco = `<span style="background: ${bgRisco}; color: ${corRisco}; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold;">${calc.classificacaoRisco}</span>`;
+        
+        // Botão de conversão
+        // Garantir compatibilidade com dados antigos que não possuem o campo convertido
+        const convertido = calc.convertido === true;
+        const btnClass = convertido ? 'btn-success' : 'btn-secondary';
+        const btnText = convertido ? '✅ Vendido' : 'Marcar Venda';
+        const btnStyle = convertido ? 'background: #10b981; color: white;' : 'background: #6b7280; color: white;';
+        
+        const btnAcao = `<button class="btn-small ${btnClass}" onclick="alternarStatusVenda(${calc.id})" style="${btnStyle}">${btnText}</button>`;
+        
+        tr.innerHTML = `
+            <td>${dataFormatada}</td>
+            <td><strong>${espaco}</strong></td>
+            <td>${valorFinal}</td>
+            <td>${margemLiquida}</td>
+            <td>${risco}</td>
+            <td>${btnAcao}</td>
+        `;
+        
+        tbody.appendChild(tr);
+    });
+}
+
+/**
+ * Alterna o status de venda de um orçamento
+ * @param {number} id - ID do registro no histórico
+ */
+function alternarStatusVenda(id) {
+    const historico = dataManager.obterHistoricoCalculos();
+    const registro = historico.find(calc => calc.id === id);
+    
+    if (!registro) {
+        alert('Registro não encontrado!');
+        return;
+    }
+    
+    // Alternar status (garantir compatibilidade com dados antigos)
+    const novoStatus = !(registro.convertido === true);
+    
+    if (dataManager.atualizarConversao(id, novoStatus)) {
+        carregarTabelaHistorico();
+        
+        if (novoStatus) {
+            mostrarNotificacao('✅ Orçamento marcado como VENDIDO!');
+        } else {
+            mostrarNotificacao('Orçamento desmarcado como venda');
+        }
+    } else {
+        alert('Erro ao atualizar status de conversão!');
+    }
+}
+
+/**
+ * Exporta o dataset para análise de BI
+ */
+function exportarDatasetBI() {
+    const csvHistorico = dataManager.exportarHistoricoCSV();
+    
+    if (csvHistorico) {
+        baixarCSV(csvHistorico, `dataset-bi-orcamentos-${new Date().getTime()}.csv`);
+        mostrarNotificacao('Dataset exportado para análise de BI!');
+    } else {
+        alert('Nenhum histórico disponível para exportar!');
+    }
+}
+
+/**
+ * Limpa o histórico com confirmação
+ */
+function limparHistoricoConfirmacao() {
+    if (!confirm('⚠️ ATENÇÃO: Esta ação irá apagar todo o histórico de orçamentos!\n\nDeseja realmente continuar? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+    
+    if (dataManager.limparHistoricoCalculos()) {
+        carregarTabelaHistorico();
+        mostrarNotificacao('Histórico limpo com sucesso!');
+    } else {
+        alert('Erro ao limpar histórico!');
+    }
 }
 
 // ========== FIM DO APP.JS ==========

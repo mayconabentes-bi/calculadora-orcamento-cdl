@@ -816,13 +816,14 @@ class DataManager {
             classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado),
             subtotalSemMargem: calculo.resultado.subtotalSemMargem,
             valorMargem: calculo.resultado.valorMargem,
-            valorDesconto: calculo.resultado.valorDesconto
+            valorDesconto: calculo.resultado.valorDesconto,
+            convertido: false  // Variável target para modelo de regressão logística
         };
 
-        // Limitar histórico a 100 registros mais recentes
+        // Limitar histórico a 500 registros mais recentes (amostragem estatística suficiente)
         this.dados.historicoCalculos.unshift(registroHistorico);
-        if (this.dados.historicoCalculos.length > 100) {
-            this.dados.historicoCalculos = this.dados.historicoCalculos.slice(0, 100);
+        if (this.dados.historicoCalculos.length > 500) {
+            this.dados.historicoCalculos = this.dados.historicoCalculos.slice(0, 500);
         }
 
         this.salvarDados();
@@ -847,6 +848,27 @@ class DataManager {
      */
     obterHistoricoCalculos() {
         return this.dados.historicoCalculos || [];
+    }
+
+    /**
+     * Atualiza o status de conversão de um cálculo
+     * @param {number} id - ID do registro no histórico
+     * @param {boolean} status - Status de conversão (true = vendido, false = não vendido)
+     * @returns {boolean} True se atualizado com sucesso
+     */
+    atualizarConversao(id, status) {
+        if (!this.dados.historicoCalculos) {
+            return false;
+        }
+
+        const registro = this.dados.historicoCalculos.find(calc => calc.id === id);
+        if (registro) {
+            registro.convertido = status;
+            this.salvarDados();
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -884,7 +906,8 @@ class DataManager {
             'Valor Final (R$)',
             'Valor por Hora (R$)',
             'Margem Líquida (%)',
-            'Classificação de Risco'
+            'Classificação de Risco',
+            'CONVERTIDO'
         ];
 
         // Construir linhas CSV
@@ -892,6 +915,9 @@ class DataManager {
 
         historico.forEach(calc => {
             const valorPorHora = calc.valorFinal / calc.horasTotais;
+            // Garantir tratamento de dados antigos que não possuem o campo convertido
+            const convertidoValor = calc.convertido === true ? '1' : '0';
+            
             const linha = [
                 new Date(calc.data).toLocaleDateString('pt-BR'),
                 calc.id,
@@ -906,7 +932,8 @@ class DataManager {
                 calc.valorFinal.toFixed(2),
                 valorPorHora.toFixed(2),
                 calc.margemLiquida.toFixed(2),
-                calc.classificacaoRisco
+                calc.classificacaoRisco,
+                convertidoValor
             ];
             linhas.push(linha.join(','));
         });
