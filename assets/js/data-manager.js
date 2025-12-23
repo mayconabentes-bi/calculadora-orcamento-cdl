@@ -809,6 +809,23 @@ class DataManager {
             this.dados.historicoCalculos = [];
         }
 
+        // Calcular Lead Time (dias entre cotação e evento)
+        let leadTimeDays = null;
+        let dataEvento = null;
+        
+        if (calculo.dataEvento) {
+            dataEvento = calculo.dataEvento;
+            const dataCotacao = new Date();
+            const dataEventoObj = new Date(calculo.dataEvento);
+            
+            // Calcular diferença em dias
+            const diferencaMs = dataEventoObj.getTime() - dataCotacao.getTime();
+            leadTimeDays = Math.floor(diferencaMs / (1000 * 60 * 60 * 24));
+        }
+
+        // Inferir turno predominante baseado nos horários
+        let turnoPredominante = this.inferirTurnoPredominante(calculo.horarios);
+
         const registroHistorico = {
             id: Date.now(),
             data: new Date().toISOString(),
@@ -828,7 +845,12 @@ class DataManager {
             subtotalSemMargem: calculo.resultado.subtotalSemMargem,
             valorMargem: calculo.resultado.valorMargem,
             valorDesconto: calculo.resultado.valorDesconto,
-            convertido: false  // Variável target para modelo de regressão logística
+            descontoPercent: calculo.desconto * 100,
+            convertido: false,  // Variável target para modelo de regressão logística
+            // Novos campos para ML
+            dataEvento: dataEvento,
+            leadTimeDays: leadTimeDays,
+            turnoPredominante: turnoPredominante
         };
 
         // Limitar histórico a 500 registros mais recentes (amostragem estatística suficiente)
@@ -852,6 +874,49 @@ class DataManager {
         if (riscoMaoObra > 60) return 'ALTO';
         if (riscoMaoObra >= 40) return 'MÉDIO';
         return 'BAIXO';
+    }
+
+    /**
+     * Infere o turno predominante baseado nos horários de uso
+     * @param {Array} horarios - Array de horários [{inicio: "08:00", fim: "17:00"}, ...]
+     * @returns {number} 1=Manhã (06:00-11:59), 2=Tarde (12:00-17:59), 3=Noite (18:00-05:59)
+     */
+    inferirTurnoPredominante(horarios) {
+        if (!horarios || horarios.length === 0) {
+            return null;
+        }
+
+        const horasPorTurno = { manha: 0, tarde: 0, noite: 0 };
+
+        horarios.forEach(horario => {
+            const horaInicio = parseInt(horario.inicio.split(':')[0]);
+            const horaFim = parseInt(horario.fim.split(':')[0]);
+            const minutoInicio = parseInt(horario.inicio.split(':')[1]);
+            const minutoFim = parseInt(horario.fim.split(':')[1]);
+
+            // Calcular horas no horário
+            let totalMinutos = (horaFim * 60 + minutoFim) - (horaInicio * 60 + minutoInicio);
+            if (totalMinutos < 0) totalMinutos += 24 * 60; // Ajuste para horários que atravessam meia-noite
+            const totalHoras = totalMinutos / 60;
+
+            // Classificar por turno predominante (ponto médio do horário)
+            const horaMedia = horaInicio + (totalHoras / 2);
+
+            if (horaMedia >= 6 && horaMedia < 12) {
+                horasPorTurno.manha += totalHoras;
+            } else if (horaMedia >= 12 && horaMedia < 18) {
+                horasPorTurno.tarde += totalHoras;
+            } else {
+                horasPorTurno.noite += totalHoras;
+            }
+        });
+
+        // Determinar turno predominante
+        const maxHoras = Math.max(horasPorTurno.manha, horasPorTurno.tarde, horasPorTurno.noite);
+        
+        if (maxHoras === horasPorTurno.manha) return 1;  // Manhã
+        if (maxHoras === horasPorTurno.tarde) return 2;  // Tarde
+        return 3;  // Noite
     }
 
     /**
@@ -1017,6 +1082,66 @@ class DataManager {
         const margemLiquida = ((resultado.valorFinal - resultado.subtotalSemMargem) / resultado.valorFinal * 100);
         linhas.push(`"Margem Líquida","",${margemLiquida.toFixed(2)},""` );
         linhas.push(`"Valor por Hora","",${resultado.valorPorHora.toFixed(2)},""`);
+
+        return linhas.join('\n');
+    }
+
+    /**
+     * Exporta dataset otimizado para Machine Learning e Análise de Regressão Logística
+     * Formato: CSV com features numéricas e categóricas prontas para algoritmos
+     * 
+     * @returns {string|null} Dataset em formato CSV ou null se não houver dados
+     */
+    exportarDatasetML() {
+        const historico = this.obterHistoricoCalculos();
+        
+        if (historico.length === 0) {
+            return null;
+        }
+
+        // Cabeçalhos otimizados para ML (sem espaços, apenas underscore)
+        const headers = [
+            'TARGET_CONVERTIDO',           // 0 ou 1 (variável dependente)
+            'FEATURE_DESCONTO_PERCENT',    // 0 a 100
+            'FEATURE_MARGEM_LIQUIDA',      // float (%)
+            'FEATURE_LEAD_TIME',           // int (dias de antecedência)
+            'FEATURE_VALOR_TOTAL',         // float (R$)
+            'FEATURE_DURACAO_HORAS',       // float (horas totais)
+            'CAT_SALA_ID',                 // int (identificador categórico da sala)
+            'CAT_TURNO_PREDOMINANTE'       // 1=Manhã, 2=Tarde, 3=Noite
+        ];
+
+        // Construir linhas do dataset
+        const linhas = [headers.join(',')];
+
+        historico.forEach(calc => {
+            // TARGET: Convertido (1) ou não convertido (0)
+            const targetConvertido = calc.convertido === true ? 1 : 0;
+            
+            // FEATURES NUMÉRICAS
+            const descontoPercent = calc.descontoPercent !== undefined ? calc.descontoPercent.toFixed(2) : '0.00';
+            const margemLiquida = calc.margemLiquida.toFixed(2);
+            const leadTime = calc.leadTimeDays !== null && calc.leadTimeDays !== undefined ? calc.leadTimeDays : '';
+            const valorTotal = calc.valorFinal.toFixed(2);
+            const duracaoHoras = calc.horasTotais.toFixed(2);
+            
+            // FEATURES CATEGÓRICAS
+            const salaId = calc.sala.id;
+            const turnoPredominante = calc.turnoPredominante !== null && calc.turnoPredominante !== undefined ? calc.turnoPredominante : '';
+            
+            const linha = [
+                targetConvertido,
+                descontoPercent,
+                margemLiquida,
+                leadTime,
+                valorTotal,
+                duracaoHoras,
+                salaId,
+                turnoPredominante
+            ];
+            
+            linhas.push(linha.join(','));
+        });
 
         return linhas.join('\n');
     }
