@@ -2718,8 +2718,8 @@ function atualizarContadorHistorico(exibidos, total) {
     if (!contadorElement) return;
     
     if (modoVisualizacaoHistorico === 'convertidos') {
-        const percentual = total > 0 ? ((exibidos / total) * 100).toFixed(1) : 0;
-        contadorElement.innerHTML = `Exibindo <strong>${exibidos}</strong> de ${total} orçamentos (<strong>${percentual}%</strong> de conversão)`;
+        const percentage = total > 0 ? ((exibidos / total) * 100).toFixed(1) : 0;
+        contadorElement.innerHTML = `Exibindo <strong>${exibidos}</strong> de ${total} orçamentos (<strong>${percentage}%</strong> de conversão)`;
     } else {
         contadorElement.innerHTML = `Exibindo todos os <strong>${total}</strong> orçamentos (pipeline completo)`;
     }
