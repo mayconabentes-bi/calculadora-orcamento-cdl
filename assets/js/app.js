@@ -2709,6 +2709,23 @@ function alternarModoVisualizacao() {
 }
 
 /**
+ * Atualiza o contador de registros exibidos no histórico
+ * @param {number} exibidos - Número de registros sendo exibidos
+ * @param {number} total - Número total de registros
+ */
+function atualizarContadorHistorico(exibidos, total) {
+    const contadorElement = document.getElementById('contador-historico');
+    if (!contadorElement) return;
+    
+    if (modoVisualizacaoHistorico === 'convertidos') {
+        const percentual = total > 0 ? ((exibidos / total) * 100).toFixed(1) : 0;
+        contadorElement.innerHTML = `Exibindo <strong>${exibidos}</strong> de ${total} orçamentos (<strong>${percentual}%</strong> de conversão)`;
+    } else {
+        contadorElement.innerHTML = `Exibindo todos os <strong>${total}</strong> orçamentos (pipeline completo)`;
+    }
+}
+
+/**
  * Carrega a tabela de histórico de orçamentos
  * Agora com filtro por modo de visualização (convertidos vs pipeline total)
  */
@@ -2727,6 +2744,9 @@ function carregarTabelaHistorico() {
         historicoFiltrado = historico.filter(calc => calc.convertido === true);
     }
     // Se modo é 'pipeline', mostra todos (não aplica filtro)
+    
+    // Atualizar contador de registros exibidos
+    atualizarContadorHistorico(historicoFiltrado.length, historico.length);
     
     if (historicoFiltrado.length === 0) {
         divVazio.style.display = 'block';
