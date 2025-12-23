@@ -69,7 +69,7 @@ class DashboardController {
         // Margem Média Geral (%)
         const margemMediaEl = document.getElementById('kpi-margem-media');
         if (margemMediaEl) {
-            margemMediaEl.textContent = kpis.margemMedia.toFixed(1) + '%';
+            margemMediaEl.textContent = `${kpis.margemMedia.toFixed(1)}%`;
         }
         
         // Ticket Médio
@@ -82,7 +82,7 @@ class DashboardController {
         const taxaConversao = kpis.receitaTotal > 0 ? (kpis.receitaConfirmada / kpis.receitaTotal * 100) : 0;
         const taxaConversaoEl = document.getElementById('kpi-taxa-conversao');
         if (taxaConversaoEl) {
-            taxaConversaoEl.textContent = taxaConversao.toFixed(1) + '%';
+            taxaConversaoEl.textContent = `${taxaConversao.toFixed(1)}%`;
         }
     }
     

@@ -1214,6 +1214,9 @@ class DataManager {
     obterDadosAnaliticos() {
         const historico = this.obterHistoricoCalculos();
         
+        // Constante para estimativa de custos fixos quando não disponível
+        const ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL = 0.3; // 30% do subtotal
+        
         if (historico.length === 0) {
             return {
                 kpis: {
@@ -1288,9 +1291,12 @@ class DataManager {
                 };
             }
             
-            // Calcular custos
-            const custoFixo = calc.custoOperacionalBase || (subtotalSemMargem * 0.3); // Estimativa se não disponível
-            const custoVariavel = subtotalSemMargem - custoFixo;
+            // Calcular custos com validação para evitar valores negativos
+            let custoFixo = calc.custoOperacionalBase || (subtotalSemMargem * ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL);
+            // Garantir que custoFixo não exceda subtotalSemMargem
+            custoFixo = Math.min(custoFixo, subtotalSemMargem);
+            
+            const custoVariavel = Math.max(0, subtotalSemMargem - custoFixo);
             const margemContribuicao = valorFinal - custoVariavel;
             
             porUnidade[unidade].receita += valorFinal;
