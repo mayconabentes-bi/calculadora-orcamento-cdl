@@ -896,6 +896,55 @@ body {
     border: 1px solid #475569;
 }
 
+/* Cost structure bars - hover effects */
+#cost-bar-fixed:hover,
+#cost-bar-variable:hover,
+#cost-bar-extras:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    filter: brightness(1.1);
+}
+
+/* Cost structure detail panel */
+#cost-detail-panel {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark-theme #cost-detail-panel {
+    background: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0;
+}
+
+.dark-theme #cost-detail-title {
+    color: #e2e8f0 !important;
+}
+
+.dark-theme #cost-detail-content {
+    color: #cbd5e1 !important;
+}
+
+/* Slide down animation */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        max-height: 500px;
+        transform: translateY(0);
+    }
+}
+
+/* Active cost bar indicator */
+.cost-bar-active {
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2) !important;
+    transform: scale(1.02);
+    filter: brightness(1.1);
+}
+
 /* Botões de Exportação */
 .export-buttons {
     display: grid;

@@ -1045,6 +1045,187 @@ function exibirEstruturaCustos(resultado) {
     document.getElementById('cost-extras-percent').textContent = `${percentualExtras.toFixed(1)}%`;
 }
 
+/**
+ * Alterna a exibição dos detalhes de custos
+ * @param {string} type - Tipo de custo: 'fixed', 'variable', 'extras', ou null para fechar
+ */
+function toggleCostDetail(type) {
+    const panel = document.getElementById('cost-detail-panel');
+    const titleText = document.getElementById('cost-detail-title-text');
+    const titleIcon = document.getElementById('cost-detail-icon');
+    const content = document.getElementById('cost-detail-content');
+    
+    // Remove active class from all bars
+    document.getElementById('cost-bar-fixed').classList.remove('cost-bar-active');
+    document.getElementById('cost-bar-variable').classList.remove('cost-bar-active');
+    document.getElementById('cost-bar-extras').classList.remove('cost-bar-active');
+    
+    // If clicking the same type or null, close the panel
+    if (!type || (panel.style.display === 'block' && panel.dataset.currentType === type)) {
+        panel.style.display = 'none';
+        panel.dataset.currentType = '';
+        return;
+    }
+    
+    // Get the last calculation result
+    if (!ultimoCalculoRealizado || !ultimoCalculoRealizado.resultado) {
+        console.warn('Nenhum cálculo disponível para exibir detalhes');
+        return;
+    }
+    
+    const resultado = ultimoCalculoRealizado.resultado;
+    
+    // Set the current type
+    panel.dataset.currentType = type;
+    
+    // Populate content based on type
+    if (type === 'fixed') {
+        document.getElementById('cost-bar-fixed').classList.add('cost-bar-active');
+        titleIcon.innerHTML = '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 4px;"></div>';
+        titleText.textContent = 'Custos Fixos - Operacionais';
+        
+        content.innerHTML = `
+            <div style="padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">💼 Custo Operacional Base</span>
+                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoOperacionalBase)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; background: #f3f4f6; padding: 12px; border-radius: 6px;">
+                    <span style="color: #374151; font-weight: 600;">Total de Custos Fixos</span>
+                    <strong style="color: #1f2937; font-size: 1.1em;">R$ ${formatarMoeda(resultado.custoOperacionalBase)}</strong>
+                </div>
+                <p style="margin-top: 12px; color: #6b7280; font-size: 0.85em; font-style: italic;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    Custos fixos incluem aluguel do espaço, utilidades e despesas operacionais calculadas com base no custo/hora do espaço selecionado.
+                </p>
+            </div>
+        `;
+    } else if (type === 'variable') {
+        document.getElementById('cost-bar-variable').classList.add('cost-bar-active');
+        titleIcon.innerHTML = '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 4px;"></div>';
+        titleText.textContent = 'Custos Variáveis - Mão de Obra';
+        
+        const hasTransporteApp = resultado.custoTransporteApp && resultado.custoTransporteApp > 0;
+        const hasRefeicao = resultado.custoRefeicao && resultado.custoRefeicao > 0;
+        
+        content.innerHTML = `
+            <div style="padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">⏰ Mão de Obra - Horas Normais</span>
+                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoMaoObraNormal)}</strong>
+                </div>
+                ${resultado.custoMaoObraHE50 > 0 ? `
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">📈 Mão de Obra - HE 50% (Sábado)</span>
+                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoMaoObraHE50)}</strong>
+                </div>
+                ` : ''}
+                ${resultado.custoMaoObraHE100 > 0 ? `
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">📊 Mão de Obra - HE 100% (Domingo)</span>
+                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoMaoObraHE100)}</strong>
+                </div>
+                ` : ''}
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">🎫 Vale Transporte</span>
+                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoValeTransporte)}</strong>
+                </div>
+                ${hasTransporteApp ? `
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">🚗 Transporte por Aplicativo</span>
+                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoTransporteApp)}</strong>
+                </div>
+                ` : ''}
+                ${hasRefeicao ? `
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">🍽️ Refeição</span>
+                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoRefeicao)}</strong>
+                </div>
+                ` : ''}
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; background: #fef3c7; padding: 12px; border-radius: 6px;">
+                    <span style="color: #92400e; font-weight: 600;">Total de Custos Variáveis</span>
+                    <strong style="color: #92400e; font-size: 1.1em;">R$ ${formatarMoeda(resultado.custoMaoObraTotal + resultado.custoValeTransporte + (resultado.custoTransporteApp || 0) + (resultado.custoRefeicao || 0))}</strong>
+                </div>
+                <p style="margin-top: 12px; color: #6b7280; font-size: 0.85em; font-style: italic;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    Custos variáveis incluem mão de obra de ${resultado.quantidadeFuncionarios} funcionário(s) com ${resultado.horasTotais.toFixed(1)} horas totais.
+                </p>
+            </div>
+        `;
+    } else if (type === 'extras') {
+        document.getElementById('cost-bar-extras').classList.add('cost-bar-active');
+        titleIcon.innerHTML = '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 4px;"></div>';
+        titleText.textContent = 'Itens Extras Selecionados';
+        
+        // Get selected extras only when showing extras detail
+        const extras = dataManager.obterExtras();
+        const selectedExtras = [];
+        
+        extras.forEach(extra => {
+            const checkbox = document.getElementById(`extra-${extra.id}`);
+            if (checkbox && checkbox.checked) {
+                selectedExtras.push({
+                    nome: extra.nome,
+                    custoPorHora: extra.custo,
+                    custoTotal: extra.custo * resultado.horasTotais
+                });
+            }
+        });
+        
+        if (selectedExtras.length === 0) {
+            content.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #6b7280;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 12px; opacity: 0.5;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <p style="margin: 0;">Nenhum item extra selecionado</p>
+                </div>
+            `;
+        } else {
+            let extrasHTML = '<div style="padding: 10px 0;">';
+            selectedExtras.forEach((extra, index) => {
+                extrasHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: start; padding: 10px 0; ${index < selectedExtras.length - 1 ? 'border-bottom: 1px solid #e5e7eb;' : ''}">
+                        <div style="flex: 1;">
+                            <div style="color: #374151; font-weight: 500; margin-bottom: 4px;">${extra.nome}</div>
+                            <div style="color: #6b7280; font-size: 0.85em;">R$ ${formatarMoeda(extra.custoPorHora)}/h × ${resultado.horasTotais.toFixed(1)}h</div>
+                        </div>
+                        <strong style="color: #1f2937;">R$ ${formatarMoeda(extra.custoTotal)}</strong>
+                    </div>
+                `;
+            });
+            extrasHTML += `
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; background: #f3e8ff; padding: 12px; border-radius: 6px;">
+                    <span style="color: #6b21a8; font-weight: 600;">Total de Itens Extras</span>
+                    <strong style="color: #6b21a8; font-size: 1.1em;">R$ ${formatarMoeda(resultado.custoExtras)}</strong>
+                </div>
+                <p style="margin-top: 12px; color: #6b7280; font-size: 0.85em; font-style: italic;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    ${selectedExtras.length} item(ns) extra(s) selecionado(s) para ${resultado.horasTotais.toFixed(1)} horas de evento.
+                </p>
+            </div>`;
+            content.innerHTML = extrasHTML;
+        }
+    }
+    
+    // Show the panel
+    panel.style.display = 'block';
+}
+
 // ========== GERENCIAMENTO DE ESPAÇOS ==========
 
 /**
