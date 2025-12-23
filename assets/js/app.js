@@ -1069,6 +1069,7 @@ function toggleCostDetail(type) {
     
     // Get the last calculation result
     if (!ultimoCalculoRealizado || !ultimoCalculoRealizado.resultado) {
+        console.warn('Nenhum cálculo disponível para exibir detalhes');
         return;
     }
     
@@ -1164,7 +1165,7 @@ function toggleCostDetail(type) {
         titleIcon.innerHTML = '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 4px;"></div>';
         titleText.textContent = 'Itens Extras Selecionados';
         
-        // Get selected extras
+        // Get selected extras only when showing extras detail
         const extras = dataManager.obterExtras();
         const selectedExtras = [];
         

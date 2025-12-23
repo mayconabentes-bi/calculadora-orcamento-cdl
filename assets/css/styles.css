@@ -940,8 +940,9 @@ body {
 
 /* Active cost bar indicator */
 .cost-bar-active {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2) !important;
     transform: scale(1.02);
+    filter: brightness(1.1);
 }
 
 /* Botões de Exportação */
