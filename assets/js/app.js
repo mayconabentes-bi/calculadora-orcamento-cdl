@@ -577,12 +577,34 @@ function calcularOrcamento() {
     const desconto = parseFloat(document.getElementById('desconto').value) / 100;
     const dataEvento = document.getElementById('data-evento').value;
     
-    // Validações
+    // Validações básicas
     if (!clienteNome) {
         alert('Por favor, informe o nome do cliente ou empresa!');
         document.getElementById('cliente-nome').focus();
         return;
     }
+    
+    // VALIDAÇÃO COM DATA SANITIZER - Gatekeeper de Qualidade de Dados
+    // Validar e sanitizar dados do cliente antes de processar
+    const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+    
+    if (!resultadoSanitizacao.valido) {
+        // Exibir mensagem de erro personalizada com todos os problemas encontrados
+        let mensagemErro = 'Por favor, insira os dados do cliente de forma padronizada e sem observações subjetivas.\n\n';
+        mensagemErro += 'Problemas encontrados:\n';
+        resultadoSanitizacao.erros.forEach(erro => {
+            mensagemErro += `• ${erro}\n`;
+        });
+        mensagemErro += '\nDica: Evite usar linguagem emotiva (CAPS, excesso de pontuação, emojis) e palavras subjetivas.';
+        
+        alert(mensagemErro);
+        document.getElementById('cliente-nome').focus();
+        return;
+    }
+    
+    // Dados sanitizados e validados - substituir pelos valores normalizados
+    const clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
+    const clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
     
     if (!salaId) {
         alert('Por favor, selecione um espaço!');
@@ -640,10 +662,10 @@ function calcularOrcamento() {
     // Calcular horas e custos
     const resultado = calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto);
     
-    // Armazenar para exportação
+    // Armazenar para exportação (usando dados sanitizados)
     ultimoCalculoRealizado = {
-        clienteNome,
-        clienteContato,
+        clienteNome: clienteNomeSanitizado,
+        clienteContato: clienteContatoSanitizado,
         sala,
         duracao,
         duracaoTipo,

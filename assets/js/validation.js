@@ -240,6 +240,335 @@ function detectarPerdaPrecisao(valor) {
     return diferenca > PRECISION_THRESHOLD;
 }
 
+/* =================================================================
+   DATA SANITIZER - Gatekeeper de Qualidade de Dados para CRM
+   Sistema de higienização e validação de dados do cliente
+   para alimentar modelos de Inteligência Artificial
+   ================================================================= */
+
+/**
+ * Classe DataSanitizer
+ * Responsável por limpar e validar inputs de dados do cliente antes
+ * de serem processados e armazenados no sistema CRM.
+ * 
+ * Objetivos:
+ * - Impor neutralidade técnica nos dados
+ * - Remover linguagem emotiva (CAPS, excesso de pontuação, emojis)
+ * - Padronizar formatos para facilitar desduplicação futura
+ * - Garantir integridade dos dados para modelos de IA
+ */
+class DataSanitizer {
+    /**
+     * Palavras proibidas (blacklist) que indicam subjetividade ou viés
+     * Separadas em palavras únicas e frases compostas
+     */
+    static PALAVRAS_PROIBIDAS_UNICAS = [
+        'caro', 'barato', 'chato', 'vip', 'urgente', 
+        'conhecido', 'importante', 'especial',
+        'difícil', 'complicado', 'fácil', 'rápido'
+    ];
+    
+    static FRASES_PROIBIDAS = [
+        'amigo do dono'
+    ];
+
+    /**
+     * Padrões de subjetividade entre parênteses
+     */
+    static PATTERN_PARENTESES_SUBJETIVOS = /\([^)]*(?:urgente|chato|amigo|vip|importante|especial|difícil|complicado)[^)]*\)/gi;
+
+    /**
+     * Regex para validação de email
+     */
+    static REGEX_EMAIL = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    /**
+     * Regex para detectar telefone (formato brasileiro e variações)
+     * Aceita: (11) 98765-4321, 11987654321, +5511987654321, 1133334444, etc.
+     * Padrão mais rigoroso: exige DDD (2-3 dígitos), opcionalmente 9 inicial, e 8 dígitos
+     */
+    static REGEX_TELEFONE = /^[\+]?[0-9]{0,2}[-\s\.]?[(]?[0-9]{2,3}[)]?[-\s\.]?[9]?[-\s\.]?[0-9]{4}[-\s\.]?[0-9]{4}$/;
+
+    /**
+     * Normaliza o nome do cliente para formato padronizado
+     * - Converte para Title Case (Primeira Letra Maiúscula)
+     * - Remove emojis e caracteres especiais não-textuais
+     * - Remove observações subjetivas entre parênteses
+     * 
+     * @param {string} nome - Nome do cliente/empresa a ser normalizado
+     * @returns {Object} { valido: boolean, nomeNormalizado: string|null, erro: string|null }
+     */
+    static normalizarNome(nome) {
+        // Validar entrada
+        if (typeof nome !== 'string') {
+            return { valido: false, nomeNormalizado: null, erro: 'Nome deve ser uma string válida' };
+        }
+
+        // Remover espaços em excesso
+        let nomeProcessado = nome.trim();
+
+        if (nomeProcessado.length === 0) {
+            return { valido: false, nomeNormalizado: null, erro: 'Nome está vazio' };
+        }
+
+        // Remover emojis e caracteres especiais não-textuais
+        // Remove: emojis, símbolos, caracteres de controle, mas mantém acentos e pontuação básica
+        // Regex otimizado combinando todos os ranges Unicode de emojis
+        nomeProcessado = nomeProcessado.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+
+        // Remover observações subjetivas entre parênteses
+        nomeProcessado = nomeProcessado.replace(this.PATTERN_PARENTESES_SUBJETIVOS, '');
+
+        // Remover parênteses vazios resultantes
+        nomeProcessado = nomeProcessado.replace(/\(\s*\)/g, '');
+
+        // Normalizar espaços múltiplos
+        nomeProcessado = nomeProcessado.replace(/\s+/g, ' ').trim();
+
+        // Converter para Title Case (Primeira Letra de Cada Palavra Maiúscula)
+        nomeProcessado = this.toTitleCase(nomeProcessado);
+
+        // Validar se ainda há conteúdo após processamento
+        if (nomeProcessado.length === 0) {
+            return { valido: false, nomeNormalizado: null, erro: 'Nome resultante está vazio após normalização' };
+        }
+
+        // Validar comprimento mínimo (pelo menos 2 caracteres)
+        if (nomeProcessado.length < 2) {
+            return { valido: false, nomeNormalizado: null, erro: 'Nome muito curto (mínimo 2 caracteres)' };
+        }
+
+        return { valido: true, nomeNormalizado: nomeProcessado, erro: null };
+    }
+
+    /**
+     * Converte string para Title Case
+     * Exceções: preposições, artigos e conjunções permanecem em minúsculas
+     * 
+     * @param {string} str - String a ser convertida
+     * @returns {string} String em Title Case
+     */
+    static toTitleCase(str) {
+        // Palavras que devem permanecer em minúsculas (exceto no início)
+        const excecoes = ['de', 'da', 'do', 'das', 'dos', 'e', 'ou', 'em', 'na', 'no', 'para', 'com'];
+
+        return str.toLowerCase().split(' ').map((palavra, index) => {
+            // Primeira palavra sempre em maiúscula
+            if (index === 0) {
+                return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+            }
+            
+            // Verificar se é exceção
+            if (excecoes.includes(palavra)) {
+                return palavra;
+            }
+
+            // Converter para Title Case
+            return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+        }).join(' ');
+    }
+
+    /**
+     * Valida e normaliza contato do cliente
+     * Detecta automaticamente se é Email ou Telefone
+     * 
+     * Para Telefone: Remove formatação visual e mantém apenas dígitos
+     * Para Email: Valida com Regex estrito e converte para lowercase
+     * 
+     * @param {string} contato - Contato do cliente (email ou telefone)
+     * @returns {Object} { valido: boolean, tipo: 'email'|'telefone'|null, contatoNormalizado: string|null, erro: string|null }
+     */
+    static validarContato(contato) {
+        // Validar entrada
+        if (!contato || typeof contato !== 'string') {
+            return { valido: false, tipo: null, contatoNormalizado: null, erro: 'Contato deve ser uma string não vazia' };
+        }
+
+        const contatoTrimmed = contato.trim();
+
+        if (contatoTrimmed.length === 0) {
+            return { valido: false, tipo: null, contatoNormalizado: null, erro: 'Contato não pode ser vazio' };
+        }
+
+        // Detectar se é email (presença de @)
+        if (contatoTrimmed.includes('@')) {
+            return this.validarEmail(contatoTrimmed);
+        }
+
+        // Caso contrário, tratar como telefone
+        return this.validarTelefone(contatoTrimmed);
+    }
+
+    /**
+     * Valida e normaliza email
+     * 
+     * @param {string} email - Email a ser validado
+     * @returns {Object} { valido: boolean, tipo: 'email', contatoNormalizado: string|null, erro: string|null }
+     */
+    static validarEmail(email) {
+        const emailLower = email.toLowerCase().trim();
+
+        // Validar com regex
+        if (!this.REGEX_EMAIL.test(emailLower)) {
+            return { valido: false, tipo: 'email', contatoNormalizado: null, erro: 'Formato de email inválido' };
+        }
+
+        // Validação adicional: verificar se domínio tem pelo menos um ponto
+        const dominio = emailLower.split('@')[1];
+        if (!dominio || !dominio.includes('.')) {
+            return { valido: false, tipo: 'email', contatoNormalizado: null, erro: 'Domínio de email inválido' };
+        }
+
+        return { valido: true, tipo: 'email', contatoNormalizado: emailLower, erro: null };
+    }
+
+    /**
+     * Valida e normaliza telefone
+     * Remove toda formatação visual e mantém apenas dígitos
+     * 
+     * @param {string} telefone - Telefone a ser validado
+     * @returns {Object} { valido: boolean, tipo: 'telefone', contatoNormalizado: string|null, erro: string|null }
+     */
+    static validarTelefone(telefone) {
+        const telefoneTrimmed = telefone.trim();
+
+        // Validar formato antes de remover caracteres
+        if (!this.REGEX_TELEFONE.test(telefoneTrimmed)) {
+            return { valido: false, tipo: 'telefone', contatoNormalizado: null, erro: 'Formato de telefone inválido' };
+        }
+
+        // Remover toda formatação: parênteses, traços, espaços, pontos, sinal de +
+        const apenasDigitos = telefoneTrimmed.replace(/[\s\-\.\(\)\+]/g, '');
+
+        // Validar quantidade de dígitos (mínimo 10, máximo 13 para incluir código do país)
+        if (apenasDigitos.length < 10 || apenasDigitos.length > 13) {
+            return { valido: false, tipo: 'telefone', contatoNormalizado: null, erro: 'Telefone deve ter entre 10 e 13 dígitos' };
+        }
+
+        // Validar que só contém dígitos
+        if (!/^\d+$/.test(apenasDigitos)) {
+            return { valido: false, tipo: 'telefone', contatoNormalizado: null, erro: 'Telefone deve conter apenas números' };
+        }
+
+        return { valido: true, tipo: 'telefone', contatoNormalizado: apenasDigitos, erro: null };
+    }
+
+    /**
+     * Detecta viés emocional ou linguagem subjetiva no texto
+     * 
+     * Verifica:
+     * - Mais de um ponto de exclamação consecutivo (!!)
+     * - Texto inteiramente em maiúsculas (gritar)
+     * - Palavras da blacklist (ex: caro, barato, chato, vip)
+     * 
+     * @param {string} texto - Texto a ser analisado
+     * @returns {Object} { temVies: boolean, motivos: Array<string> }
+     */
+    static detectarVies(texto) {
+        // Validar entrada
+        if (!texto || typeof texto !== 'string') {
+            return { temVies: false, motivos: [] };
+        }
+
+        const textoTrimmed = texto.trim();
+
+        if (textoTrimmed.length === 0) {
+            return { temVies: false, motivos: [] };
+        }
+
+        const motivos = [];
+
+        // 1. Detectar múltiplos pontos de exclamação consecutivos
+        if (/!!+/.test(textoTrimmed)) {
+            motivos.push('Excesso de pontos de exclamação (linguagem emotiva)');
+        }
+
+        // 2. Detectar texto inteiramente em maiúsculas (gritar)
+        // Exceção: textos muito curtos (siglas) ou com menos de 4 letras
+        const letras = textoTrimmed.replace(/[^a-zA-ZÀ-ÿ]/g, '');
+        if (letras.length >= 4 && letras === letras.toUpperCase()) {
+            motivos.push('Texto em maiúsculas (ALL CAPS é considerado gritar)');
+        }
+
+        // 3. Detectar palavras da blacklist
+        const textoLower = textoTrimmed.toLowerCase();
+        const palavrasEncontradas = [];
+
+        // Verificar palavras únicas usando word boundary
+        for (const palavra of this.PALAVRAS_PROIBIDAS_UNICAS) {
+            const regex = new RegExp(`\\b${palavra}\\b`, 'i');
+            if (regex.test(textoLower)) {
+                palavrasEncontradas.push(palavra);
+            }
+        }
+        
+        // Verificar frases compostas (sem word boundary, busca simples)
+        for (const frase of this.FRASES_PROIBIDAS) {
+            if (textoLower.includes(frase)) {
+                palavrasEncontradas.push(frase);
+            }
+        }
+
+        if (palavrasEncontradas.length > 0) {
+            motivos.push(`Palavras subjetivas detectadas: ${palavrasEncontradas.join(', ')}`);
+        }
+
+        return {
+            temVies: motivos.length > 0,
+            motivos: motivos
+        };
+    }
+
+    /**
+     * Método auxiliar para sanitizar completamente os dados do cliente
+     * Combina normalização de nome, validação de contato e detecção de viés
+     * 
+     * @param {string} clienteNome - Nome do cliente
+     * @param {string} clienteContato - Contato do cliente
+     * @returns {Object} { valido: boolean, dados: Object|null, erros: Array<string> }
+     */
+    static sanitizarDadosCliente(clienteNome, clienteContato) {
+        const erros = [];
+
+        // Validar e normalizar nome
+        const resultadoNome = this.normalizarNome(clienteNome);
+        if (!resultadoNome.valido) {
+            erros.push(`Nome: ${resultadoNome.erro}`);
+        }
+
+        // Detectar viés no nome NORMALIZADO (não no original)
+        // Isso permite que nomes com observações subjetivas sejam removidas e aceitas
+        if (resultadoNome.valido) {
+            const viesNome = this.detectarVies(resultadoNome.nomeNormalizado);
+            if (viesNome.temVies) {
+                erros.push(`Nome contém viés: ${viesNome.motivos.join('; ')}`);
+            }
+        }
+
+        // Validar e normalizar contato
+        const resultadoContato = this.validarContato(clienteContato);
+        if (!resultadoContato.valido) {
+            erros.push(`Contato: ${resultadoContato.erro}`);
+        }
+
+        // Se há erros, retornar inválido
+        if (erros.length > 0) {
+            return { valido: false, dados: null, erros };
+        }
+
+        // Retornar dados sanitizados
+        return {
+            valido: true,
+            dados: {
+                clienteNome: resultadoNome.nomeNormalizado,
+                clienteContato: resultadoContato.contatoNormalizado,
+                tipoContato: resultadoContato.tipo
+            },
+            erros: []
+        };
+    }
+}
+
 // Exportar funções (se estiver usando módulos)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -251,6 +580,7 @@ if (typeof module !== 'undefined' && module.exports) {
         validarIntervaloHorario,
         validarDiasSemana,
         arredondarMoeda,
-        detectarPerdaPrecisao
+        detectarPerdaPrecisao,
+        DataSanitizer
     };
 }
