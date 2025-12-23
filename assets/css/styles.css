@@ -275,9 +275,10 @@ body {
     color: var(--accent-gold);
 }
 
+/* Ajuste de padding nas abas */
 .tab-content {
     display: none;
-    padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md) var(--spacing-md);
+    padding: var(--spacing-md);
 }
 
 .tab-content.active {
@@ -914,6 +915,20 @@ body {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-md);
     align-items: start;
+    width: 100%;
+}
+
+/* NOVO: Modificador para coluna única (para tabelas full-width) */
+.admin-grid.one-col {
+    grid-template-columns: 1fr;
+}
+
+/* CORREÇÃO: Eliminar espaçamento duplo */
+/* Remove margem inferior dos cards quando já estão dentro do gap do grid */
+.calculator-grid .card,
+.admin-grid .card {
+    margin-bottom: 0;
+    height: 100%;
 }
 
 .admin-grid .card:last-child {
