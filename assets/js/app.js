@@ -50,6 +50,9 @@ function inicializarAplicacao() {
         exibirAlertaAuditoria(relatorioAuditoria);
     }
     
+    // Dashboard de Oportunidades de Renovação (CRM Proativo)
+    exibirOportunidadesRenovacao();
+    
     mostrarNotificacao('Sistema carregado com sucesso!');
 }
 
@@ -564,6 +567,8 @@ function atualizarRangeValue(event) {
  */
 function calcularOrcamento() {
     // Coletar dados do formulário
+    const clienteNome = document.getElementById('cliente-nome').value.trim();
+    const clienteContato = document.getElementById('cliente-contato').value.trim();
     const salaId = document.getElementById('espaco').value;
     const duracao = parseInt(document.getElementById('duracao').value);
     const duracaoTipo = document.getElementById('duracao-tipo').value;
@@ -571,6 +576,12 @@ function calcularOrcamento() {
     const desconto = parseFloat(document.getElementById('desconto').value) / 100;
     
     // Validações
+    if (!clienteNome) {
+        alert('Por favor, informe o nome do cliente ou empresa!');
+        document.getElementById('cliente-nome').focus();
+        return;
+    }
+    
     if (!salaId) {
         alert('Por favor, selecione um espaço!');
         return;
@@ -611,6 +622,8 @@ function calcularOrcamento() {
     
     // Armazenar para exportação
     ultimoCalculoRealizado = {
+        clienteNome,
+        clienteContato,
         sala,
         duracao,
         duracaoTipo,
@@ -1101,6 +1114,117 @@ function exibirAlertaAuditoria(relatorio) {
     
     // Também exibir notificação visual persistente
     mostrarNotificacao(`⚠️ ${itensComProblema} custos desatualizados detectados! Verifique o alerta.`, 8000);
+}
+
+/**
+ * Exibe oportunidades de renovação de eventos (Radar de Vendas)
+ * Identifica clientes que tiveram eventos há 11-12 meses para prospecção ativa
+ */
+function exibirOportunidadesRenovacao() {
+    const oportunidades = dataManager.obterOportunidadesRenovacao();
+    
+    if (oportunidades.length === 0) {
+        return; // Nenhuma oportunidade no momento
+    }
+    
+    // Criar ou atualizar card de oportunidades no topo da página
+    let cardOportunidades = document.getElementById('radar-vendas-card');
+    
+    if (!cardOportunidades) {
+        // Criar novo card se não existir
+        cardOportunidades = document.createElement('div');
+        cardOportunidades.id = 'radar-vendas-card';
+        cardOportunidades.style.cssText = `
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 12px;
+            border-left: 6px solid #047857;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: white;
+        `;
+        
+        // Inserir no início do container, após o header
+        const container = document.querySelector('.container');
+        const header = document.querySelector('.header');
+        const tabs = document.querySelector('.tabs');
+        container.insertBefore(cardOportunidades, tabs);
+    }
+    
+    // Construir conteúdo do card
+    let conteudoHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <circle cx="11" cy="11" r="1"/>
+            </svg>
+            <div style="flex: 1;">
+                <h3 style="margin: 0; font-size: 1.3em; font-weight: bold;">🎯 Radar de Vendas</h3>
+                <p style="margin: 5px 0 0 0; font-size: 0.95em; opacity: 0.95;">
+                    ${oportunidades.length} oportunidade${oportunidades.length > 1 ? 's' : ''} de renovação detectada${oportunidades.length > 1 ? 's' : ''}!
+                </p>
+            </div>
+            <button onclick="fecharRadarVendas()" 
+                    style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                Fechar
+            </button>
+        </div>
+        <div style="background: rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 15px; backdrop-filter: blur(10px);">
+    `;
+    
+    // Adicionar cada oportunidade
+    oportunidades.forEach((op, index) => {
+        if (index < 5) { // Limitar a 5 oportunidades mais relevantes
+            const statusBadge = op.convertido 
+                ? '<span style="background: #3b82f6; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; margin-left: 8px;">✅ JÁ VENDIDO</span>'
+                : '<span style="background: #f59e0b; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; margin-left: 8px;">🔥 LEAD QUENTE</span>';
+            
+            conteudoHTML += `
+                <div style="background: rgba(255, 255, 255, 0.9); color: #1f2937; padding: 12px; margin-bottom: ${index < Math.min(oportunidades.length, 5) - 1 ? '10px' : '0'}; border-radius: 6px; border-left: 4px solid #047857;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                        <strong style="font-size: 1.1em; color: #047857;">👤 ${op.cliente}</strong>
+                        ${statusBadge}
+                    </div>
+                    <div style="font-size: 0.9em; color: #4b5563; line-height: 1.6;">
+                        📞 Contato: <strong>${op.contato}</strong><br>
+                        🏢 Espaço anterior: <strong>${op.espaco}</strong><br>
+                        📅 Data do evento: <strong>${op.dataEvento}</strong> (há ${op.mesesAtras} ${op.mesesAtras === 1 ? 'mês' : 'meses'})<br>
+                        💰 Valor anterior: <strong>R$ ${formatarMoeda(op.valorAnterior)}</strong>
+                    </div>
+                    ${!op.convertido ? `
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #d1d5db; font-size: 0.85em; color: #047857; font-weight: bold;">
+                        💡 Ação sugerida: Contactar para renovação antes que procurem a concorrência!
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+    });
+    
+    if (oportunidades.length > 5) {
+        conteudoHTML += `
+            <div style="text-align: center; margin-top: 10px; color: white; font-size: 0.9em; opacity: 0.9;">
+                +${oportunidades.length - 5} oportunidade${oportunidades.length - 5 > 1 ? 's' : ''} adicional${oportunidades.length - 5 > 1 ? 'is' : ''} no histórico
+            </div>
+        `;
+    }
+    
+    conteudoHTML += '</div>';
+    
+    cardOportunidades.innerHTML = conteudoHTML;
+}
+
+/**
+ * Fecha o card de radar de vendas
+ */
+function fecharRadarVendas() {
+    const card = document.getElementById('radar-vendas-card');
+    if (card) {
+        card.style.display = 'none';
+    }
 }
 
 /**
