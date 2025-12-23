@@ -1065,7 +1065,8 @@ function exibirAlertaAuditoria(relatorio) {
     const { itensComProblema, itensDesatualizados, limiteDias } = relatorio;
     
     // Construir mensagem detalhada
-    let mensagem = `⚠️ ATENÇÃO: Existem ${itensComProblema} custos não atualizados há mais de ${Math.floor(limiteDias / 30)} meses.\n\n`;
+    const meses = (limiteDias / 30).toFixed(0); // Aproximação: ~3 meses para 90 dias
+    let mensagem = `⚠️ ATENÇÃO: Existem ${itensComProblema} custos não atualizados há mais de ${meses} meses (${limiteDias} dias).\n\n`;
     mensagem += 'Para garantir a precisão da margem de lucro, por favor revise os seguintes valores:\n\n';
     
     // Agrupar por tipo
