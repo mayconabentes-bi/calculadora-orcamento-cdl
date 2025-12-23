@@ -200,11 +200,21 @@ body {
 }
 
 .header h1 {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
     font-size: var(--text-3xl);
     font-weight: var(--font-bold);
     margin: 0;
     letter-spacing: -0.025em;
     line-height: var(--leading-tight);
+}
+
+.header-logo {
+    height: 48px; /* Executive proportion */
+    width: auto;
+    object-fit: contain;
 }
 
 .header p {
@@ -1353,6 +1363,10 @@ body {
     
     .header h1 {
         font-size: var(--text-2xl);
+    }
+    
+    .header-logo {
+        height: 35px;
     }
     
     .tabs {
