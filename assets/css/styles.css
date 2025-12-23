@@ -37,6 +37,9 @@
     
     /* Cores CDL - High-Contrast Dark */
     --accent-gold: #ffcc00;
+    --accent-gold-15: rgba(255, 204, 0, 0.15);
+    --accent-gold-20: rgba(255, 204, 0, 0.2);
+    --accent-gold-30: rgba(255, 204, 0, 0.3);
     --success-cdl: #008444;
     --success-cdl-dark: #006633;
     
@@ -111,15 +114,15 @@
    ----------------------------------------------------------------- */
 .dark-theme {
     /* Cores Principais - CDL Blue for dark mode */
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --primary-light: #1e478a;
+    --primary: #60a5fa;
+    --primary-dark: #3b82f6;
+    --primary-light: #1e3a8a;
     
     /* Cores Secundárias */
     --secondary: #94a3b8;
     --accent: #38bdf8;
     
-    /* Neutros - invertidos para dark */
+    /* Neutros - invertidos para dark com melhor contraste */
     --gray-50: #1e293b;
     --gray-100: #0f172a;
     --gray-200: #334155;
@@ -141,12 +144,12 @@
     --bg-primary: #0f172a;
     --bg-secondary: #1e293b;
     --bg-card: #1e293b;
-    --border: #334155;
+    --border: #475569;
     --shadow: rgba(0, 0, 0, 0.3);
     
-    /* Text Colors - Dark Theme */
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
+    /* Text Colors - Dark Theme com melhor contraste */
+    --text-primary: #f1f5f9;
+    --text-secondary: #e2e8f0;
     
     /* Zebra Stripes - Dark Theme */
     --zebra-stripe: rgba(30, 41, 59, 0.5);
@@ -353,10 +356,20 @@ body {
     font-family: var(--font-primary);
 }
 
-/* Dark theme form control */
+/* Dark theme form control - Better contrast */
 .dark-theme .form-control {
     color: var(--text-primary);
-    background: var(--gray-800);
+    background: #1e293b;
+    border-color: #475569;
+}
+
+.dark-theme .form-control:hover {
+    border-color: #64748b;
+}
+
+.dark-theme .form-control:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px var(--accent-gold-20);
 }
 
 .form-control:focus {
@@ -409,13 +422,15 @@ body {
     color: var(--gray-700);
 }
 
-/* Dark theme overrides for checkboxes */
+/* Dark theme overrides for checkboxes - Improved contrast */
 .dark-theme .checkbox-group {
-    background: var(--gray-800);
+    background: #1e293b;
+    border: 1.5px solid #475569;
 }
 
 .dark-theme .checkbox-group:hover {
-    background: var(--gray-700);
+    background: #334155;
+    border-color: #64748b;
 }
 
 .dark-theme .checkbox-group input[type="checkbox"] {
@@ -423,7 +438,7 @@ body {
 }
 
 .dark-theme .checkbox-group label {
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 /* Range Inputs */
@@ -482,6 +497,27 @@ body {
     border-radius: var(--radius-md);
 }
 
+/* Dark theme range inputs */
+.dark-theme .range-container input[type="range"] {
+    background: #334155;
+}
+
+.dark-theme .range-container input[type="range"]::-webkit-slider-thumb {
+    background: var(--accent-gold);
+    border-color: var(--bg-card);
+}
+
+.dark-theme .range-container input[type="range"]::-moz-range-thumb {
+    background: var(--accent-gold);
+    border-color: var(--bg-card);
+}
+
+.dark-theme .range-value {
+    color: var(--accent-gold);
+    background: var(--accent-gold-15);
+    border: 1px solid var(--accent-gold-30);
+}
+
 /* Extras Grid */
 .extras-grid {
     display: grid;
@@ -502,6 +538,17 @@ body {
 
 .sala-info strong {
     color: var(--primary-dark);
+}
+
+/* Dark theme sala-info */
+.dark-theme .sala-info {
+    background: rgba(59, 130, 246, 0.15);
+    border-left-color: #60a5fa;
+    color: #e2e8f0;
+}
+
+.dark-theme .sala-info strong {
+    color: #60a5fa;
 }
 
 /* -----------------------------------------------------------------
@@ -545,6 +592,17 @@ body {
 .btn-secondary:hover {
     background: var(--gray-200);
     color: var(--gray-900);
+}
+
+/* Dark theme button improvements */
+.dark-theme .btn-secondary {
+    background: #334155;
+    color: #e2e8f0;
+}
+
+.dark-theme .btn-secondary:hover {
+    background: #475569;
+    color: #f1f5f9;
 }
 
 .btn-success {
@@ -686,18 +744,19 @@ body {
     font-family: var(--font-mono);
 }
 
-/* Dark theme overrides for metrics */
+/* Dark theme overrides for metrics - Improved contrast */
 .dark-theme .metric-card {
-    background: var(--gray-800);
+    background: #1e293b;
+    border-color: #475569;
 }
 
 .dark-theme .metric-card:hover {
     border-color: var(--accent-gold);
-    background: var(--gray-700);
+    background: #334155;
 }
 
 .dark-theme .metric-card .label {
-    color: #94a3b8;
+    color: #cbd5e1;
 }
 
 .dark-theme .metric-card .value {
@@ -757,9 +816,10 @@ body {
     font-weight: var(--font-bold);
 }
 
-/* Dark theme overrides for breakdown */
+/* Dark theme overrides for breakdown - Improved readability */
 .dark-theme .breakdown {
-    background: var(--gray-800);
+    background: #1e293b;
+    border: 1px solid #475569;
 }
 
 .dark-theme .breakdown h4 {
@@ -767,15 +827,15 @@ body {
 }
 
 .dark-theme .breakdown-item {
-    border-bottom-color: var(--border);
+    border-bottom-color: #475569;
 }
 
 .dark-theme .breakdown-item span:first-child {
-    color: #cbd5e1;
+    color: #e2e8f0;
 }
 
 .dark-theme .breakdown-item span:last-child {
-    color: #e2e8f0;
+    color: #f1f5f9;
 }
 
 .dark-theme .breakdown-item.total {
@@ -803,6 +863,27 @@ body {
 
 #funcionarios-detalhamento-lista {
     font-size: var(--text-sm);
+}
+
+/* Dark theme funcionarios detalhamento */
+.dark-theme #funcionarios-detalhamento {
+    background: rgba(59, 130, 246, 0.15);
+    border-left-color: #60a5fa;
+}
+
+.dark-theme #funcionarios-detalhamento h4 {
+    color: #60a5fa;
+}
+
+/* Cost structure section */
+#cost-structure {
+    background: var(--gray-50);
+}
+
+/* Dark theme cost structure */
+.dark-theme #cost-structure {
+    background: #1e293b;
+    border: 1px solid #475569;
 }
 
 /* Botões de Exportação */
@@ -865,30 +946,35 @@ body {
     color: var(--gray-600);
 }
 
-/* Dark theme overrides for tables */
+/* Dark theme overrides for tables - Better contrast */
 .dark-theme .data-table {
     background: var(--bg-card);
 }
 
 .dark-theme .data-table thead {
-    background: var(--gray-800);
+    background: #0f172a;
 }
 
 .dark-theme .data-table th {
-    color: #cbd5e1;
+    color: #e2e8f0;
+    border-bottom-color: #475569;
+}
+
+.dark-theme .data-table tbody tr {
+    border-bottom-color: #475569;
 }
 
 .dark-theme .data-table tbody tr:hover {
-    background: var(--gray-800);
+    background: #334155;
 }
 
 /* Dark theme zebra stripes */
 .dark-theme .data-table tbody tr:nth-child(even) {
-    background: var(--zebra-stripe);
+    background: rgba(15, 23, 42, 0.5);
 }
 
 .dark-theme .data-table td {
-    color: #94a3b8;
+    color: #cbd5e1;
 }
 
 .data-table input[type="number"] {
@@ -905,6 +991,18 @@ body {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* Dark theme table inputs */
+.dark-theme .data-table input[type="number"] {
+    background: #1e293b;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+.dark-theme .data-table input[type="number"]:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 2px var(--accent-gold-20);
 }
 
 /* -----------------------------------------------------------------
@@ -967,16 +1065,17 @@ body {
     background: var(--gray-50);
 }
 
-/* Dark theme overrides for lists */
+/* Dark theme overrides for lists - Better visibility */
 .dark-theme #extras-list .checkbox-group,
 .dark-theme #funcionarios-list .checkbox-group {
-    background: var(--gray-800);
+    background: #1e293b;
+    border-color: #475569;
 }
 
 .dark-theme #extras-list .checkbox-group:hover,
 .dark-theme #funcionarios-list .checkbox-group:hover {
     border-color: var(--accent-gold);
-    background: var(--gray-700);
+    background: #334155;
 }
 
 /* -----------------------------------------------------------------
