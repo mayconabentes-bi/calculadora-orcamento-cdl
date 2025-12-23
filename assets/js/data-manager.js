@@ -11,10 +11,13 @@
  * - Custos de Funcionário
  * - Multiplicadores de Turno
  * - Persistência em LocalStorage
+ * - Auditoria de Atualização de Dados
  */
 class DataManager {
     constructor() {
         this.storageKey = 'cdl-calculadora-v5-data';
+        // Limite de dias para considerar dados desatualizados (proteção contra inflação)
+        this.LIMITE_DIAS_AUDITORIA = 90;
         this.dados = this.carregarDados();
     }
 
@@ -404,7 +407,8 @@ class DataManager {
             unidade: sala.unidade,
             capacidade: parseInt(sala.capacidade),
             area: parseFloat(sala.area),
-            custoBase: parseFloat(sala.custoBase) || 0
+            custoBase: parseFloat(sala.custoBase) || 0,
+            ultimaAtualizacao: new Date().toISOString()
         };
         this.dados.salas.push(novaSala);
         this.salvarDados();
@@ -419,7 +423,8 @@ class DataManager {
         if (index !== -1) {
             this.dados.salas[index] = {
                 ...this.dados.salas[index],
-                ...dadosAtualizados
+                ...dadosAtualizados,
+                ultimaAtualizacao: new Date().toISOString()
             };
             this.salvarDados();
             return true;
@@ -464,7 +469,8 @@ class DataManager {
         const novoExtra = {
             id: novoId,
             nome: extra.nome,
-            custo: parseFloat(extra.custo)
+            custo: parseFloat(extra.custo),
+            ultimaAtualizacao: new Date().toISOString()
         };
         this.dados.extras.push(novoExtra);
         this.salvarDados();
@@ -479,7 +485,8 @@ class DataManager {
         if (index !== -1) {
             this.dados.extras[index] = {
                 ...this.dados.extras[index],
-                ...dadosAtualizados
+                ...dadosAtualizados,
+                ultimaAtualizacao: new Date().toISOString()
             };
             this.salvarDados();
             return true;
@@ -548,7 +555,8 @@ class DataManager {
             transporteApp: parseFloat(funcionario.transporteApp || 0),
             refeicao: parseFloat(funcionario.refeicao || 0),
             ativo: false,
-            dataEscala: funcionario.dataEscala || null
+            dataEscala: funcionario.dataEscala || null,
+            ultimaAtualizacao: new Date().toISOString()
         };
         this.dados.funcionarios.push(novoFuncionario);
         this.salvarDados();
@@ -563,7 +571,8 @@ class DataManager {
         if (index !== -1) {
             this.dados.funcionarios[index] = {
                 ...this.dados.funcionarios[index],
-                ...dadosAtualizados
+                ...dadosAtualizados,
+                ultimaAtualizacao: new Date().toISOString()
             };
             this.salvarDados();
             return true;
@@ -1035,6 +1044,92 @@ class DataManager {
         };
         this.salvarDados();
         return true;
+    }
+
+    // ========== MÉTODOS DE AUDITORIA DE DADOS ==========
+
+    /**
+     * Realiza auditoria de dados para verificar itens desatualizados
+     * Retorna relatório com status geral e lista de itens críticos
+     * 
+     * @returns {Object} Relatório de auditoria com:
+     *   - status: 'OK' ou 'ATENCAO'
+     *   - itensDesatualizados: Array de itens que precisam ser revisados
+     *   - totalItens: Número total de itens verificados
+     *   - itensComProblema: Número de itens com problemas
+     */
+    realizarAuditoriaDados() {
+        const agora = new Date();
+        const limiteDias = this.LIMITE_DIAS_AUDITORIA;
+        const itensDesatualizados = [];
+        
+        // Função auxiliar para calcular diferença em dias
+        const calcularDiferencaDias = (dataAtualizacao) => {
+            if (!dataAtualizacao) return null;
+            const dataAtual = new Date(dataAtualizacao);
+            const diferencaMs = agora - dataAtual;
+            return Math.floor(diferencaMs / (1000 * 60 * 60 * 24));
+        };
+        
+        // Verificar Salas
+        this.dados.salas.forEach(sala => {
+            const dias = calcularDiferencaDias(sala.ultimaAtualizacao);
+            
+            if (dias === null || dias > limiteDias) {
+                itensDesatualizados.push({
+                    tipo: 'Sala',
+                    nome: `${sala.unidade} - ${sala.nome}`,
+                    id: sala.id,
+                    ultimaAtualizacao: sala.ultimaAtualizacao || null,
+                    diasDesatualizado: dias,
+                    valorAtual: sala.custoBase
+                });
+            }
+        });
+        
+        // Verificar Extras
+        this.dados.extras.forEach(extra => {
+            const dias = calcularDiferencaDias(extra.ultimaAtualizacao);
+            
+            if (dias === null || dias > limiteDias) {
+                itensDesatualizados.push({
+                    tipo: 'Extra',
+                    nome: extra.nome,
+                    id: extra.id,
+                    ultimaAtualizacao: extra.ultimaAtualizacao || null,
+                    diasDesatualizado: dias,
+                    valorAtual: extra.custo
+                });
+            }
+        });
+        
+        // Verificar Funcionários
+        this.dados.funcionarios.forEach(funcionario => {
+            const dias = calcularDiferencaDias(funcionario.ultimaAtualizacao);
+            
+            if (dias === null || dias > limiteDias) {
+                itensDesatualizados.push({
+                    tipo: 'Funcionário',
+                    nome: funcionario.nome,
+                    id: funcionario.id,
+                    ultimaAtualizacao: funcionario.ultimaAtualizacao || null,
+                    diasDesatualizado: dias,
+                    valorAtual: funcionario.horaNormal
+                });
+            }
+        });
+        
+        // Calcular totais
+        const totalItens = this.dados.salas.length + this.dados.extras.length + this.dados.funcionarios.length;
+        const itensComProblema = itensDesatualizados.length;
+        
+        return {
+            status: itensComProblema > 0 ? 'ATENCAO' : 'OK',
+            itensDesatualizados,
+            totalItens,
+            itensComProblema,
+            limiteDias
+        };
     }
 }
 

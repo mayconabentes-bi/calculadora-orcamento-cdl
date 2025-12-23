@@ -957,3 +957,263 @@ describe('DataManager - Schema Validation', () => {
   });
 });
 
+describe('DataManager - Auditoria de Dados', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  test('deve ter constante LIMITE_DIAS_AUDITORIA definida', () => {
+    const dm = new DataManager();
+    expect(dm.LIMITE_DIAS_AUDITORIA).toBe(90);
+  });
+
+  test('deve retornar status OK quando todos os dados estão atualizados', () => {
+    const dm = new DataManager();
+    const agora = new Date().toISOString();
+    
+    // Atualizar todos os itens com data recente
+    dm.dados.salas.forEach(sala => {
+      sala.ultimaAtualizacao = agora;
+    });
+    dm.dados.extras.forEach(extra => {
+      extra.ultimaAtualizacao = agora;
+    });
+    dm.dados.funcionarios.forEach(func => {
+      func.ultimaAtualizacao = agora;
+    });
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    expect(relatorio.status).toBe('OK');
+    expect(relatorio.itensComProblema).toBe(0);
+    expect(relatorio.itensDesatualizados).toHaveLength(0);
+  });
+
+  test('deve detectar salas sem data de atualização', () => {
+    const dm = new DataManager();
+    
+    // Remover data de atualização de todas as salas (simular dados legados)
+    dm.dados.salas.forEach(sala => {
+      delete sala.ultimaAtualizacao;
+    });
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    expect(relatorio.status).toBe('ATENCAO');
+    expect(relatorio.itensComProblema).toBeGreaterThan(0);
+    
+    // Verificar que todas as salas estão na lista
+    const salasDesatualizadas = relatorio.itensDesatualizados.filter(item => item.tipo === 'Sala');
+    expect(salasDesatualizadas.length).toBe(dm.dados.salas.length);
+  });
+
+  test('deve detectar extras desatualizados há mais de 90 dias', () => {
+    const dm = new DataManager();
+    
+    // Criar data de 100 dias atrás
+    const dataAntiga = new Date();
+    dataAntiga.setDate(dataAntiga.getDate() - 100);
+    
+    // Atualizar primeiro extra com data antiga
+    dm.dados.extras[0].ultimaAtualizacao = dataAntiga.toISOString();
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    expect(relatorio.status).toBe('ATENCAO');
+    expect(relatorio.itensComProblema).toBeGreaterThan(0);
+    
+    // Verificar que o extra está na lista de desatualizados
+    const extrasDesatualizados = relatorio.itensDesatualizados.filter(item => item.tipo === 'Extra');
+    expect(extrasDesatualizados.length).toBeGreaterThan(0);
+    
+    const extraProblematico = extrasDesatualizados.find(item => item.id === dm.dados.extras[0].id);
+    expect(extraProblematico).toBeDefined();
+    expect(extraProblematico.diasDesatualizado).toBeGreaterThan(90);
+  });
+
+  test('deve detectar funcionários desatualizados', () => {
+    const dm = new DataManager();
+    
+    // Criar data de 120 dias atrás
+    const dataAntiga = new Date();
+    dataAntiga.setDate(dataAntiga.getDate() - 120);
+    
+    // Atualizar primeiro funcionário com data antiga
+    dm.dados.funcionarios[0].ultimaAtualizacao = dataAntiga.toISOString();
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    expect(relatorio.status).toBe('ATENCAO');
+    
+    const funcionariosDesatualizados = relatorio.itensDesatualizados.filter(item => item.tipo === 'Funcionário');
+    expect(funcionariosDesatualizados.length).toBeGreaterThan(0);
+    
+    const funcProblematico = funcionariosDesatualizados.find(item => item.id === dm.dados.funcionarios[0].id);
+    expect(funcProblematico).toBeDefined();
+    expect(funcProblematico.diasDesatualizado).toBeGreaterThan(90);
+  });
+
+  test('deve incluir informações detalhadas dos itens desatualizados', () => {
+    const dm = new DataManager();
+    
+    // Remover data de uma sala para teste
+    delete dm.dados.salas[0].ultimaAtualizacao;
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    const itemDesatualizado = relatorio.itensDesatualizados[0];
+    
+    expect(itemDesatualizado).toHaveProperty('tipo');
+    expect(itemDesatualizado).toHaveProperty('nome');
+    expect(itemDesatualizado).toHaveProperty('id');
+    expect(itemDesatualizado).toHaveProperty('ultimaAtualizacao');
+    expect(itemDesatualizado).toHaveProperty('diasDesatualizado');
+    expect(itemDesatualizado).toHaveProperty('valorAtual');
+  });
+
+  test('deve retornar total correto de itens verificados', () => {
+    const dm = new DataManager();
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    const totalEsperado = dm.dados.salas.length + dm.dados.extras.length + dm.dados.funcionarios.length;
+    expect(relatorio.totalItens).toBe(totalEsperado);
+  });
+
+  test('deve incluir limite de dias no relatório', () => {
+    const dm = new DataManager();
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    expect(relatorio.limiteDias).toBe(90);
+  });
+
+  test('deve adicionar ultimaAtualizacao ao adicionar nova sala', () => {
+    const dm = new DataManager();
+    
+    const novaSala = dm.adicionarSala({
+      nome: 'Sala Nova',
+      unidade: 'TESTE',
+      capacidade: 50,
+      area: 100,
+      custoBase: 75.00
+    });
+    
+    expect(novaSala.ultimaAtualizacao).toBeDefined();
+    const dataAtual = new Date();
+    const dataItem = new Date(novaSala.ultimaAtualizacao);
+    const diferencaMs = Math.abs(dataAtual - dataItem);
+    expect(diferencaMs).toBeLessThan(5000); // Deve ser criado há menos de 5 segundos
+  });
+
+  test('deve atualizar ultimaAtualizacao ao atualizar sala', () => {
+    const dm = new DataManager();
+    
+    const salaId = dm.dados.salas[0].id;
+    const dataAntiga = new Date('2024-01-01').toISOString();
+    dm.dados.salas[0].ultimaAtualizacao = dataAntiga;
+    
+    dm.atualizarSala(salaId, { custoBase: 150.00 });
+    
+    const salaAtualizada = dm.obterSalaPorId(salaId);
+    expect(salaAtualizada.ultimaAtualizacao).not.toBe(dataAntiga);
+    
+    const dataAtual = new Date();
+    const dataItem = new Date(salaAtualizada.ultimaAtualizacao);
+    const diferencaMs = Math.abs(dataAtual - dataItem);
+    expect(diferencaMs).toBeLessThan(5000);
+  });
+
+  test('deve adicionar ultimaAtualizacao ao adicionar novo extra', () => {
+    const dm = new DataManager();
+    
+    const novoExtra = dm.adicionarExtra({
+      nome: 'Extra Teste',
+      custo: 25.00
+    });
+    
+    expect(novoExtra.ultimaAtualizacao).toBeDefined();
+  });
+
+  test('deve atualizar ultimaAtualizacao ao atualizar extra', () => {
+    const dm = new DataManager();
+    
+    const extraId = dm.dados.extras[0].id;
+    const dataAntiga = new Date('2024-01-01').toISOString();
+    dm.dados.extras[0].ultimaAtualizacao = dataAntiga;
+    
+    dm.atualizarExtra(extraId, { custo: 100.00 });
+    
+    const extraAtualizado = dm.obterExtraPorId(extraId);
+    expect(extraAtualizado.ultimaAtualizacao).not.toBe(dataAntiga);
+  });
+
+  test('deve adicionar ultimaAtualizacao ao adicionar novo funcionário', () => {
+    const dm = new DataManager();
+    
+    const novoFunc = dm.adicionarFuncionario({
+      nome: 'Funcionário Teste',
+      horaNormal: 15.00,
+      he50: 22.50,
+      he100: 30.00,
+      valeTransporte: 10.00,
+      transporteApp: 5.00,
+      refeicao: 20.00
+    });
+    
+    expect(novoFunc.ultimaAtualizacao).toBeDefined();
+  });
+
+  test('deve atualizar ultimaAtualizacao ao atualizar funcionário', () => {
+    const dm = new DataManager();
+    
+    const funcId = dm.dados.funcionarios[0].id;
+    const dataAntiga = new Date('2024-01-01').toISOString();
+    dm.dados.funcionarios[0].ultimaAtualizacao = dataAntiga;
+    
+    dm.atualizarFuncionario(funcId, { horaNormal: 20.00 });
+    
+    const funcAtualizado = dm.obterFuncionarioPorId(funcId);
+    expect(funcAtualizado.ultimaAtualizacao).not.toBe(dataAntiga);
+  });
+
+  test('deve considerar dados exatamente no limite de 90 dias como atualizados', () => {
+    const dm = new DataManager();
+    
+    // Criar data de exatamente 90 dias atrás
+    const dataLimite = new Date();
+    dataLimite.setDate(dataLimite.getDate() - 90);
+    
+    dm.dados.salas[0].ultimaAtualizacao = dataLimite.toISOString();
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    // Sala com 90 dias exatos não deve ser marcada como desatualizada
+    const salasDesatualizadas = relatorio.itensDesatualizados.filter(item => item.tipo === 'Sala' && item.id === dm.dados.salas[0].id);
+    expect(salasDesatualizadas.length).toBe(0);
+  });
+
+  test('deve detectar múltiplos tipos de itens desatualizados simultaneamente', () => {
+    const dm = new DataManager();
+    
+    const dataAntiga = new Date();
+    dataAntiga.setDate(dataAntiga.getDate() - 100);
+    
+    // Desatualizar um de cada tipo
+    dm.dados.salas[0].ultimaAtualizacao = dataAntiga.toISOString();
+    dm.dados.extras[0].ultimaAtualizacao = dataAntiga.toISOString();
+    dm.dados.funcionarios[0].ultimaAtualizacao = dataAntiga.toISOString();
+    
+    const relatorio = dm.realizarAuditoriaDados();
+    
+    expect(relatorio.status).toBe('ATENCAO');
+    expect(relatorio.itensComProblema).toBeGreaterThanOrEqual(3);
+    
+    const tipos = new Set(relatorio.itensDesatualizados.map(item => item.tipo));
+    expect(tipos.has('Sala')).toBe(true);
+    expect(tipos.has('Extra')).toBe(true);
+    expect(tipos.has('Funcionário')).toBe(true);
+  });
+});
+
+
