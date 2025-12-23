@@ -118,6 +118,27 @@
                         Configurar Orçamento
                     </h2>
                     
+                    <!-- Dados do Cliente - CRM -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;">
+                        <strong style="color: #0284c7; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            Dados do Cliente
+                        </strong>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label for="cliente-nome">Nome do Cliente / Empresa: <span style="color: #dc2626;">*</span></label>
+                            <input type="text" id="cliente-nome" class="form-control" placeholder="Ex: Empresa ABC Ltda ou João Silva" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="cliente-contato">Telefone / Email:</label>
+                            <input type="text" id="cliente-contato" class="form-control" placeholder="Ex: (92) 99999-9999 ou contato@empresa.com">
+                        </div>
+                    </div>
+                    
                     <div class="form-group">
                         <label for="espaco">Selecione o Espaço:</label>
                         <select id="espaco" class="form-control"></select>

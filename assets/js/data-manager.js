@@ -812,6 +812,8 @@ class DataManager {
         const registroHistorico = {
             id: Date.now(),
             data: new Date().toISOString(),
+            cliente: calculo.clienteNome || '',
+            contato: calculo.clienteContato || '',
             sala: {
                 id: calculo.sala.id,
                 nome: calculo.sala.nome,
@@ -900,10 +902,12 @@ class DataManager {
             return null;
         }
 
-        // Cabeçalhos do CSV
+        // Cabeçalhos do CSV - Com dados do cliente para análise de Pareto
         const headers = [
             'Data',
             'ID',
+            'Cliente',
+            'Contato',
             'Unidade',
             'Espaço',
             'Duração',
@@ -926,10 +930,15 @@ class DataManager {
             const valorPorHora = calc.valorFinal / calc.horasTotais;
             // Garantir tratamento de dados antigos que não possuem o campo convertido
             const convertidoValor = calc.convertido === true ? '1' : '0';
+            // Garantir compatibilidade com dados antigos que não possuem cliente/contato
+            const cliente = calc.cliente ? `"${calc.cliente}"` : '""';
+            const contato = calc.contato ? `"${calc.contato}"` : '""';
             
             const linha = [
                 new Date(calc.data).toLocaleDateString('pt-BR'),
                 calc.id,
+                cliente,
+                contato,
                 calc.sala.unidade,
                 `"${calc.sala.nome}"`, // Aspas para nomes com vírgula
                 calc.duracao,
@@ -1010,6 +1019,64 @@ class DataManager {
         linhas.push(`"Valor por Hora","",${resultado.valorPorHora.toFixed(2)},""`);
 
         return linhas.join('\n');
+    }
+
+    /**
+     * Obtém oportunidades de renovação de eventos
+     * Identifica clientes que realizaram eventos há 11-12 meses atrás
+     * para prospecção ativa antes que busquem a concorrência
+     * 
+     * @returns {Array} Lista de oportunidades de renovação (Leads Quentes)
+     */
+    obterOportunidadesRenovacao() {
+        const historico = this.obterHistoricoCalculos();
+        
+        if (historico.length === 0) {
+            return [];
+        }
+
+        const agora = new Date();
+        const oportunidades = [];
+
+        historico.forEach(calc => {
+            // Verificar se tem dados do cliente
+            if (!calc.cliente || calc.cliente.trim() === '') {
+                return; // Pular registros sem cliente
+            }
+
+            const dataEvento = new Date(calc.data);
+            
+            // Calcular diferença em meses
+            const diferencaMeses = (agora.getFullYear() - dataEvento.getFullYear()) * 12 + 
+                                   (agora.getMonth() - dataEvento.getMonth());
+            
+            // Filtrar eventos entre 11 e 12 meses atrás (janela de oportunidade)
+            if (diferencaMeses >= 11 && diferencaMeses <= 12) {
+                // Verificar se já não existe uma oportunidade para o mesmo cliente
+                // (evitar duplicatas se cliente tem múltiplos eventos no mesmo período)
+                const jaExiste = oportunidades.some(op => 
+                    op.cliente.toLowerCase() === calc.cliente.toLowerCase()
+                );
+                
+                if (!jaExiste) {
+                    oportunidades.push({
+                        id: calc.id,
+                        cliente: calc.cliente,
+                        contato: calc.contato || 'Não informado',
+                        espaco: `${calc.sala.unidade} - ${calc.sala.nome}`,
+                        dataEvento: new Date(calc.data).toLocaleDateString('pt-BR'),
+                        mesesAtras: diferencaMeses,
+                        valorAnterior: calc.valorFinal,
+                        convertido: calc.convertido || false
+                    });
+                }
+            }
+        });
+
+        // Ordenar por data mais recente (maior chance de conversão)
+        oportunidades.sort((a, b) => b.mesesAtras - a.mesesAtras);
+
+        return oportunidades;
     }
 
     // ========== MÉTODOS DE CONFIGURAÇÃO DE BI ==========
