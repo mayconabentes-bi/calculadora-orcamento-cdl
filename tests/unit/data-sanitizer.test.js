@@ -3,18 +3,8 @@
  * Testes abrangentes para a classe DataSanitizer
  */
 
-// Importar funções de validação
-const fs = require('fs');
-const path = require('path');
-
-// Carregar o arquivo de validação que contém DataSanitizer
-const validationCode = fs.readFileSync(
-  path.join(__dirname, '../../assets/js/validation.js'),
-  'utf8'
-);
-
-// Avaliar o código em um contexto isolado
-eval(validationCode);
+// Importar funções de validação usando require
+const { DataSanitizer } = require('../../assets/js/validation.js');
 
 describe('DataSanitizer - Normalização de Nome', () => {
   describe('Casos válidos - Title Case', () => {
@@ -524,9 +514,11 @@ describe('DataSanitizer - Testes de Integração', () => {
       'JOÃO SILVA 😊',
       '(11) 98765-4321'
     );
-    // Deve falhar por ALL CAPS
-    expect(resultado.valido).toBe(false);
-    expect(resultado.erros.some(e => e.includes('maiúsculas'))).toBe(true);
+    // Após sanitização: emojis removidos e convertido para Title Case = "João Silva"
+    // Isso é válido porque a normalização remove o viés de ALL CAPS
+    expect(resultado.valido).toBe(true);
+    expect(resultado.dados.clienteNome).toBe('João Silva');
+    expect(resultado.dados.clienteContato).toBe('11987654321');
   });
 
   test('cenário real: nome com observação subjetiva e email maiúsculo', () => {

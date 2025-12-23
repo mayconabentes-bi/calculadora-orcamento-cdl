@@ -279,9 +279,10 @@ class DataSanitizer {
 
     /**
      * Regex para detectar telefone (formato brasileiro e variações)
-     * Aceita: (11) 98765-4321, 11987654321, +5511987654321, etc.
+     * Aceita: (11) 98765-4321, 11987654321, +5511987654321, 1133334444, etc.
+     * Padrão flexível para aceitar formatos com e sem código do país
      */
-    static REGEX_TELEFONE = /^[\+]?[(]?[0-9]{2,3}[)]?[-\s\.]?[0-9]{4,5}[-\s\.]?[0-9]{4}$/;
+    static REGEX_TELEFONE = /^[\+]?[0-9]{0,2}[-\s\.]?[(]?[0-9]{2,3}[)]?[-\s\.]?[0-9]{0,1}[-\s\.]?[0-9]{4}[-\s\.]?[0-9]{4}$/;
 
     /**
      * Normaliza o nome do cliente para formato padronizado
@@ -294,15 +295,15 @@ class DataSanitizer {
      */
     static normalizarNome(nome) {
         // Validar entrada
-        if (!nome || typeof nome !== 'string') {
-            return { valido: false, nomeNormalizado: null, erro: 'Nome deve ser uma string não vazia' };
+        if (typeof nome !== 'string') {
+            return { valido: false, nomeNormalizado: null, erro: 'Nome deve ser uma string válida' };
         }
 
         // Remover espaços em excesso
         let nomeProcessado = nome.trim();
 
         if (nomeProcessado.length === 0) {
-            return { valido: false, nomeNormalizado: null, erro: 'Nome não pode ser vazio' };
+            return { valido: false, nomeNormalizado: null, erro: 'Nome está vazio' };
         }
 
         // Remover emojis e caracteres especiais não-textuais
@@ -527,9 +528,10 @@ class DataSanitizer {
             erros.push(`Nome: ${resultadoNome.erro}`);
         }
 
-        // Detectar viés no nome
+        // Detectar viés no nome NORMALIZADO (não no original)
+        // Isso permite que nomes com observações subjetivas sejam removidas e aceitas
         if (resultadoNome.valido) {
-            const viesNome = this.detectarVies(clienteNome);
+            const viesNome = this.detectarVies(resultadoNome.nomeNormalizado);
             if (viesNome.temVies) {
                 erros.push(`Nome contém viés: ${viesNome.motivos.join('; ')}`);
             }
