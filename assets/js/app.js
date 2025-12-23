@@ -547,6 +547,7 @@ function configurarEventListeners() {
     }
     
     // Histórico & Conversão
+    document.getElementById('exportar-dataset-ml').addEventListener('click', exportarDatasetML);
     document.getElementById('exportar-dataset-bi').addEventListener('click', exportarDatasetBI);
     document.getElementById('limpar-historico').addEventListener('click', limparHistoricoConfirmacao);
 }
@@ -574,6 +575,7 @@ function calcularOrcamento() {
     const duracaoTipo = document.getElementById('duracao-tipo').value;
     const margem = parseFloat(document.getElementById('margem').value) / 100;
     const desconto = parseFloat(document.getElementById('desconto').value) / 100;
+    const dataEvento = document.getElementById('data-evento').value;
     
     // Validações
     if (!clienteNome) {
@@ -584,6 +586,24 @@ function calcularOrcamento() {
     
     if (!salaId) {
         alert('Por favor, selecione um espaço!');
+        return;
+    }
+    
+    // Validar data do evento
+    if (!dataEvento) {
+        alert('Por favor, informe a data prevista do evento!');
+        document.getElementById('data-evento').focus();
+        return;
+    }
+    
+    // Validar que a data do evento é futura
+    const dataEventoObj = new Date(dataEvento + 'T00:00:00');
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    if (dataEventoObj < hoje) {
+        alert('A data do evento deve ser futura! Por favor, selecione uma data posterior a hoje.');
+        document.getElementById('data-evento').focus();
         return;
     }
     
@@ -633,6 +653,7 @@ function calcularOrcamento() {
         margem,
         desconto,
         resultado,
+        dataEvento,
         data: new Date().toLocaleDateString('pt-BR')
     };
     
@@ -2737,6 +2758,20 @@ function alternarStatusVenda(id) {
         }
     } else {
         alert('Erro ao atualizar status de conversão!');
+    }
+}
+
+/**
+ * Exporta o dataset otimizado para Machine Learning
+ */
+function exportarDatasetML() {
+    const csvML = dataManager.exportarDatasetML();
+    
+    if (csvML) {
+        baixarCSV(csvML, `dataset-ml-regressao-logistica-${new Date().getTime()}.csv`);
+        mostrarNotificacao('Dataset ML exportado com sucesso! Pronto para análise de Regressão Logística.');
+    } else {
+        alert('Nenhum histórico disponível para exportar!\n\nPor favor, calcule alguns orçamentos primeiro para gerar o dataset.');
     }
 }
 
