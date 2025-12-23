@@ -44,6 +44,12 @@ function inicializarAplicacao() {
         }
     });
     
+    // Realizar auditoria de dados para verificar itens desatualizados
+    const relatorioAuditoria = dataManager.realizarAuditoriaDados();
+    if (relatorioAuditoria.status === 'ATENCAO') {
+        exibirAlertaAuditoria(relatorioAuditoria);
+    }
+    
     mostrarNotificacao('Sistema carregado com sucesso!');
 }
 
@@ -1049,6 +1055,51 @@ function exibirEstruturaCustos(resultado) {
     document.getElementById('cost-fixed-percent').textContent = `${percentualFixo.toFixed(1)}%`;
     document.getElementById('cost-variable-percent').textContent = `${percentualVariavel.toFixed(1)}%`;
     document.getElementById('cost-extras-percent').textContent = `${percentualExtras.toFixed(1)}%`;
+}
+
+/**
+ * Exibe alerta de auditoria de dados quando há itens desatualizados
+ * @param {Object} relatorio - Relatório de auditoria com itens desatualizados
+ */
+function exibirAlertaAuditoria(relatorio) {
+    const { itensComProblema, itensDesatualizados, limiteDias } = relatorio;
+    
+    // Construir mensagem detalhada
+    let mensagem = `⚠️ ATENÇÃO: Existem ${itensComProblema} custos não atualizados há mais de ${Math.floor(limiteDias / 30)} meses.\n\n`;
+    mensagem += 'Para garantir a precisão da margem de lucro, por favor revise os seguintes valores:\n\n';
+    
+    // Agrupar por tipo
+    const porTipo = {
+        'Sala': [],
+        'Extra': [],
+        'Funcionário': []
+    };
+    
+    itensDesatualizados.forEach(item => {
+        porTipo[item.tipo].push(item);
+    });
+    
+    // Adicionar detalhes por tipo
+    Object.keys(porTipo).forEach(tipo => {
+        if (porTipo[tipo].length > 0) {
+            mensagem += `${tipo}${porTipo[tipo].length > 1 ? 's' : ''} (${porTipo[tipo].length}):\n`;
+            porTipo[tipo].forEach(item => {
+                const diasInfo = item.diasDesatualizado !== null 
+                    ? `${item.diasDesatualizado} dias` 
+                    : 'Nunca atualizado';
+                mensagem += `  • ${item.nome} - ${diasInfo}\n`;
+            });
+            mensagem += '\n';
+        }
+    });
+    
+    mensagem += 'Num cenário inflacionário, custos estáticos podem reduzir significativamente a margem de lucro real.';
+    
+    // Exibir alert
+    alert(mensagem);
+    
+    // Também exibir notificação visual persistente
+    mostrarNotificacao(`⚠️ ${itensComProblema} custos desatualizados detectados! Verifique o alerta.`, 8000);
 }
 
 /**
