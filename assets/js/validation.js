@@ -260,11 +260,16 @@ function detectarPerdaPrecisao(valor) {
 class DataSanitizer {
     /**
      * Palavras proibidas (blacklist) que indicam subjetividade ou viés
+     * Separadas em palavras únicas e frases compostas
      */
-    static PALAVRAS_PROIBIDAS = [
+    static PALAVRAS_PROIBIDAS_UNICAS = [
         'caro', 'barato', 'chato', 'vip', 'urgente', 
-        'amigo do dono', 'conhecido', 'importante', 'especial',
+        'conhecido', 'importante', 'especial',
         'difícil', 'complicado', 'fácil', 'rápido'
+    ];
+    
+    static FRASES_PROIBIDAS = [
+        'amigo do dono'
     ];
 
     /**
@@ -280,9 +285,9 @@ class DataSanitizer {
     /**
      * Regex para detectar telefone (formato brasileiro e variações)
      * Aceita: (11) 98765-4321, 11987654321, +5511987654321, 1133334444, etc.
-     * Padrão flexível para aceitar formatos com e sem código do país
+     * Padrão mais rigoroso: exige DDD (2-3 dígitos), opcionalmente 9 inicial, e 8 dígitos
      */
-    static REGEX_TELEFONE = /^[\+]?[0-9]{0,2}[-\s\.]?[(]?[0-9]{2,3}[)]?[-\s\.]?[0-9]{0,1}[-\s\.]?[0-9]{4}[-\s\.]?[0-9]{4}$/;
+    static REGEX_TELEFONE = /^[\+]?[0-9]{0,2}[-\s\.]?[(]?[0-9]{2,3}[)]?[-\s\.]?[9]?[-\s\.]?[0-9]{4}[-\s\.]?[0-9]{4}$/;
 
     /**
      * Normaliza o nome do cliente para formato padronizado
@@ -308,12 +313,8 @@ class DataSanitizer {
 
         // Remover emojis e caracteres especiais não-textuais
         // Remove: emojis, símbolos, caracteres de controle, mas mantém acentos e pontuação básica
-        nomeProcessado = nomeProcessado.replace(/[\u{1F600}-\u{1F64F}]/gu, ''); // Emoticons
-        nomeProcessado = nomeProcessado.replace(/[\u{1F300}-\u{1F5FF}]/gu, ''); // Símbolos e pictogramas
-        nomeProcessado = nomeProcessado.replace(/[\u{1F680}-\u{1F6FF}]/gu, ''); // Transporte e mapas
-        nomeProcessado = nomeProcessado.replace(/[\u{1F1E0}-\u{1F1FF}]/gu, ''); // Bandeiras
-        nomeProcessado = nomeProcessado.replace(/[\u{2600}-\u{26FF}]/gu, '');   // Símbolos diversos
-        nomeProcessado = nomeProcessado.replace(/[\u{2700}-\u{27BF}]/gu, '');   // Dingbats
+        // Regex otimizado combinando todos os ranges Unicode de emojis
+        nomeProcessado = nomeProcessado.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 
         // Remover observações subjetivas entre parênteses
         nomeProcessado = nomeProcessado.replace(this.PATTERN_PARENTESES_SUBJETIVOS, '');
@@ -493,11 +494,18 @@ class DataSanitizer {
         const textoLower = textoTrimmed.toLowerCase();
         const palavrasEncontradas = [];
 
-        for (const palavra of this.PALAVRAS_PROIBIDAS) {
-            // Usar word boundary para evitar falsos positivos em palavras maiores
+        // Verificar palavras únicas usando word boundary
+        for (const palavra of this.PALAVRAS_PROIBIDAS_UNICAS) {
             const regex = new RegExp(`\\b${palavra}\\b`, 'i');
             if (regex.test(textoLower)) {
                 palavrasEncontradas.push(palavra);
+            }
+        }
+        
+        // Verificar frases compostas (sem word boundary, busca simples)
+        for (const frase of this.FRASES_PROIBIDAS) {
+            if (textoLower.includes(frase)) {
+                palavrasEncontradas.push(frase);
             }
         }
 
