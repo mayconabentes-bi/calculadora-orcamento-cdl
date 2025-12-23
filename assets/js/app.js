@@ -88,6 +88,8 @@ function configurarNavegacaoAbas() {
                 carregarListaFuncionarios();
             } else if (targetTab === 'history') {
                 carregarTabelaHistorico();
+            } else if (targetTab === 'dashboard') {
+                inicializarDashboard();
             }
         });
     });
@@ -682,6 +684,11 @@ function calcularOrcamento() {
     
     // Salvar no histórico
     dataManager.adicionarCalculoHistorico(ultimoCalculoRealizado);
+    
+    // Atualizar dashboard se estiver inicializado
+    if (dashboardController) {
+        atualizarDashboard();
+    }
     
     // Exibir resultados
     exibirResultados(resultado);
@@ -2841,6 +2848,11 @@ function alternarStatusVenda(id) {
     
     if (dataManager.atualizarConversao(id, novoStatus)) {
         carregarTabelaHistorico();
+        
+        // Atualizar dashboard se estiver inicializado
+        if (dashboardController) {
+            atualizarDashboard();
+        }
         
         if (novoStatus) {
             mostrarNotificacao('✅ Orçamento marcado como VENDIDO!');
