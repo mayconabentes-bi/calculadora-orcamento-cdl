@@ -7,6 +7,7 @@
 let ultimoCalculoRealizado = null;
 let horariosCount = 0;
 let horarios = [];
+let modoVisualizacaoHistorico = 'convertidos'; // 'convertidos' ou 'pipeline'
 
 // ========== SVG ICONS ==========
 const ICONS = {
@@ -2678,7 +2679,55 @@ function imprimirOrcamento() {
 // ========== HISTÓRICO & CONVERSÃO ==========
 
 /**
+ * Alterna o modo de visualização do histórico entre Convertidos e Pipeline Total
+ */
+function alternarModoVisualizacao() {
+    const toggleCheckbox = document.getElementById('toggle-view-mode');
+    const toggleLabel = document.getElementById('toggle-label');
+    const viewDescription = document.getElementById('view-description');
+    
+    if (toggleCheckbox.checked) {
+        // Modo Pipeline Total (todas as oportunidades)
+        modoVisualizacaoHistorico = 'pipeline';
+        toggleLabel.innerHTML = '📊 Pipeline Total (Oportunidades)';
+        viewDescription.textContent = 'Mostrando todas as oportunidades (vendas efetivadas + em negociação). Desative para ver apenas Convertidos.';
+    } else {
+        // Modo Convertidos (apenas vendas reais)
+        modoVisualizacaoHistorico = 'convertidos';
+        toggleLabel.innerHTML = '💰 Convertidos (Vendas Reais)';
+        viewDescription.textContent = 'Mostrando apenas vendas efetivadas (Caixa Real). Ative o toggle para ver Pipeline Total (Oportunidades).';
+    }
+    
+    // Recarregar a tabela com o novo filtro
+    carregarTabelaHistorico();
+    
+    // Notificar usuário
+    const mensagem = modoVisualizacaoHistorico === 'convertidos' 
+        ? '💰 Visualização: Convertidos (Vendas Reais)'
+        : '📊 Visualização: Pipeline Total (Todas Oportunidades)';
+    mostrarNotificacao(mensagem);
+}
+
+/**
+ * Atualiza o contador de registros exibidos no histórico
+ * @param {number} exibidos - Número de registros sendo exibidos
+ * @param {number} total - Número total de registros
+ */
+function atualizarContadorHistorico(exibidos, total) {
+    const contadorElement = document.getElementById('contador-historico');
+    if (!contadorElement) return;
+    
+    if (modoVisualizacaoHistorico === 'convertidos') {
+        const percentage = total > 0 ? ((exibidos / total) * 100).toFixed(1) : 0;
+        contadorElement.innerHTML = `Exibindo <strong>${exibidos}</strong> de ${total} orçamentos (<strong>${percentage}%</strong> de conversão)`;
+    } else {
+        contadorElement.innerHTML = `Exibindo todos os <strong>${total}</strong> orçamentos (pipeline completo)`;
+    }
+}
+
+/**
  * Carrega a tabela de histórico de orçamentos
+ * Agora com filtro por modo de visualização (convertidos vs pipeline total)
  */
 function carregarTabelaHistorico() {
     const tbody = document.getElementById('historico-body');
@@ -2688,14 +2737,34 @@ function carregarTabelaHistorico() {
     // Limpar tabela
     tbody.innerHTML = '';
     
-    if (historico.length === 0) {
+    // Aplicar filtro baseado no modo de visualização
+    let historicoFiltrado = historico;
+    if (modoVisualizacaoHistorico === 'convertidos') {
+        // Filtrar apenas os convertidos (vendidos)
+        historicoFiltrado = historico.filter(calc => calc.convertido === true);
+    }
+    // Se modo é 'pipeline', mostra todos (não aplica filtro)
+    
+    // Atualizar contador de registros exibidos
+    atualizarContadorHistorico(historicoFiltrado.length, historico.length);
+    
+    if (historicoFiltrado.length === 0) {
         divVazio.style.display = 'block';
+        
+        // Mensagem customizada baseada no modo
+        const emptyMessage = divVazio.querySelector('p:last-child');
+        if (modoVisualizacaoHistorico === 'convertidos') {
+            emptyMessage.textContent = 'Nenhuma venda convertida ainda. Marque orçamentos como "Vendido" para aparecerem aqui.';
+        } else {
+            emptyMessage.textContent = 'Calcule orçamentos na aba "Calculadora" para começar a coletar dados';
+        }
+        
         return;
     }
     
     divVazio.style.display = 'none';
     
-    historico.forEach(calc => {
+    historicoFiltrado.forEach(calc => {
         const tr = document.createElement('tr');
         
         // Data
