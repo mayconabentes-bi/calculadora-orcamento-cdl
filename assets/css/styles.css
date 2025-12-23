@@ -37,6 +37,9 @@
     
     /* Cores CDL - High-Contrast Dark */
     --accent-gold: #ffcc00;
+    --accent-gold-15: rgba(255, 204, 0, 0.15);
+    --accent-gold-20: rgba(255, 204, 0, 0.2);
+    --accent-gold-30: rgba(255, 204, 0, 0.3);
     --success-cdl: #008444;
     --success-cdl-dark: #006633;
     
@@ -366,7 +369,7 @@ body {
 
 .dark-theme .form-control:focus {
     border-color: var(--accent-gold);
-    box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.2);
+    box-shadow: 0 0 0 3px var(--accent-gold-20);
 }
 
 .form-control:focus {
@@ -511,8 +514,8 @@ body {
 
 .dark-theme .range-value {
     color: var(--accent-gold);
-    background: rgba(255, 204, 0, 0.15);
-    border: 1px solid rgba(255, 204, 0, 0.3);
+    background: var(--accent-gold-15);
+    border: 1px solid var(--accent-gold-30);
 }
 
 /* Extras Grid */
@@ -879,7 +882,7 @@ body {
 
 /* Dark theme cost structure */
 .dark-theme #cost-structure {
-    background: #1e293b !important;
+    background: #1e293b;
     border: 1px solid #475569;
 }
 
@@ -999,7 +1002,7 @@ body {
 
 .dark-theme .data-table input[type="number"]:focus {
     border-color: var(--accent-gold);
-    box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.2);
+    box-shadow: 0 0 0 2px var(--accent-gold-20);
 }
 
 /* -----------------------------------------------------------------
