@@ -33,7 +33,8 @@ Tecnologias: Jest para lógica e Playwright para simulação de jornada do usuá
 
 📈 Roadmap de Evolução
 [ ] V5.2: Implementação de Dashboards com gráficos e relatórios avançados.
-
 [ ] V6.0: Transição para arquitetura API RESTful com Node.js e sistema de gestão de usuários.
 
-Desenvolvido por Maycon A. Bentes Inteligência de Mercado, Planejamento e Estudos Estatísticos.
+Desenvolvido por 
+Maycon A. Bentes 
+Inteligência de Mercado, Planejamento e Estudos Estatísticos.
