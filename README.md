@@ -1,161 +1,31 @@
-# Calculadora de Orçamento CDL/UTV v1.0
+# Calculadora de Orçamento Estratégico CDL/UTV v1.0
 
-Sistema de cálculo de orçamentos para locação de espaços da CDL  e UTV em Manaus.
+![Versão](https://img.shields.io/badge/version-5.0.0-blue.svg)
+![Cobertura](https://img.shields.io/badge/test--coverage-%3E70%25-brightgreen.svg)
+![Licença](https://img.shields.io/badge/license-MIT-green.svg)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
-![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+Sistema avançado de Business Intelligence (BI) para precificação técnica e gestão de orçamentos de locação de espaços (CDL e UTV) em Manaus. 
 
-## Acesso Online
+## 🚀 Visão Estratégica
+Diferente de calculadoras convencionais, este sistema integra **análise de custos operacionais** e **margens de rentabilidade**, permitindo que a tomada de decisão seja baseada em evidências sólidas e dados financeiros precisos.
 
-** Acesse o sistema:** [https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)
+**Acesso Online:** [Link para Produção](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)
 
-O sistema está hospedado no GitHub Pages e pode ser acessado diretamente pelo navegador, sem necessidade de instalação.
+## 🛠 Funcionalidades de Alto Impacto
+* **Engenharia de Custos**: Cálculo automatizado que considera custos base, multiplicadores de turno e encargos de mão de obra (horas extras e vale transporte).
+* **Inteligência Financeira**: Configuração dinâmica de margem de lucro e aplicação de gatilhos de desconto por fidelidade.
+* **Governança e Compliance**: Geração de PDFs distintos para clientes (proposta comercial) e superintendência (análise gerencial de custos).
+* **Arquitetura Robusta**: Sistema 100% frontend com persistência em LocalStorage, garantindo privacidade e agilidade sem dependência de servidores externos.
 
-##  Sobre o Projeto
+## 📊 Estrutura do Ecossistema
+O projeto é organizado para garantir escalabilidade e fácil manutenção:
+* `/assets/js/app.js`: Core engine de lógica de negócio (40KB).
+* `/assets/js/data-manager.js`: Gestão de persistência e integridade de dados.
+* `/docs/`: Manuais técnico e de usuário focados em transferência de conhecimento.
+* `/tests/`: Suite rigorosa com mais de 235 testes (Unitários, Integração e E2E).
 
-Sistema web completo para calcular orçamentos de locação de espaços, considerando múltiplos fatores como:
-- ✅ Custos operacionais base por espaço
-- ✅ Multiplicadores de turno (manhã, tarde, noite)
-- ✅ Cálculo de mão de obra com horas extras
-- ✅ Vale transporte
-- ✅ Itens extras personalizáveis
-- ✅ Margem de lucro configurável
-- ✅ Descontos por fidelidade
-- ✅ Geração de PDFs profissionais (cliente e superintendência)
-
-##  Funcionalidades
-
-### Para Usuários
-- **Calculadora Intuitiva**: Interface amigável com cálculo automático
-- **Gestão de Espaços**: CRUD completo de salas/espaços
-- **Configuração de Custos**: Ajuste de custos base por espaço
-- **Itens Extras**: Adicione e gerencie itens adicionais
-- **Exportação de PDFs**: Propostas comerciais e análises gerenciais
-- **Backup/Restore**: Exportação e importação de dados
-- **Responsivo**: Funciona em desktop, tablet e mobile
-
-### Para Desenvolvedores
-- **Arquitetura Modular**: Código separado por responsabilidade
-- **Zero Dependências Backend**: 100% frontend
-- **Persistência Local**: LocalStorage para dados
-- **CSS Customizável**: Variáveis CSS para fácil personalização
-- **Bem Documentado**: Manuais técnico e do usuário completos
-- **Fácil Manutenção**: Código limpo e comentado
-
-## Estrutura do Projeto
-
-```
-calculadora-orcamento-cdl/
-├── index.html                  # Página principal
-├── .gitignore                  # Arquivos ignorados pelo Git
-├── README.md                   # Este arquivo
-├── LICENSE                     # Licença do projeto
-│
-├── assets/
-│   ├── css/
-│   │   └── styles.css         # Estilos (21KB)
-│   ├── js/
-│   │   ├── app.js             # Lógica principal (40KB)
-│   │   └── data-manager.js    # Gerenciamento de dados (12KB)
-│   └── images/
-│       └── .gitkeep           # Mantém diretório no Git
-│
-├── docs/
-│   ├── MANUAL_USUARIO.md      # Manual do usuário (20KB)
-│   ├── MANUAL_TECNICO.md      # Documentação técnica (32KB)
-│   └── CHANGELOG.md           # Histórico de versões
-│
-└── examples/
-    └── exemplo-orcamento.json # Exemplo de dados exportados
-```
-
-##  Tecnologias Utilizadas
-
-| Tecnologia | Versão | Uso |
-|------------|--------|-----|
-| HTML5 | - | Estrutura |
-| CSS3 | - | Estilos |
-| JavaScript | ES6+ | Lógica |
-| jsPDF | 2.5.1 | Geração de PDFs |
-| html2canvas | 1.4.1 | Captura de elementos |
-| LocalStorage | - | Persistência |
-
-## Instalação e Uso
-
-### Opção 1: Acesso Online (Mais Rápido)
-
-**Simplesmente acesse o link:**
- **[https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)**
-
-O sistema está hospedado no GitHub Pages e funciona diretamente no navegador!
-
-## 🧪 Testes
-
-### Instalação de Dependências
-
+## 🧪 Qualidade e Validação (QA)
+Para garantir a precisão dos cálculos financeiros, o sistema utiliza um pipeline de testes automatizados:
 ```bash
-npm install
-npm run playwright:install
-```
-
-### Rodar Testes
-
-```bash
-# Todos os testes
+# Executar suite completa de validação
 npm run test:all
-
-# Apenas testes unitários e de integração
-npm test
-
-# Testes com cobertura
-npm run test:coverage
-
-# Testes E2E
-npm run test:e2e
-
-# Testes E2E com interface visível
-npm run test:e2e:headed
-
-# Testes E2E em modo debug
-npm run test:e2e:debug
-```
-
-### Cobertura de Testes
-
-- **Testes Unitários:** 145+ testes
-- **Testes de Integração:** 35+ testes
-- **Testes E2E:** 55+ testes
-- **Total:** 235+ testes
-- **Cobertura de Código:** >70%
-
-Para mais informações, consulte [tests/README.md](tests/README.md).
-
-##  Roadmap
-
-### Versão 5.1 (Planejada)
-- [x] Suite completa de testes automatizados
-- [ ] Modo escuro
-- [ ] Histórico de orçamentos
-- [ ] Comparação de propostas
-- [ ] Templates personalizados
-
-### Versão 5.2 (Planejada)
-- [ ] Multi-idioma
-- [ ] Gráficos e visualizações
-- [ ] Relatórios avançados
-
-### Versão 6.0 (Futura)
-- [ ] Backend com Node.js
-- [ ] Sistema de usuários
-- [ ] Dashboard administrativo
-- [ ] API RESTful
-
----
-
-**Desenvolvido por Maycon A. Bentes
-- Inteligência de Mercado, Planejamwento e Estudos Estatísticos**
-
-**Última atualização**: Dezembro 2025
