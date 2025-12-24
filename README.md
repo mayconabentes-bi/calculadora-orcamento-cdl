@@ -1,6 +1,6 @@
 # Calculadora de Orçamento Estratégico CDL/UTV v1.0
 
-![Versão](https://img.shields.io/badge/version-5.0.0-blue.svg)
+![Versão](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Cobertura](https://img.shields.io/badge/test--coverage-%3E70%25-brightgreen.svg)
 ![Licença](https://img.shields.io/badge/license-MIT-green.svg)
 
