@@ -26,6 +26,14 @@ O projeto é organizado para garantir escalabilidade e fácil manutenção:
 
 ## 🧪 Qualidade e Validação (QA)
 Para garantir a precisão dos cálculos financeiros, o sistema utiliza um pipeline de testes automatizados:
-```bash
-# Executar suite completa de validação
-npm run test:all
+
+Cobertura: >70% do código testado contra falhas de arredondamento e lógica.
+
+Tecnologias: Jest para lógica e Playwright para simulação de jornada do usuário.
+
+📈 Roadmap de Evolução
+[ ] V5.2: Implementação de Dashboards com gráficos e relatórios avançados.
+
+[ ] V6.0: Transição para arquitetura API RESTful com Node.js e sistema de gestão de usuários.
+
+Desenvolvido por Maycon A. Bentes Inteligência de Mercado, Planejamento e Estudos Estatísticos.
