@@ -144,131 +144,143 @@ describe('DataSanitizer - Normalização de Nome', () => {
 
 describe('DataSanitizer - Validação de Contato', () => {
   describe('Validação de Email', () => {
-    test('deve validar email simples', () => {
+    test('deve aceitar email simples como texto livre', () => {
       const resultado = DataSanitizer.validarContato('joao@empresa.com');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('email');
+      expect(resultado.tipo).toBe('texto');
       expect(resultado.contatoNormalizado).toBe('joao@empresa.com');
     });
 
-    test('deve converter email para lowercase', () => {
+    test('deve aceitar email em maiúsculas como texto livre', () => {
       const resultado = DataSanitizer.validarContato('JOAO@EMPRESA.COM');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('email');
-      expect(resultado.contatoNormalizado).toBe('joao@empresa.com');
+      expect(resultado.tipo).toBe('texto');
+      expect(resultado.contatoNormalizado).toBe('JOAO@EMPRESA.COM');
     });
 
-    test('deve validar email com pontos e underscores', () => {
+    test('deve aceitar email com pontos e underscores como texto livre', () => {
       const resultado = DataSanitizer.validarContato('joao.silva_teste@empresa.com.br');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('email');
+      expect(resultado.tipo).toBe('texto');
     });
 
-    test('deve rejeitar email sem domínio', () => {
+    test('deve aceitar email incompleto como texto livre', () => {
       const resultado = DataSanitizer.validarContato('joao@');
-      expect(resultado.valido).toBe(false);
-      expect(resultado.tipo).toBe('email');
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe('texto');
     });
 
-    test('deve rejeitar email sem @', () => {
+    test('deve aceitar texto sem @ como texto livre', () => {
       const resultado = DataSanitizer.validarContato('joaoempresa.com');
-      expect(resultado.valido).toBe(false);
-      expect(resultado.tipo).toBe('telefone'); // Tentará validar como telefone
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe('texto');
     });
 
-    test('deve rejeitar email sem ponto no domínio', () => {
+    test('deve aceitar email sem ponto no domínio como texto livre', () => {
       const resultado = DataSanitizer.validarContato('joao@empresa');
-      expect(resultado.valido).toBe(false);
-      expect(resultado.tipo).toBe('email');
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe('texto');
     });
   });
 
   describe('Validação de Telefone', () => {
-    test('deve validar telefone brasileiro com DDD e 9 dígitos', () => {
+    test('deve aceitar telefone brasileiro com DDD e 9 dígitos como texto livre', () => {
       const resultado = DataSanitizer.validarContato('11987654321');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('telefone');
+      expect(resultado.tipo).toBe('texto');
       expect(resultado.contatoNormalizado).toBe('11987654321');
     });
 
-    test('deve validar telefone com formatação (parênteses e traço)', () => {
+    test('deve aceitar telefone com formatação como texto livre', () => {
       const resultado = DataSanitizer.validarContato('(11) 98765-4321');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('telefone');
-      expect(resultado.contatoNormalizado).toBe('11987654321');
+      expect(resultado.tipo).toBe('texto');
+      expect(resultado.contatoNormalizado).toBe('(11) 98765-4321');
     });
 
-    test('deve validar telefone com código do país', () => {
+    test('deve aceitar telefone com código do país como texto livre', () => {
       const resultado = DataSanitizer.validarContato('+5511987654321');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('telefone');
-      expect(resultado.contatoNormalizado).toBe('5511987654321');
+      expect(resultado.tipo).toBe('texto');
+      expect(resultado.contatoNormalizado).toBe('+5511987654321');
     });
 
-    test('deve validar telefone fixo com 8 dígitos', () => {
+    test('deve aceitar telefone fixo com 8 dígitos como texto livre', () => {
       const resultado = DataSanitizer.validarContato('1133334444');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('telefone');
+      expect(resultado.tipo).toBe('texto');
       expect(resultado.contatoNormalizado).toBe('1133334444');
     });
 
-    test('deve remover toda formatação visual', () => {
+    test('deve aceitar telefone com espaços como texto livre', () => {
       const resultado = DataSanitizer.validarContato('(11) 9 8765-4321');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('telefone');
-      expect(resultado.contatoNormalizado).toBe('11987654321');
+      expect(resultado.tipo).toBe('texto');
+      expect(resultado.contatoNormalizado).toBe('(11) 9 8765-4321');
     });
 
-    test('deve validar telefone com pontos', () => {
+    test('deve aceitar telefone com pontos como texto livre', () => {
       const resultado = DataSanitizer.validarContato('11.98765.4321');
       expect(resultado.valido).toBe(true);
-      expect(resultado.tipo).toBe('telefone');
-      expect(resultado.contatoNormalizado).toBe('11987654321');
+      expect(resultado.tipo).toBe('texto');
+      expect(resultado.contatoNormalizado).toBe('11.98765.4321');
     });
 
-    test('deve rejeitar telefone muito curto', () => {
+    test('deve aceitar telefone muito curto como texto livre', () => {
       const resultado = DataSanitizer.validarContato('123456');
-      expect(resultado.valido).toBe(false);
-      expect(resultado.tipo).toBe('telefone');
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe('texto');
     });
 
-    test('deve rejeitar telefone muito longo', () => {
+    test('deve aceitar telefone muito longo como texto livre', () => {
       const resultado = DataSanitizer.validarContato('12345678901234');
-      expect(resultado.valido).toBe(false);
-      expect(resultado.tipo).toBe('telefone');
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe('texto');
     });
 
-    test('deve rejeitar telefone com letras', () => {
+    test('deve aceitar telefone com letras como texto livre', () => {
       const resultado = DataSanitizer.validarContato('11abc987654321');
-      expect(resultado.valido).toBe(false);
-      expect(resultado.tipo).toBe('telefone');
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe('texto');
     });
   });
 
   describe('Casos inválidos gerais', () => {
-    test('deve rejeitar contato vazio', () => {
+    test('deve aceitar contato vazio como válido (campo opcional)', () => {
       const resultado = DataSanitizer.validarContato('');
-      expect(resultado.valido).toBe(false);
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe(null);
+      expect(resultado.contatoNormalizado).toBe(null);
     });
 
-    test('deve rejeitar contato apenas com espaços', () => {
+    test('deve aceitar contato apenas com espaços como válido (campo opcional)', () => {
       const resultado = DataSanitizer.validarContato('   ');
-      expect(resultado.valido).toBe(false);
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe(null);
     });
 
-    test('deve rejeitar null', () => {
+    test('deve aceitar null como válido (campo opcional)', () => {
       const resultado = DataSanitizer.validarContato(null);
-      expect(resultado.valido).toBe(false);
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe(null);
     });
 
-    test('deve rejeitar undefined', () => {
+    test('deve aceitar undefined como válido (campo opcional)', () => {
       const resultado = DataSanitizer.validarContato(undefined);
-      expect(resultado.valido).toBe(false);
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe(null);
     });
 
-    test('deve rejeitar número', () => {
+    test('deve aceitar número como texto livre', () => {
       const resultado = DataSanitizer.validarContato(123);
-      expect(resultado.valido).toBe(false);
+      expect(resultado.valido).toBe(true);
+    });
+    
+    test('deve aceitar qualquer texto livre', () => {
+      const resultado = DataSanitizer.validarContato('sem telefone');
+      expect(resultado.valido).toBe(true);
+      expect(resultado.tipo).toBe('texto');
+      expect(resultado.contatoNormalizado).toBe('sem telefone');
     });
   });
 });
@@ -403,7 +415,7 @@ describe('DataSanitizer - Sanitização Completa de Dados do Cliente', () => {
       expect(resultado.valido).toBe(true);
       expect(resultado.dados.clienteNome).toBe('João Silva');
       expect(resultado.dados.clienteContato).toBe('joao@empresa.com');
-      expect(resultado.dados.tipoContato).toBe('email');
+      expect(resultado.dados.tipoContato).toBe('texto');
       expect(resultado.erros).toHaveLength(0);
     });
 
@@ -414,8 +426,8 @@ describe('DataSanitizer - Sanitização Completa de Dados do Cliente', () => {
       );
       expect(resultado.valido).toBe(true);
       expect(resultado.dados.clienteNome).toBe('Empresa Abc');
-      expect(resultado.dados.clienteContato).toBe('11987654321');
-      expect(resultado.dados.tipoContato).toBe('telefone');
+      expect(resultado.dados.clienteContato).toBe('(11) 98765-4321');
+      expect(resultado.dados.tipoContato).toBe('texto');
     });
 
     test('deve remover observações subjetivas do nome', () => {
@@ -425,6 +437,28 @@ describe('DataSanitizer - Sanitização Completa de Dados do Cliente', () => {
       );
       expect(resultado.valido).toBe(true);
       expect(resultado.dados.clienteNome).toBe('Cliente Abc');
+    });
+    
+    test('deve aceitar contato vazio (campo opcional)', () => {
+      const resultado = DataSanitizer.sanitizarDadosCliente(
+        'João Silva',
+        ''
+      );
+      expect(resultado.valido).toBe(true);
+      expect(resultado.dados.clienteNome).toBe('João Silva');
+      expect(resultado.dados.clienteContato).toBe(null);
+      expect(resultado.dados.tipoContato).toBe(null);
+    });
+    
+    test('deve aceitar texto livre como contato', () => {
+      const resultado = DataSanitizer.sanitizarDadosCliente(
+        'João Silva',
+        'sem telefone'
+      );
+      expect(resultado.valido).toBe(true);
+      expect(resultado.dados.clienteNome).toBe('João Silva');
+      expect(resultado.dados.clienteContato).toBe('sem telefone');
+      expect(resultado.dados.tipoContato).toBe('texto');
     });
   });
 
@@ -458,52 +492,52 @@ describe('DataSanitizer - Sanitização Completa de Dados do Cliente', () => {
   });
 
   describe('Casos inválidos - contato', () => {
-    test('deve rejeitar email inválido', () => {
+    test('deve aceitar email inválido como texto livre', () => {
       const resultado = DataSanitizer.sanitizarDadosCliente(
         'João Silva',
         'email-invalido'
       );
-      expect(resultado.valido).toBe(false);
-      expect(resultado.erros.some(e => e.includes('Contato'))).toBe(true);
+      expect(resultado.valido).toBe(true);
+      expect(resultado.dados.clienteContato).toBe('email-invalido');
     });
 
-    test('deve rejeitar telefone inválido', () => {
+    test('deve aceitar telefone inválido como texto livre', () => {
       const resultado = DataSanitizer.sanitizarDadosCliente(
         'João Silva',
         '123'
       );
-      expect(resultado.valido).toBe(false);
-      expect(resultado.erros.some(e => e.includes('Contato'))).toBe(true);
+      expect(resultado.valido).toBe(true);
+      expect(resultado.dados.clienteContato).toBe('123');
     });
 
-    test('deve rejeitar contato vazio', () => {
+    test('deve aceitar contato vazio (campo opcional)', () => {
       const resultado = DataSanitizer.sanitizarDadosCliente(
         'João Silva',
         ''
       );
-      expect(resultado.valido).toBe(false);
-      expect(resultado.erros.some(e => e.includes('Contato'))).toBe(true);
+      expect(resultado.valido).toBe(true);
+      expect(resultado.dados.clienteContato).toBe(null);
     });
   });
 
   describe('Casos inválidos - múltiplos erros', () => {
-    test('deve reportar múltiplos erros quando ambos são inválidos', () => {
+    test('deve reportar erro quando nome é inválido (contato agora é sempre válido)', () => {
       const resultado = DataSanitizer.sanitizarDadosCliente(
         '',
         'email-invalido'
       );
       expect(resultado.valido).toBe(false);
-      expect(resultado.erros.length).toBeGreaterThanOrEqual(2);
+      expect(resultado.erros.some(e => e.includes('Nome'))).toBe(true);
     });
 
-    test('deve reportar erro de viés e contato inválido', () => {
+    test('deve reportar erro de viés mas aceitar contato inválido', () => {
       const resultado = DataSanitizer.sanitizarDadosCliente(
         'CLIENTE URGENTE',
         '123'
       );
       expect(resultado.valido).toBe(false);
       expect(resultado.erros.some(e => e.includes('viés'))).toBe(true);
-      expect(resultado.erros.some(e => e.includes('Contato'))).toBe(true);
+      // Contato não gera mais erro
     });
   });
 });
@@ -518,7 +552,8 @@ describe('DataSanitizer - Testes de Integração', () => {
     // Isso é válido porque a normalização remove o viés de ALL CAPS
     expect(resultado.valido).toBe(true);
     expect(resultado.dados.clienteNome).toBe('João Silva');
-    expect(resultado.dados.clienteContato).toBe('11987654321');
+    expect(resultado.dados.clienteContato).toBe('(11) 98765-4321');
+    expect(resultado.dados.tipoContato).toBe('texto');
   });
 
   test('cenário real: nome com observação subjetiva e email maiúsculo', () => {
@@ -528,7 +563,8 @@ describe('DataSanitizer - Testes de Integração', () => {
     );
     expect(resultado.valido).toBe(true); // Nome válido após remover observação
     expect(resultado.dados.clienteNome).toBe('Empresa Abc');
-    expect(resultado.dados.clienteContato).toBe('contato@empresa.com');
+    expect(resultado.dados.clienteContato).toBe('CONTATO@EMPRESA.COM');
+    expect(resultado.dados.tipoContato).toBe('texto');
   });
 
   test('cenário real: nome com múltiplos problemas', () => {
@@ -537,8 +573,9 @@ describe('DataSanitizer - Testes de Integração', () => {
       'cliente@email'
     );
     expect(resultado.valido).toBe(false);
-    // Deve detectar: CAPS, exclamações, palavra proibida, e email inválido
-    expect(resultado.erros.length).toBeGreaterThan(1);
+    // Deve detectar: CAPS, exclamações, palavra proibida (mas não email inválido)
+    expect(resultado.erros.length).toBeGreaterThan(0);
+    expect(resultado.erros.some(e => e.includes('viés'))).toBe(true);
   });
 
   test('cenário ideal: dados limpos e neutros', () => {
@@ -549,7 +586,7 @@ describe('DataSanitizer - Testes de Integração', () => {
     expect(resultado.valido).toBe(true);
     expect(resultado.dados.clienteNome).toBe('Empresa de Tecnologia Ltda');
     expect(resultado.dados.clienteContato).toBe('contato@empresa.com.br');
-    expect(resultado.dados.tipoContato).toBe('email');
+    expect(resultado.dados.tipoContato).toBe('texto');
     expect(resultado.erros).toHaveLength(0);
   });
 });
