@@ -592,42 +592,34 @@ function calcularOrcamento() {
     let clienteNomeSanitizado = clienteNome;
     let clienteContatoSanitizado = clienteContato;
     
-    // Validar apenas se contato foi fornecido (campo opcional)
-    if (clienteContato && clienteContato.trim().length > 0) {
-        const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+    // MODO FLEXÍVEL: Campo de contato é OPCIONAL
+    // Sempre tentar sanitizar para normalizar os dados, mas não bloquear o fluxo
+    const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+    
+    if (!resultadoSanitizacao.valido) {
+        // MODO FLEXÍVEL: Apenas bloquear se o nome estiver completamente vazio ou inválido
+        const nomeVazio = !clienteNome || clienteNome.trim().length === 0;
         
-        if (!resultadoSanitizacao.valido) {
-            // MODO FLEXÍVEL: Avisar sobre problemas mas permitir continuar
-            // Apenas bloquear se o nome estiver completamente vazio ou inválido
-            const nomeVazio = !clienteNome || clienteNome.trim().length === 0;
-            
-            if (nomeVazio) {
-                alert('Por favor, informe o nome do cliente ou empresa!');
-                document.getElementById('cliente-nome').focus();
-                return;
-            }
-            
-            // Para outros problemas, apenas avisar mas usar dados normalizados se disponíveis
-            console.warn('⚠️ Avisos de qualidade de dados:', resultadoSanitizacao.erros);
-            
-            // Tentar usar dados normalizados se disponíveis
-            if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteNome) {
-                clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
-            }
-            if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteContato) {
-                clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
-            }
-        } else {
-            // Dados sanitizados e validados - usar valores normalizados
+        if (nomeVazio) {
+            alert('Por favor, informe o nome do cliente ou empresa!');
+            document.getElementById('cliente-nome').focus();
+            return;
+        }
+        
+        // Para outros problemas (viés, etc), apenas avisar mas continuar
+        console.warn('⚠️ Avisos de qualidade de dados:', resultadoSanitizacao.erros);
+        
+        // Tentar usar dados normalizados se disponíveis
+        if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteNome) {
             clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
+        }
+        if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteContato) {
             clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
         }
     } else {
-        // Sem contato fornecido - validar apenas o nome
-        const resultadoNome = DataSanitizer.normalizarNome(clienteNome);
-        if (resultadoNome.valido) {
-            clienteNomeSanitizado = resultadoNome.nomeNormalizado;
-        }
+        // Dados sanitizados e validados - usar valores normalizados
+        clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
+        clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato || clienteContato;
     }
     
     if (!salaId) {
@@ -642,24 +634,16 @@ function calcularOrcamento() {
         return;
     }
     
-    // Avisar se a data do evento é passada (mas permitir continuar)
+    // VALIDAÇÃO DE DATA NO PASSADO REMOVIDA
+    // Permitir qualquer data para facilitar testes manuais e registros retroativos
     const dataEventoObj = new Date(dataEvento + 'T00:00:00');
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     
+    // Log informativo apenas (não bloqueia)
     if (dataEventoObj < hoje) {
-        const confirmar = confirm(
-            '⚠️ ATENÇÃO: A data do evento está no passado!\n\n' +
-            'Data selecionada: ' + dataEventoObj.toLocaleDateString('pt-BR') + '\n' +
-            'Data atual: ' + hoje.toLocaleDateString('pt-BR') + '\n\n' +
-            'Deseja continuar mesmo assim?\n\n' +
-            'Dica: Use esta opção para registrar eventos retroativos ou realizar testes.'
-        );
-        
-        if (!confirmar) {
-            document.getElementById('data-evento').focus();
-            return;
-        }
+        console.info('ℹ️ Data do evento está no passado:', dataEventoObj.toLocaleDateString('pt-BR'));
+        console.info('Permitindo registro retroativo para testes/histórico');
     }
     
     const sala = dataManager.obterSalaPorId(salaId);
