@@ -151,11 +151,11 @@ describe('DataSanitizer - Validação de Contato', () => {
       expect(resultado.contatoNormalizado).toBe('joao@empresa.com');
     });
 
-    test('deve aceitar email em maiúsculas como texto livre', () => {
+    test('deve aceitar email em maiúsculas preservando formato original', () => {
       const resultado = DataSanitizer.validarContato('JOAO@EMPRESA.COM');
       expect(resultado.valido).toBe(true);
       expect(resultado.tipo).toBe('texto');
-      expect(resultado.contatoNormalizado).toBe('JOAO@EMPRESA.COM');
+      expect(resultado.contatoNormalizado).toBe('JOAO@EMPRESA.COM'); // Preserva formato original
     });
 
     test('deve aceitar email com pontos e underscores como texto livre', () => {
@@ -184,6 +184,7 @@ describe('DataSanitizer - Validação de Contato', () => {
   });
 
   describe('Validação de Telefone', () => {
+    // Nota: Como validarContato aceita texto livre, a formatação original é preservada
     test('deve aceitar telefone brasileiro com DDD e 9 dígitos como texto livre', () => {
       const resultado = DataSanitizer.validarContato('11987654321');
       expect(resultado.valido).toBe(true);

@@ -370,16 +370,13 @@ class DataSanitizer {
 
     /**
      * Valida e normaliza contato do cliente
-     * Detecta automaticamente se é Email ou Telefone
      * 
      * ATUALIZAÇÃO: Campo agora é OPCIONAL para permitir testes manuais
      * Aceita qualquer string de texto livre quando fornecido
+     * Não valida formatos específicos de Email ou Telefone
      * 
-     * Para Telefone: Remove formatação visual e mantém apenas dígitos
-     * Para Email: Valida com Regex estrito e converte para lowercase
-     * 
-     * @param {string} contato - Contato do cliente (email ou telefone) - OPCIONAL
-     * @returns {Object} { valido: boolean, tipo: 'email'|'telefone'|'texto'|null, contatoNormalizado: string|null, erro: string|null }
+     * @param {string} contato - Contato do cliente (email, telefone ou texto livre) - OPCIONAL
+     * @returns {Object} { valido: boolean, tipo: 'texto'|null, contatoNormalizado: string|null, erro: string|null }
      */
     static validarContato(contato) {
         // CAMPO OPCIONAL: Se vazio ou não fornecido, retornar como válido
@@ -396,6 +393,9 @@ class DataSanitizer {
 
     /**
      * Valida e normaliza email
+     * 
+     * @deprecated Este método não é mais usado por validarContato.
+     *             Mantido para compatibilidade com código legado.
      * 
      * @param {string} email - Email a ser validado
      * @returns {Object} { valido: boolean, tipo: 'email', contatoNormalizado: string|null, erro: string|null }
@@ -419,7 +419,9 @@ class DataSanitizer {
 
     /**
      * Valida e normaliza telefone
-     * Remove toda formatação visual e mantém apenas dígitos
+     * 
+     * @deprecated Este método não é mais usado por validarContato.
+     *             Mantido para compatibilidade com código legado.
      * 
      * @param {string} telefone - Telefone a ser validado
      * @returns {Object} { valido: boolean, tipo: 'telefone', contatoNormalizado: string|null, erro: string|null }
