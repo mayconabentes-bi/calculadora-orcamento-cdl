@@ -372,31 +372,26 @@ class DataSanitizer {
      * Valida e normaliza contato do cliente
      * Detecta automaticamente se é Email ou Telefone
      * 
+     * ATUALIZAÇÃO: Campo agora é OPCIONAL para permitir testes manuais
+     * Aceita qualquer string de texto livre quando fornecido
+     * 
      * Para Telefone: Remove formatação visual e mantém apenas dígitos
      * Para Email: Valida com Regex estrito e converte para lowercase
      * 
-     * @param {string} contato - Contato do cliente (email ou telefone)
-     * @returns {Object} { valido: boolean, tipo: 'email'|'telefone'|null, contatoNormalizado: string|null, erro: string|null }
+     * @param {string} contato - Contato do cliente (email ou telefone) - OPCIONAL
+     * @returns {Object} { valido: boolean, tipo: 'email'|'telefone'|'texto'|null, contatoNormalizado: string|null, erro: string|null }
      */
     static validarContato(contato) {
-        // Validar entrada
-        if (!contato || typeof contato !== 'string') {
-            return { valido: false, tipo: null, contatoNormalizado: null, erro: 'Contato deve ser uma string não vazia' };
+        // CAMPO OPCIONAL: Se vazio ou não fornecido, retornar como válido
+        if (!contato || typeof contato !== 'string' || contato.trim().length === 0) {
+            return { valido: true, tipo: null, contatoNormalizado: null, erro: null };
         }
 
         const contatoTrimmed = contato.trim();
 
-        if (contatoTrimmed.length === 0) {
-            return { valido: false, tipo: null, contatoNormalizado: null, erro: 'Contato não pode ser vazio' };
-        }
-
-        // Detectar se é email (presença de @)
-        if (contatoTrimmed.includes('@')) {
-            return this.validarEmail(contatoTrimmed);
-        }
-
-        // Caso contrário, tratar como telefone
-        return this.validarTelefone(contatoTrimmed);
+        // MODO FLEXÍVEL: Aceitar qualquer texto livre
+        // Retornar como válido independente do formato
+        return { valido: true, tipo: 'texto', contatoNormalizado: contatoTrimmed, erro: null };
     }
 
     /**
@@ -523,8 +518,10 @@ class DataSanitizer {
      * Método auxiliar para sanitizar completamente os dados do cliente
      * Combina normalização de nome, validação de contato e detecção de viés
      * 
+     * ATUALIZAÇÃO: Contato agora é OPCIONAL - não gera erro se vazio ou fora do padrão
+     * 
      * @param {string} clienteNome - Nome do cliente
-     * @param {string} clienteContato - Contato do cliente
+     * @param {string} clienteContato - Contato do cliente (OPCIONAL)
      * @returns {Object} { valido: boolean, dados: Object|null, erros: Array<string> }
      */
     static sanitizarDadosCliente(clienteNome, clienteContato) {
@@ -545,13 +542,12 @@ class DataSanitizer {
             }
         }
 
-        // Validar e normalizar contato
+        // Validar e normalizar contato (CAMPO OPCIONAL)
+        // Não adicionar erro se contato estiver vazio ou fora do padrão
         const resultadoContato = this.validarContato(clienteContato);
-        if (!resultadoContato.valido) {
-            erros.push(`Contato: ${resultadoContato.erro}`);
-        }
+        // Contato sempre é válido agora (campo opcional), então não verificamos erros
 
-        // Se há erros, retornar inválido
+        // Se há erros (apenas do nome), retornar inválido
         if (erros.length > 0) {
             return { valido: false, dados: null, erros };
         }
