@@ -18,7 +18,8 @@ module.exports = {
   // },
   testMatch: [
     '**/tests/unit/**/*.test.js',
-    '**/tests/integration/**/*.test.js'
+    '**/tests/integration/**/*.test.js',
+    '**/tests/verification/**/*.test.js'
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js']
 };
