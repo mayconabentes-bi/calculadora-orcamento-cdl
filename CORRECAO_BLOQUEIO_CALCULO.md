@@ -22,6 +22,8 @@ O sistema estava bloqueando cálculos de orçamento válidos devido a validaçõ
 
 **Antes:**
 ```javascript
+// Bloqueava se QUALQUER validação falhasse
+const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
 if (!resultadoSanitizacao.valido) {
     alert(mensagemErro); // Bloqueava o cálculo
     return; // Interrompia a execução
@@ -30,25 +32,36 @@ if (!resultadoSanitizacao.valido) {
 
 **Depois:**
 ```javascript
-if (!resultadoSanitizacao.valido) {
-    // Verificar se é erro crítico (nome vazio)
-    if (nomeVazio) {
-        alert('Por favor, informe o nome do cliente!');
-        return;
+// Validar contato apenas se fornecido (campo opcional)
+if (clienteContato && clienteContato.trim().length > 0) {
+    const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+    
+    if (!resultadoSanitizacao.valido) {
+        // Bloquear apenas se nome vazio (erro crítico)
+        if (nomeVazio) {
+            alert('Por favor, informe o nome!');
+            return;
+        }
+        
+        // Para outros problemas: avisar mas permitir continuar
+        console.warn('⚠️ Avisos:', erros);
+        
+        // Usar dados normalizados se disponíveis
+        if (resultadoSanitizacao.dados) {
+            clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
+        }
     }
-    
-    // Para outros problemas: avisar mas permitir continuar
-    console.warn('⚠️ Avisos de qualidade de dados:', erros);
-    
-    // Usar dados normalizados se disponíveis
-    if (resultadoSanitizacao.dados) {
-        clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
-        clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
+} else {
+    // Sem contato - validar apenas o nome
+    const resultadoNome = DataSanitizer.normalizarNome(clienteNome);
+    if (resultadoNome.valido) {
+        clienteNomeSanitizado = resultadoNome.nomeNormalizado;
     }
 }
 ```
 
 **Benefícios:**
+- ✅ Campo contato é opcional (como indicado na UI sem asterisco)
 - ✅ Permite nomes válidos mesmo com formatação não ideal
 - ✅ Normaliza dados automaticamente quando possível
 - ✅ Bloqueia apenas erros críticos (nome vazio)

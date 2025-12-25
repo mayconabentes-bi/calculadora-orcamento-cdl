@@ -589,36 +589,45 @@ function calcularOrcamento() {
     
     // VALIDAÇÃO COM DATA SANITIZER - Gatekeeper de Qualidade de Dados
     // Validar e sanitizar dados do cliente antes de processar
-    const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
-    
     let clienteNomeSanitizado = clienteNome;
     let clienteContatoSanitizado = clienteContato;
     
-    if (!resultadoSanitizacao.valido) {
-        // MODO FLEXÍVEL: Avisar sobre problemas mas permitir continuar
-        // Apenas bloquear se o nome estiver completamente vazio ou inválido
-        const nomeVazio = !clienteNome || clienteNome.trim().length === 0;
+    // Validar apenas se contato foi fornecido (campo opcional)
+    if (clienteContato && clienteContato.trim().length > 0) {
+        const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
         
-        if (nomeVazio) {
-            alert('Por favor, informe o nome do cliente ou empresa!');
-            document.getElementById('cliente-nome').focus();
-            return;
-        }
-        
-        // Para outros problemas, apenas avisar mas usar dados normalizados se disponíveis
-        console.warn('⚠️ Avisos de qualidade de dados:', resultadoSanitizacao.erros);
-        
-        // Tentar usar dados normalizados se disponíveis
-        if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteNome) {
+        if (!resultadoSanitizacao.valido) {
+            // MODO FLEXÍVEL: Avisar sobre problemas mas permitir continuar
+            // Apenas bloquear se o nome estiver completamente vazio ou inválido
+            const nomeVazio = !clienteNome || clienteNome.trim().length === 0;
+            
+            if (nomeVazio) {
+                alert('Por favor, informe o nome do cliente ou empresa!');
+                document.getElementById('cliente-nome').focus();
+                return;
+            }
+            
+            // Para outros problemas, apenas avisar mas usar dados normalizados se disponíveis
+            console.warn('⚠️ Avisos de qualidade de dados:', resultadoSanitizacao.erros);
+            
+            // Tentar usar dados normalizados se disponíveis
+            if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteNome) {
+                clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
+            }
+            if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteContato) {
+                clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
+            }
+        } else {
+            // Dados sanitizados e validados - usar valores normalizados
             clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
-        }
-        if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteContato) {
             clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
         }
     } else {
-        // Dados sanitizados e validados - usar valores normalizados
-        clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
-        clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
+        // Sem contato fornecido - validar apenas o nome
+        const resultadoNome = DataSanitizer.normalizarNome(clienteNome);
+        if (resultadoNome.valido) {
+            clienteNomeSanitizado = resultadoNome.nomeNormalizado;
+        }
     }
     
     if (!salaId) {
