@@ -105,21 +105,6 @@ test.describe('Modo Simulação - Formulário Vazio', () => {
     // Aguardar o processamento
     await page.waitForTimeout(500);
     
-    // Verificar no console que o nome de fallback foi usado
-    const consoleMessages = [];
-    page.on('console', msg => {
-      if (msg.type() === 'warn' || msg.type() === 'error') {
-        consoleMessages.push(msg.text());
-      }
-    });
-    
-    // Executar novamente para capturar mensagens
-    await page.evaluate(() => {
-      document.getElementById('cliente-nome').value = '';
-    });
-    await page.click('#calcular');
-    await page.waitForTimeout(500);
-    
     // Verificar que há menção ao fallback no histórico
     const historicoExiste = await page.evaluate(() => {
       const historico = JSON.parse(localStorage.getItem('CDL_CALCULADORA_DATA') || '{}');

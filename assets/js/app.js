@@ -664,14 +664,19 @@ function calcularOrcamento() {
     let sala = dataManager.obterSalaPorId(salaId);
     if (!sala) {
         // Criar objeto de sala virtual para permitir o cálculo
+        // Valores padrão médios baseados em salas típicas do sistema
         console.warn('⚠️ Criando sala virtual para simulação');
+        const CAPACIDADE_PADRAO = 50;  // Capacidade média (pessoas)
+        const AREA_PADRAO = 100;        // Área média (m²)
+        const CUSTO_BASE_PADRAO = 100.00; // Custo/hora médio (R$)
+        
         sala = {
             id: 1,
             nome: 'Sala Virtual (Simulação)',
             unidade: 'Sistema',
-            capacidade: 50,
-            area: 100,
-            custoBase: 100.00
+            capacidade: CAPACIDADE_PADRAO,
+            area: AREA_PADRAO,
+            custoBase: CUSTO_BASE_PADRAO
         };
         usouFallbacks = true;
     }
