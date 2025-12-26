@@ -586,89 +586,98 @@ function obterExtrasSelecionados() {
  */
 function calcularOrcamento() {
     // Coletar dados do formulário
-    const clienteNome = document.getElementById('cliente-nome').value.trim();
+    let clienteNome = document.getElementById('cliente-nome').value.trim();
     const clienteContato = document.getElementById('cliente-contato').value.trim();
-    const salaId = document.getElementById('espaco').value;
-    const duracao = parseInt(document.getElementById('duracao').value);
-    const duracaoTipo = document.getElementById('duracao-tipo').value;
-    const margem = parseFloat(document.getElementById('margem').value) / 100;
-    const desconto = parseFloat(document.getElementById('desconto').value) / 100;
-    const dataEvento = document.getElementById('data-evento').value;
+    let salaId = document.getElementById('espaco').value;
+    const duracao = parseInt(document.getElementById('duracao').value) || 1;
+    const duracaoTipo = document.getElementById('duracao-tipo').value || 'meses';
+    const margem = parseFloat(document.getElementById('margem').value) / 100 || 0;
+    const desconto = parseFloat(document.getElementById('desconto').value) / 100 || 0;
+    let dataEvento = document.getElementById('data-evento').value;
     
-    // Validações básicas
-    if (!clienteNome) {
-        alert('Por favor, informe o nome do cliente ou empresa!');
-        document.getElementById('cliente-nome').focus();
-        return;
-    }
+    // ==============================================================
+    // MODO SIMULAÇÃO DE CENÁRIOS: Eliminar Gatekeepers de Validação
+    // ==============================================================
+    // Objetivo: Permitir cálculo com dados incompletos para:
+    // - Testes avançados de sistema
+    // - Integração de dados retroativos
+    // - Simulação de cenários parciais
+    // - Pipeline de oportunidades mais denso (ML/BI)
     
-    // VALIDAÇÃO COM DATA SANITIZER - Gatekeeper de Qualidade de Dados
-    // Validar e sanitizar dados do cliente antes de processar
+    // 1. ELIMINAÇÃO DE BLOQUEIO DE IDENTIDADE
+    // Se nome estiver vazio, gerar identificador de teste automático
     let clienteNomeSanitizado = clienteNome;
     let clienteContatoSanitizado = clienteContato;
     
-    // MODO FLEXÍVEL: Campo de contato é OPCIONAL
-    // Sempre tentar sanitizar para normalizar os dados, mas não bloquear o fluxo
-    const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
-    
-    if (!resultadoSanitizacao.valido) {
-        // MODO FLEXÍVEL: Apenas bloquear se o nome estiver completamente vazio ou inválido
-        const nomeVazio = !clienteNome || clienteNome.trim().length === 0;
-        
-        if (nomeVazio) {
-            alert('Por favor, informe o nome do cliente ou empresa!');
-            document.getElementById('cliente-nome').focus();
-            return;
-        }
-        
-        // Para outros problemas (viés, etc), apenas avisar mas continuar
-        console.warn('⚠️ Avisos de qualidade de dados:', resultadoSanitizacao.erros);
-        
-        // Tentar usar dados normalizados se disponíveis
-        if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteNome) {
-            clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
-        }
-        if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteContato) {
-            clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
-        }
+    if (!clienteNome || clienteNome.length === 0) {
+        // Fallback: nome automático para teste do sistema
+        clienteNomeSanitizado = "Teste_Sistema_" + Date.now();
+        console.warn('⚠️ Nome do cliente vazio - usando fallback:', clienteNomeSanitizado);
+        mostrarNotificacao('⚠️ Cálculo sem nome do cliente - usando identificador de teste', 4000);
     } else {
-        // Dados sanitizados e validados - usar valores normalizados
-        clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
-        clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato || clienteContato;
+        // VALIDAÇÃO COM DATA SANITIZER - Gatekeeper de Qualidade de Dados
+        // Sempre tentar sanitizar para manter qualidade dos dados
+        const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+        
+        if (!resultadoSanitizacao.valido) {
+            // MODO NÃO-INTERRUPTIVO: Avisar mas continuar
+            console.warn('⚠️ Avisos de qualidade de dados:', resultadoSanitizacao.erros);
+            
+            // Tentar usar dados normalizados se disponíveis
+            if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteNome) {
+                clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
+            }
+            if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteContato) {
+                clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
+            }
+        } else {
+            // Dados sanitizados e validados - usar valores normalizados
+            clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
+            clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato || clienteContato;
+        }
     }
     
+    // 2. FLEXIBILIZAÇÃO DE ESPAÇO
+    // Se sala não selecionada, usar primeira sala disponível (padrão de teste)
     if (!salaId) {
-        alert('Por favor, selecione um espaço!');
-        return;
-    }
-    
-    // Validar data do evento
-    if (!dataEvento) {
-        alert('Por favor, informe a data prevista do evento!');
-        document.getElementById('data-evento').focus();
-        return;
-    }
-    
-    // VALIDAÇÃO DE DATA NO PASSADO REMOVIDA
-    // Permitir qualquer data para facilitar testes manuais e registros retroativos
-    const dataEventoObj = new Date(dataEvento + 'T00:00:00');
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    
-    // Log informativo apenas (não bloqueia)
-    if (dataEventoObj < hoje) {
-        console.info('ℹ️ Data do evento está no passado:', dataEventoObj.toLocaleDateString('pt-BR'));
-        console.info('Permitindo registro retroativo para testes/histórico');
+        const salasDisponiveis = dataManager.obterSalas();
+        if (salasDisponiveis.length > 0) {
+            salaId = salasDisponiveis[0].id;
+            console.warn('⚠️ Sala não selecionada - usando primeira disponível:', salasDisponiveis[0].nome);
+            mostrarNotificacao('⚠️ Sala não selecionada - usando padrão de teste', 4000);
+        }
     }
     
     const sala = dataManager.obterSalaPorId(salaId);
     if (!sala) {
-        alert('Espaço não encontrado!');
+        console.error('❌ Nenhuma sala disponível no sistema');
+        mostrarNotificacao('❌ Erro: Nenhuma sala disponível', 5000);
         return;
     }
     
+    // 3. FLEXIBILIZAÇÃO DE DATA
+    // Se data não informada, usar data atual
+    let dataEventoObj;
+    if (!dataEvento) {
+        dataEventoObj = new Date();
+        dataEvento = dataEventoObj.toISOString().split('T')[0];
+        console.warn('⚠️ Data não informada - usando data atual:', dataEvento);
+        mostrarNotificacao('⚠️ Data não informada - usando data atual', 4000);
+    } else {
+        dataEventoObj = new Date(dataEvento + 'T00:00:00');
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        
+        // Log informativo apenas (não bloqueia)
+        if (dataEventoObj < hoje) {
+            console.info('ℹ️ Data do evento está no passado:', dataEventoObj.toLocaleDateString('pt-BR'));
+            console.info('Permitindo registro retroativo para testes/histórico');
+        }
+    }
+    
+    // 4. FLEXIBILIZAÇÃO DE DIAS DA SEMANA
     // Coletar dias da semana selecionados
-    const diasSelecionados = [];
+    let diasSelecionados = [];
     const diasIds = ['dia-seg', 'dia-ter', 'dia-qua', 'dia-qui', 'dia-sex', 'dia-sab', 'dia-dom'];
     diasIds.forEach(id => {
         const checkbox = document.getElementById(id);
@@ -677,15 +686,18 @@ function calcularOrcamento() {
         }
     });
     
+    // Se nenhum dia selecionado, assumir Segunda-feira (value: 1) como padrão
     if (diasSelecionados.length === 0) {
-        alert('Por favor, selecione pelo menos um dia da semana!');
-        return;
+        diasSelecionados = [1]; // Segunda-feira
+        console.warn('⚠️ Nenhum dia selecionado - usando Segunda-feira como padrão');
+        mostrarNotificacao('⚠️ Nenhum dia selecionado - usando Segunda-feira', 4000);
     }
     
-    // Validar horários
+    // 5. VALIDAÇÃO DE HORÁRIOS (mantida mas não interruptiva)
     if (!validarHorarios()) {
-        alert('Verifique os horários! Cada horário de início deve ser anterior ao horário de fim.');
-        return;
+        console.warn('⚠️ Horários inválidos - alguns horários podem ter problemas');
+        mostrarNotificacao('⚠️ Aviso: Verifique os horários configurados', 4000);
+        // Não retornar - continuar com o cálculo
     }
     
     // Calcular total de horas por dia

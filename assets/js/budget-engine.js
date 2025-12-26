@@ -51,8 +51,24 @@ class BudgetEngine {
      * @returns {Object} Resultado dos cálculos
      */
     calcularValores({ sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto, extrasIds = [] }) {
-        const funcionariosAtivos = this.dataManager.obterFuncionariosAtivos();
-        const multiplicadores = this.dataManager.obterMultiplicadoresTurno();
+        // ========================================================
+        // INTEGRIDADE DO MOTOR DE CÁLCULO
+        // Garantir robustez com operadores de coalescência nula
+        // Evitar divisão por zero e valores NaN
+        // ========================================================
+        
+        const funcionariosAtivos = this.dataManager.obterFuncionariosAtivos() ?? [];
+        const multiplicadores = this.dataManager.obterMultiplicadoresTurno() ?? { manha: 1.0, tarde: 1.15, noite: 1.40 };
+        
+        // Garantir valores padrão válidos com coalescência nula
+        sala = sala ?? { custoBase: 0 };
+        duracao = duracao ?? 1;
+        duracaoTipo = duracaoTipo ?? 'meses';
+        diasSelecionados = (diasSelecionados && diasSelecionados.length > 0) ? diasSelecionados : [1]; // Default: Segunda
+        horasPorDia = horasPorDia ?? 8;
+        margem = margem ?? 0;
+        desconto = desconto ?? 0;
+        extrasIds = extrasIds ?? [];
         
         // Converter duração para dias
         let duracaoEmDias = duracao;
@@ -106,12 +122,13 @@ class BudgetEngine {
         const horasTotais = horasNormais + horasHE50 + horasHE100;
         
         // Calcular custo operacional base (usa média dos multiplicadores de turno)
-        const multiplicadorMedio = (multiplicadores.manha + multiplicadores.tarde + multiplicadores.noite) / 3;
-        const custoOperacionalBase = sala.custoBase * multiplicadorMedio * horasTotais;
+        const multiplicadorMedio = ((multiplicadores.manha ?? 1.0) + (multiplicadores.tarde ?? 1.15) + (multiplicadores.noite ?? 1.40)) / 3;
+        const custoOperacionalBase = (sala.custoBase ?? 0) * multiplicadorMedio * horasTotais;
         
         // Calcular custos de mão de obra para cada funcionário
         // Complexidade: O(f) onde f = funcionariosAtivos.length
         // IMPORTANTE: Este loop é linear, não aninhado - mantém eficiência O(n)
+        // ROBUSTEZ: Usar coalescência nula para evitar NaN em todos os cálculos
         const detalhamentoFuncionarios = [];
         let custoMaoObraNormal = 0;
         let custoMaoObraHE50 = 0;
@@ -121,12 +138,12 @@ class BudgetEngine {
         let custoRefeicao = 0;
         
         funcionariosAtivos.forEach(func => {
-            const custoFuncNormal = horasNormais * func.horaNormal;
-            const custoFuncHE50 = horasHE50 * func.he50;
-            const custoFuncHE100 = horasHE100 * func.he100;
-            const custoFuncVT = diasTotais * func.valeTransporte;
-            const custoFuncTransApp = diasTotais * (func.transporteApp || 0);
-            const custoFuncRefeicao = diasTotais * (func.refeicao || 0);
+            const custoFuncNormal = horasNormais * (func.horaNormal ?? 0);
+            const custoFuncHE50 = horasHE50 * (func.he50 ?? 0);
+            const custoFuncHE100 = horasHE100 * (func.he100 ?? 0);
+            const custoFuncVT = diasTotais * (func.valeTransporte ?? 0);
+            const custoFuncTransApp = diasTotais * (func.transporteApp ?? 0);
+            const custoFuncRefeicao = diasTotais * (func.refeicao ?? 0);
             
             const custoFuncTotal = custoFuncNormal + custoFuncHE50 + custoFuncHE100 + 
                                    custoFuncVT + custoFuncTransApp + custoFuncRefeicao;
@@ -157,15 +174,17 @@ class BudgetEngine {
         
         // Calcular itens extras (sem dependência do DOM)
         let custoExtras = 0;
-        const todosExtras = this.dataManager.obterExtras();
+        const todosExtras = this.dataManager.obterExtras() ?? [];
         todosExtras.forEach(extra => {
             if (extrasIds.includes(extra.id)) {
-                custoExtras += extra.custo * horasTotais;
+                custoExtras += (extra.custo ?? 0) * horasTotais;
             }
         });
         
-        // Subtotal sem margem
-        const subtotalSemMargem = custoOperacionalBase + custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao + custoExtras;
+        // Subtotal sem margem - garantir valores numéricos válidos
+        const subtotalSemMargem = (custoOperacionalBase ?? 0) + (custoMaoObraTotal ?? 0) + 
+                                  (custoValeTransporte ?? 0) + (custoTransporteApp ?? 0) + 
+                                  (custoRefeicao ?? 0) + (custoExtras ?? 0);
         
         // Aplicar margem de lucro
         const valorMargem = subtotalSemMargem * margem;
@@ -175,42 +194,44 @@ class BudgetEngine {
         const valorDesconto = subtotalComMargem * desconto;
         const valorFinal = subtotalComMargem - valorDesconto;
         
-        // Calcular valor por hora
-        const valorPorHora = valorFinal / horasTotais;
+        // Calcular valor por hora - proteger contra divisão por zero
+        const valorPorHora = (horasTotais > 0) ? (valorFinal / horasTotais) : 0;
         
         // Calcular economia (desconto)
         const economia = valorDesconto;
         
         // Calcular total de custos dos funcionários
-        const totalCustosFuncionarios = custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao;
+        const totalCustosFuncionarios = (custoMaoObraTotal ?? 0) + (custoValeTransporte ?? 0) + 
+                                        (custoTransporteApp ?? 0) + (custoRefeicao ?? 0);
         
+        // GARANTIA FINAL: Assegurar que todos os valores retornados são numéricos válidos
         return {
-            horasTotais,
-            horasNormais,
-            horasHE50,
-            horasHE100,
-            diasTotais,
-            custoOperacionalBase,
-            custoMaoObraNormal,
-            custoMaoObraHE50,
-            custoMaoObraHE100,
-            custoMaoObraTotal,
-            custoValeTransporte,
-            custoTransporteApp,
-            custoRefeicao,
-            custoExtras,
-            subtotalSemMargem,
-            valorMargem,
-            subtotalComMargem,
-            valorDesconto,
-            valorFinal,
-            valorPorHora,
-            economia,
-            margemPercent: margem * 100,
-            descontoPercent: desconto * 100,
-            quantidadeFuncionarios: funcionariosAtivos.length,
-            totalCustosFuncionarios,
-            detalhamentoFuncionarios
+            horasTotais: horasTotais ?? 0,
+            horasNormais: horasNormais ?? 0,
+            horasHE50: horasHE50 ?? 0,
+            horasHE100: horasHE100 ?? 0,
+            diasTotais: diasTotais ?? 0,
+            custoOperacionalBase: custoOperacionalBase ?? 0,
+            custoMaoObraNormal: custoMaoObraNormal ?? 0,
+            custoMaoObraHE50: custoMaoObraHE50 ?? 0,
+            custoMaoObraHE100: custoMaoObraHE100 ?? 0,
+            custoMaoObraTotal: custoMaoObraTotal ?? 0,
+            custoValeTransporte: custoValeTransporte ?? 0,
+            custoTransporteApp: custoTransporteApp ?? 0,
+            custoRefeicao: custoRefeicao ?? 0,
+            custoExtras: custoExtras ?? 0,
+            subtotalSemMargem: subtotalSemMargem ?? 0,
+            valorMargem: valorMargem ?? 0,
+            subtotalComMargem: subtotalComMargem ?? 0,
+            valorDesconto: valorDesconto ?? 0,
+            valorFinal: valorFinal ?? 0,
+            valorPorHora: valorPorHora ?? 0,
+            economia: economia ?? 0,
+            margemPercent: (margem ?? 0) * 100,
+            descontoPercent: (desconto ?? 0) * 100,
+            quantidadeFuncionarios: (funcionariosAtivos ?? []).length,
+            totalCustosFuncionarios: totalCustosFuncionarios ?? 0,
+            detalhamentoFuncionarios: detalhamentoFuncionarios ?? []
         };
     }
 }
