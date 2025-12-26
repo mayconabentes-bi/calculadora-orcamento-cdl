@@ -64,7 +64,8 @@ class BudgetEngine {
         sala = sala ?? { custoBase: 0 };
         duracao = duracao ?? 1;
         duracaoTipo = duracaoTipo ?? 'meses';
-        diasSelecionados = (diasSelecionados && diasSelecionados.length > 0) ? diasSelecionados : [1]; // Default: Segunda
+        // Default: Segunda-feira (value: 1 = Monday in JavaScript Date.getDay() convention)
+        diasSelecionados = (diasSelecionados && diasSelecionados.length > 0) ? diasSelecionados : [1];
         horasPorDia = horasPorDia ?? 8;
         margem = margem ?? 0;
         desconto = desconto ?? 0;

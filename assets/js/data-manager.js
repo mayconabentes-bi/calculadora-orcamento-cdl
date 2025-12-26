@@ -864,7 +864,7 @@ class DataManager {
             horasTotais: calculo.resultado.horasTotais,
             valorFinal: calculo.resultado.valorFinal,
             margemLiquida: ((calculo.resultado.valorFinal - calculo.resultado.subtotalSemMargem) / calculo.resultado.valorFinal * 100),
-            classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado, calculo.calculoIncompleto).nivel,
+            classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado, calculo.calculoIncompleto || false).nivel,
             subtotalSemMargem: calculo.resultado.subtotalSemMargem,
             valorMargem: calculo.resultado.valorMargem,
             valorDesconto: calculo.resultado.valorDesconto,
