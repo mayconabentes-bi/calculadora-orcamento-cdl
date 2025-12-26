@@ -51,8 +51,10 @@ Time:        ~2.1s
 
 ---
 
-### 3. ✅ Implementação da Refatoração v5.2.0
+### 3. ✅ Implementação da Refatoração (v5.1.0)
 **Status:** Implementação completa e funcional
+
+**Nota sobre Versão:** O documento `REFACTORING_SUMMARY_V5.2.0.md` documenta as mudanças implementadas na versão atual v5.1.0 do sistema. O nome "v5.2.0" no documento é apenas uma referência de planejamento - a versão real do sistema é v5.1.0 (confirmado em package.json e index.html).
 
 #### 3.1 Eliminação de Bloqueios (app.js)
 ```javascript
@@ -91,13 +93,13 @@ Time:        ~2.1s
 **Status:** Completa e atualizada
 
 Documentos verificados:
-- ✅ `REFACTORING_SUMMARY_V5.2.0.md` - 339 linhas, detalhado e completo
+- ✅ `REFACTORING_SUMMARY_V5.2.0.md` - 339 linhas, detalhado e completo (documenta mudanças da v5.1.0)
 - ✅ `CHANGES_VALIDATION_REMOVAL.md` - 196 linhas, mudanças documentadas
 - ✅ `RESULTADO_FINAL.md` - 276 linhas, certificação de qualidade
 - ✅ `FEATURES_V5.2.md` - Funcionalidades documentadas
 - ✅ `docs/MANUAL_TECNICO.md` - Manual técnico completo
 - ✅ `docs/MANUAL_USUARIO.md` - Manual do usuário completo
-- ✅ `README.md` - Atualizado com versão v5.1.0
+- ✅ `README.md` - Atualizado com versão v5.1.0 (versão atual do sistema)
 
 **Conclusão:** Documentação 100% completa e alinhada com implementação.
 
@@ -163,6 +165,7 @@ Documentos verificados:
 ### Última Atualização Real (PR #48)
 - **Status:** ✅ Completa e mesclada
 - **Conteúdo:** 70 arquivos modificados, 27.654 inserções
+- **Versão:** v5.1.0 (os documentos de refatoração mencionam v5.2.0 como referência de planejamento)
 - **Testes:** Todos passando
 - **Documentação:** Completa
 
