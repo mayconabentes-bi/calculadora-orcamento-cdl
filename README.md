@@ -36,4 +36,4 @@ Tecnologias: Jest para lógica e Playwright para simulação de jornada do usuá
 * [ ] V6.0: Transição para arquitetura API RESTful com Node.js e sistema de gestão de usuários.
 
 * Desenvolvido por Maycon A. Bentes - Inteligência de Mercado, Planejamento e Estudos Estatísticos.
-* Última atualização: 24/11/2025
+* Última atualização: 26/11/2025
