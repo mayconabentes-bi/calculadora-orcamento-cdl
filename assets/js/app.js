@@ -1,5 +1,6 @@
 /* =================================================================
-   APP.JS - CALCULADORA DE ORÇAMENTO CDL/UTV v5.0
+   APP.JS - AXIOMA: INTELIGÊNCIA DE MARGEM v5.1.0
+   Calculadora de Orçamento CDL/UTV
    Lógica principal da aplicação, cálculos e interface do usuário
    ================================================================= */
 
@@ -8,6 +9,9 @@ let ultimoCalculoRealizado = null;
 let horariosCount = 0;
 let horarios = [];
 let modoVisualizacaoHistorico = 'convertidos'; // 'convertidos' ou 'pipeline'
+
+// Instância do Motor de Cálculo de Orçamentos
+let budgetEngine = null;
 
 // ========== SVG ICONS ==========
 const ICONS = {
@@ -25,6 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
  * Inicializa toda a aplicação
  */
 function inicializarAplicacao() {
+    // Inicializar o Motor de Cálculo de Orçamentos
+    budgetEngine = new BudgetEngine(dataManager);
+    
     configurarNavegacaoAbas();
     carregarSelectEspacos();
     carregarExtrasCheckboxes();
@@ -559,6 +566,22 @@ function atualizarRangeValue(event) {
 // ========== CÁLCULO DO ORÇAMENTO ==========
 
 /**
+ * Coleta IDs dos itens extras selecionados no DOM
+ * @returns {Array<number>} Array com IDs dos extras selecionados
+ */
+function obterExtrasSelecionados() {
+    const extrasIds = [];
+    const extras = dataManager.obterExtras();
+    extras.forEach(extra => {
+        const checkbox = document.getElementById(`extra-${extra.id}`);
+        if (checkbox && checkbox.checked) {
+            extrasIds.push(extra.id);
+        }
+    });
+    return extrasIds;
+}
+
+/**
  * Calcula o orçamento completo
  */
 function calcularOrcamento() {
@@ -668,8 +691,20 @@ function calcularOrcamento() {
     // Calcular total de horas por dia
     const horasPorDia = calcularTotalHorasPorDia();
     
-    // Calcular horas e custos
-    const resultado = calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto);
+    // Obter IDs dos extras selecionados
+    const extrasIds = obterExtrasSelecionados();
+    
+    // Calcular horas e custos usando o Motor de Cálculo (BudgetEngine)
+    const resultado = budgetEngine.calcularValores({
+        sala,
+        duracao,
+        duracaoTipo,
+        diasSelecionados,
+        horasPorDia,
+        margem,
+        desconto,
+        extrasIds
+    });
     
     // Armazenar para exportação (usando dados sanitizados)
     ultimoCalculoRealizado = {
@@ -700,197 +735,6 @@ function calcularOrcamento() {
     exibirResultados(resultado);
     
     mostrarNotificacao('Orçamento calculado com sucesso!');
-}
-
-/**
- * Realiza todos os cálculos do orçamento
- * 
- * Complexidade Algoritmica: O(d + f) onde:
- * - d = número de dias selecionados na semana (max 7)
- * - f = número de funcionários ativos
- * 
- * Análise de Performance:
- * - Processamento de dias: O(d) - dois loops sobre diasSelecionados (max 7 elementos)
- * - Processamento de funcionários: O(f) - um loop sobre funcionários ativos
- * - Total: O(d + f) que é linear e eficiente
- * 
- * Nota sobre Precisão Numérica:
- * Esta função realiza múltiplas operações com valores monetários.
- * Para aplicações críticas ou valores muito grandes, considere usar
- * bibliotecas de precisão decimal como decimal.js
- * 
- * @param {Object} sala - Dados da sala/espaço
- * @param {number} duracao - Duração do contrato
- * @param {string} duracaoTipo - Tipo: 'dias' ou 'meses'
- * @param {Array<number>} diasSelecionados - Array com dias da semana (0-6)
- * @param {number} horasPorDia - Horas por dia de trabalho
- * @param {number} margem - Margem de lucro (0-1, ex: 0.20 = 20%)
- * @param {number} desconto - Desconto (0-1, ex: 0.10 = 10%)
- * @returns {Object} Resultado dos cálculos
- */
-function calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto) {
-    const funcionariosAtivos = dataManager.obterFuncionariosAtivos();
-    const multiplicadores = dataManager.obterMultiplicadoresTurno();
-    
-    // Converter duração para dias
-    let duracaoEmDias = duracao;
-    if (duracaoTipo === 'meses') {
-        duracaoEmDias = duracao * 30; // Aproximadamente 30 dias por mês
-    }
-    
-    // Calcular total de dias trabalhados
-    const semanas = Math.floor(duracaoEmDias / 7);
-    const diasRestantes = duracaoEmDias % 7;
-    
-    let diasTrabalhadosPorTipo = {
-        normais: 0,  // Segunda a Sexta
-        sabado: 0,
-        domingo: 0
-    };
-    
-    // Contar dias por tipo nas semanas completas
-    // Complexidade: O(d) onde d = diasSelecionados.length (max 7)
-    diasSelecionados.forEach(dia => {
-        if (dia === 6) {
-            diasTrabalhadosPorTipo.sabado += semanas;
-        } else if (dia === 0) {
-            diasTrabalhadosPorTipo.domingo += semanas;
-        } else {
-            diasTrabalhadosPorTipo.normais += semanas;
-        }
-    });
-    
-    // Adicionar dias restantes (proporcional)
-    // Complexidade: O(d) onde d = diasSelecionados.length (max 7)
-    if (diasRestantes > 0) {
-        diasSelecionados.forEach(dia => {
-            const proporcao = diasRestantes / 7;
-            if (dia === 6) {
-                diasTrabalhadosPorTipo.sabado += proporcao;
-            } else if (dia === 0) {
-                diasTrabalhadosPorTipo.domingo += proporcao;
-            } else {
-                diasTrabalhadosPorTipo.normais += proporcao;
-            }
-        });
-    }
-    
-    const diasTotais = diasTrabalhadosPorTipo.normais + diasTrabalhadosPorTipo.sabado + diasTrabalhadosPorTipo.domingo;
-    
-    // Calcular horas por tipo
-    const horasNormais = diasTrabalhadosPorTipo.normais * horasPorDia;
-    const horasHE50 = diasTrabalhadosPorTipo.sabado * horasPorDia; // Sábado - HE 50%
-    const horasHE100 = diasTrabalhadosPorTipo.domingo * horasPorDia; // Domingo - HE 100%
-    const horasTotais = horasNormais + horasHE50 + horasHE100;
-    
-    // Calcular custo operacional base (usa média dos multiplicadores de turno)
-    const multiplicadorMedio = (multiplicadores.manha + multiplicadores.tarde + multiplicadores.noite) / 3;
-    const custoOperacionalBase = sala.custoBase * multiplicadorMedio * horasTotais;
-    
-    // Calcular custos de mão de obra para cada funcionário
-    // Complexidade: O(f) onde f = funcionariosAtivos.length
-    // IMPORTANTE: Este loop é linear, não aninhado - mantém eficiência O(n)
-    const detalhamentoFuncionarios = [];
-    let custoMaoObraNormal = 0;
-    let custoMaoObraHE50 = 0;
-    let custoMaoObraHE100 = 0;
-    let custoValeTransporte = 0;
-    let custoTransporteApp = 0;
-    let custoRefeicao = 0;
-    
-    funcionariosAtivos.forEach(func => {
-        const custoFuncNormal = horasNormais * func.horaNormal;
-        const custoFuncHE50 = horasHE50 * func.he50;
-        const custoFuncHE100 = horasHE100 * func.he100;
-        const custoFuncVT = diasTotais * func.valeTransporte;
-        const custoFuncTransApp = diasTotais * (func.transporteApp || 0);
-        const custoFuncRefeicao = diasTotais * (func.refeicao || 0);
-        
-        const custoFuncTotal = custoFuncNormal + custoFuncHE50 + custoFuncHE100 + 
-                               custoFuncVT + custoFuncTransApp + custoFuncRefeicao;
-        
-        detalhamentoFuncionarios.push({
-            nome: func.nome,
-            horasNormais: horasNormais,
-            horasHE50: horasHE50,
-            horasHE100: horasHE100,
-            custoNormal: custoFuncNormal,
-            custoHE50: custoFuncHE50,
-            custoHE100: custoFuncHE100,
-            custoVT: custoFuncVT,
-            custoTransApp: custoFuncTransApp,
-            custoRefeicao: custoFuncRefeicao,
-            custoTotal: custoFuncTotal
-        });
-        
-        custoMaoObraNormal += custoFuncNormal;
-        custoMaoObraHE50 += custoFuncHE50;
-        custoMaoObraHE100 += custoFuncHE100;
-        custoValeTransporte += custoFuncVT;
-        custoTransporteApp += custoFuncTransApp;
-        custoRefeicao += custoFuncRefeicao;
-    });
-    
-    const custoMaoObraTotal = custoMaoObraNormal + custoMaoObraHE50 + custoMaoObraHE100;
-    
-    // Calcular itens extras
-    let custoExtras = 0;
-    const extras = dataManager.obterExtras();
-    extras.forEach(extra => {
-        const checkbox = document.getElementById(`extra-${extra.id}`);
-        if (checkbox && checkbox.checked) {
-            custoExtras += extra.custo * horasTotais;
-        }
-    });
-    
-    // Subtotal sem margem
-    const subtotalSemMargem = custoOperacionalBase + custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao + custoExtras;
-    
-    // Aplicar margem de lucro
-    const valorMargem = subtotalSemMargem * margem;
-    const subtotalComMargem = subtotalSemMargem + valorMargem;
-    
-    // Aplicar desconto
-    const valorDesconto = subtotalComMargem * desconto;
-    const valorFinal = subtotalComMargem - valorDesconto;
-    
-    // Calcular valor por hora
-    const valorPorHora = valorFinal / horasTotais;
-    
-    // Calcular economia (desconto)
-    const economia = valorDesconto;
-    
-    // Calcular total de custos dos funcionários
-    const totalCustosFuncionarios = custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao;
-    
-    return {
-        horasTotais,
-        horasNormais,
-        horasHE50,
-        horasHE100,
-        diasTotais,
-        custoOperacionalBase,
-        custoMaoObraNormal,
-        custoMaoObraHE50,
-        custoMaoObraHE100,
-        custoMaoObraTotal,
-        custoValeTransporte,
-        custoTransporteApp,
-        custoRefeicao,
-        custoExtras,
-        subtotalSemMargem,
-        valorMargem,
-        subtotalComMargem,
-        valorDesconto,
-        valorFinal,
-        valorPorHora,
-        economia,
-        margemPercent: margem * 100,
-        descontoPercent: desconto * 100,
-        quantidadeFuncionarios: funcionariosAtivos.length,
-        totalCustosFuncionarios,
-        detalhamentoFuncionarios
-    };
 }
 
 /**

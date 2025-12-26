@@ -1,5 +1,5 @@
 /* =================================================================
-   DASHBOARD.JS - CALCULADORA DE ORÇAMENTO CDL/UTV v5.0
+   DASHBOARD.JS - AXIOMA: INTELIGÊNCIA DE MARGEM v5.1.0
    Dashboard de KPIs em Tempo Real com Chart.js
    ================================================================= */
 

@@ -1,5 +1,5 @@
 /* =================================================================
-   DATA MANAGER - CALCULADORA DE ORÇAMENTO CDL/UTV v5.0
+   DATA MANAGER - AXIOMA: INTELIGÊNCIA DE MARGEM v5.1.0
    Sistema de gerenciamento de dados com persistência em LocalStorage
    ================================================================= */
 
@@ -807,12 +807,30 @@ class DataManager {
 
     /**
      * Adiciona um cálculo ao histórico
+     * Blindagem automática: Todos os dados passam pelo DataSanitizer antes do armazenamento
+     * 
      * @param {Object} calculo - Dados do cálculo realizado
      */
     adicionarCalculoHistorico(calculo) {
         if (!this.dados.historicoCalculos) {
             this.dados.historicoCalculos = [];
         }
+
+        // BLINDAGEM AUTOMÁTICA: Sanitizar dados do cliente antes de armazenar
+        // Garantir que nenhum dado subjetivo ou com viés seja guardado no LocalStorage
+        const clienteNome = calculo.clienteNome || '';
+        const clienteContato = calculo.clienteContato || '';
+        
+        // Aplicar DataSanitizer para limpar dados
+        const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+        
+        // Usar dados sanitizados (ou vazios se inválidos)
+        const nomeArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+            ? resultadoSanitizacao.dados.clienteNome 
+            : '';
+        const contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+            ? (resultadoSanitizacao.dados.clienteContato || '') 
+            : '';
 
         // Calcular Lead Time (dias entre cotação e evento)
         let leadTimeDays = null;
@@ -834,8 +852,8 @@ class DataManager {
         const registroHistorico = {
             id: Date.now(),
             data: new Date().toISOString(),
-            cliente: calculo.clienteNome || '',
-            contato: calculo.clienteContato || '',
+            cliente: nomeArmazenado,      // Dados sanitizados
+            contato: contatoArmazenado,   // Dados sanitizados
             sala: {
                 id: calculo.sala.id,
                 nome: calculo.sala.nome,
