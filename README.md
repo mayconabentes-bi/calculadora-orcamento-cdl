@@ -1,39 +1,34 @@
-# Calculadora de Orçamento Estratégico CDL/UTV v1.0
+# Calculadora de Orçamento Estratégico v1.0.0
 
 ![Versão](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Cobertura](https://img.shields.io/badge/test--coverage-%3E70%25-brightgreen.svg)
+![Cobertura de Testes](https://img.shields.io/badge/test--coverage-%3E70%25-brightgreen.svg)
 ![Licença](https://img.shields.io/badge/license-MIT-green.svg)
 
-Sistema avançado de Business Intelligence (BI) para precificação técnica e gestão de orçamentos de locação de espaços (CDL e UTV) em Manaus. 
+Sistema avançado de **Business Intelligence (BI)** e suporte à decisão para precificação técnica de locação de espaços . A plataforma transforma dados operacionais em inteligência competitiva, garantindo margens sustentáveis e previsibilidade financeira.
 
-## Visão Estratégica
-Diferente de calculadoras convencionais, este sistema integra **análise de custos operacionais** e **margens de rentabilidade**, permitindo que a tomada de decisão seja baseada em evidências sólidas e dados financeiros precisos.
-
-**Acesso Online:** [Link para Produção](https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/)
+## Visão Estratégica e BI
+Diferente de ferramentas de cálculo convencionais, este ecossistema integra:
+* **Dashboard Executivo**: Visualização em tempo real de KPIs como Receita Total (Pipeline), Taxa de Conversão e Margem Média Geral.
+* **Infraestrutura para ML**: Coleta estruturada de dados para modelos de **Regressão Logística**, permitindo identificar preditores de venda como *Lead Time* e elasticidade de desconto.
+* **Análise de Viabilidade**: Classificação dinâmica de risco operacional (Verde/Amarelo/Vermelho) baseada no ponto de equilíbrio e margem de contribuição.
 
 ## Funcionalidades de Alto Impacto
-* **Engenharia de Custos**: Cálculo automatizado que considera custos base, multiplicadores de turno e encargos de mão de obra (horas extras e vale transporte).
-* **Inteligência Financeira**: Configuração dinâmica de margem de lucro e aplicação de gatilhos de desconto por fidelidade.
-* **Governança e Compliance**: Geração de PDFs distintos para clientes (proposta comercial) e superintendência (análise gerencial de custos).
-* **Arquitetura Robusta**: Sistema 100% frontend com persistência em LocalStorage, garantindo privacidade e agilidade sem dependência de servidores externos.
+* **Engenharia de Custos Granular**: Detalhamento de mão de obra (HE 50%, HE 100%), vale-transporte, transporte por app e refeição.
+* **Multiplicadores Dinâmicos**: Ajuste automático por turnos (Manhã: 1.00x, Tarde: 1.15x, Noite: 1.40x).
+* **Gestão de CRM**: Captura de dados do cliente e monitorização do status de conversão para evitar o **Viés de Sobrevivência** nas análises.
+* **Governança**: Geração de PDFs distintos para propostas comerciais (Cliente) e análises gerenciais detalhadas (Superintendência).
 
-## Estrutura do Ecossistema
-O projeto é organizado para garantir escalabilidade e fácil manutenção:
-* `/assets/js/app.js`: Core engine de lógica de negócio (40KB).
-* `/assets/js/data-manager.js`: Gestão de persistência e integridade de dados.
-* `/docs/`: Manuais técnico e de usuário focados em transferência de conhecimento.
-* `/tests/`: Suite rigorosa com mais de 235 testes (Unitários, Integração e E2E).
+## Natureza dos Dados e Variáveis
+Para garantir o rigor técnico, o sistema opera com as seguintes variáveis:
+* **Quantitativas (Razão)**: Custos base, horas totais, margem líquida e valor final.
+* **Qualitativas/Categóricas**: Unidade, espaços e turnos predominantes.
+* **Modelagem Preditiva**: Foco em identificar a probabilidade de conversão com base em variáveis de confusão e preditores históricos.
 
 ## Qualidade e Validação (QA)
-Para garantir a precisão dos cálculos financeiros, o sistema utiliza um pipeline de testes automatizados:
+A precisão financeira é garantida por uma suite de mais de 235 testes automatizados (Jest e Playwright), cobrindo falhas de arredondamento e integridade de dados.
 
-Cobertura: >70% do código testado contra falhas de arredondamento e lógica.
-
-Tecnologias: Jest para lógica e Playwright para simulação de jornada do usuário.
-
-## Roadmap de Evolução
-* [ ] V5.2: Implementação de Dashboards com gráficos e relatórios avançados.
-* [ ] V6.0: Transição para arquitetura API RESTful com Node.js e sistema de gestão de usuários.
-
-* Desenvolvido por Maycon A. Bentes - Inteligência de Mercado, Planejamento e Estudos Estatísticos.
-* Última atualização: 26/11/2025
+## Implicações Estratégicas e Recomendações
+* **Vantagem Competitiva**: A utilização de modelos de gestão (como a análise de margem de contribuição) permite uma estratégia de **Liderança em Custo**.
+* **Recomendação Acionável**: Monitorizar o desvio do Ticket Médio via Dashboard para identificar anomalias na política de descontos.
+---
+**Desenvolvido por Maycon A. Bentes** - Inteligência de Mercado, Planejamento e Estudos Estatísticos.
