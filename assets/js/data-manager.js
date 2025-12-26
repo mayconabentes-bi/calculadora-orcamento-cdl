@@ -864,7 +864,7 @@ class DataManager {
             horasTotais: calculo.resultado.horasTotais,
             valorFinal: calculo.resultado.valorFinal,
             margemLiquida: ((calculo.resultado.valorFinal - calculo.resultado.subtotalSemMargem) / calculo.resultado.valorFinal * 100),
-            classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado).nivel,
+            classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado, calculo.calculoIncompleto || false).nivel,
             subtotalSemMargem: calculo.resultado.subtotalSemMargem,
             valorMargem: calculo.resultado.valorMargem,
             valorDesconto: calculo.resultado.valorDesconto,
@@ -891,16 +891,23 @@ class DataManager {
      * Fonte única da verdade para classificação de risco e cores (Verde/Amarelo/Vermelho)
      * 
      * @param {Object} resultado - Objeto com dados financeiros do cálculo
+     * @param {boolean} calculoIncompleto - Se true, força classificação ALTO RISCO por falta de dados
      * @returns {Object} Classificação completa com { nivel, cor, bgColor, borderColor, percentual }
      */
-    calcularClassificacaoRisco(resultado) {
+    calcularClassificacaoRisco(resultado, calculoIncompleto = false) {
         const custoVariavel = resultado.custoMaoObraTotal + resultado.custoValeTransporte + 
                              (resultado.custoTransporteApp || 0) + (resultado.custoRefeicao || 0);
         const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
         
         let nivel, cor, bgColor, borderColor;
         
-        if (riscoMaoObra > DataManager.THRESHOLD_RISCO_ALTO) {
+        // RIGOR DE RISCO: Cálculos incompletos são automaticamente classificados como ALTO RISCO
+        if (calculoIncompleto) {
+            nivel = 'ALTO';
+            cor = '#dc2626';      // Vermelho
+            bgColor = '#fee2e2';
+            borderColor = '#dc2626';
+        } else if (riscoMaoObra > DataManager.THRESHOLD_RISCO_ALTO) {
             nivel = 'ALTO';
             cor = '#dc2626';      // Vermelho
             bgColor = '#fee2e2';
