@@ -6,8 +6,6 @@
 
 Sistema avançado de **Business Intelligence (BI)** e suporte à decisão para precificação técnica de locação de espaços . A plataforma transforma dados operacionais em inteligência competitiva, garantindo margens sustentáveis e previsibilidade financeira.
 
-Link de acesso: https://mayconabentes-bi.github.io/calculadora-orcamento-cdl/
-
 ## Visão Estratégica e BI
 Diferente de ferramentas de cálculo convencionais, este ecossistema integra:
 * **Dashboard Executivo**: Visualização em tempo real de KPIs como Receita Total (Pipeline), Taxa de Conversão e Margem Média Geral.
