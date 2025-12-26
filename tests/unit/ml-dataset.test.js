@@ -10,6 +10,12 @@
 const fs = require('fs');
 const path = require('path');
 
+// Carregar validation.js primeiro (contém CoreUtils)
+const validationCode = fs.readFileSync(
+  path.join(__dirname, '../../assets/js/validation.js'),
+  'utf8'
+);
+
 // Carregar o código do DataManager
 const dataManagerCode = fs.readFileSync(
   path.join(__dirname, '../../assets/js/data-manager.js'),
@@ -17,11 +23,14 @@ const dataManagerCode = fs.readFileSync(
 );
 
 // Executar código no contexto global para testes
-const executar = new Function(dataManagerCode + '; return { DataManager, formatarMoeda, formatarNumero };');
-const { DataManager, formatarMoeda, formatarNumero } = executar();
+const executarValidation = new Function(validationCode + '; return { CoreUtils, DataSanitizer };');
+const { CoreUtils, DataSanitizer } = executarValidation();
+global.CoreUtils = CoreUtils;
+global.DataSanitizer = DataSanitizer;
+
+const executar = new Function(dataManagerCode + '; return { DataManager };');
+const { DataManager } = executar();
 global.DataManager = DataManager;
-global.formatarMoeda = formatarMoeda;
-global.formatarNumero = formatarNumero;
 
 describe('ML - Captura de Data do Evento e Lead Time', () => {
   let dm;

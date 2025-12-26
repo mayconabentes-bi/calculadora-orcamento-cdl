@@ -10,6 +10,12 @@
 const fs = require('fs');
 const path = require('path');
 
+// Carregar validation.js primeiro (contém CoreUtils)
+const validationCode = fs.readFileSync(
+  path.join(__dirname, '../../assets/js/validation.js'),
+  'utf8'
+);
+
 // Carregar o código do DataManager
 const dataManagerCode = fs.readFileSync(
   path.join(__dirname, '../../assets/js/data-manager.js'),
@@ -17,11 +23,14 @@ const dataManagerCode = fs.readFileSync(
 );
 
 // Executar código no contexto global para testes
-const executar = new Function(dataManagerCode + '; return { DataManager, formatarMoeda, formatarNumero };');
-const { DataManager, formatarMoeda, formatarNumero } = executar();
+const executarValidation = new Function(validationCode + '; return { CoreUtils, DataSanitizer };');
+const { CoreUtils, DataSanitizer } = executarValidation();
+global.CoreUtils = CoreUtils;
+global.DataSanitizer = DataSanitizer;
+
+const executar = new Function(dataManagerCode + '; return { DataManager };');
+const { DataManager } = executar();
 global.DataManager = DataManager;
-global.formatarMoeda = formatarMoeda;
-global.formatarNumero = formatarNumero;
 
 describe('CRM - Captura de dados do cliente', () => {
   let dm;
@@ -47,14 +56,19 @@ describe('CRM - Captura de dados do cliente', () => {
         valorFinal: 10000,
         subtotalSemMargem: 8000,
         valorMargem: 2000,
-        valorDesconto: 500
+        valorDesconto: 500,
+        custoMaoObraTotal: 5000,
+        custoValeTransporte: 500,
+        custoTransporteApp: 0,
+        custoRefeicao: 0
       }
     };
 
     const registro = dm.adicionarCalculoHistorico(calculo);
 
     expect(registro).toBeDefined();
-    expect(registro.cliente).toBe('Empresa ABC Ltda');
+    // DataSanitizer normaliza para Title Case
+    expect(registro.cliente).toBe('Empresa Abc Ltda');
     expect(registro.contato).toBe('(92) 99999-9999');
     expect(registro.sala.nome).toBe('Auditório');
   });
@@ -140,7 +154,11 @@ describe('CRM - Exportação CSV com dados do cliente', () => {
         valorFinal: 10000,
         subtotalSemMargem: 8000,
         valorMargem: 2000,
-        valorDesconto: 500
+        valorDesconto: 500,
+        custoMaoObraTotal: 5000,
+        custoValeTransporte: 500,
+        custoTransporteApp: 0,
+        custoRefeicao: 0
       }
     };
 
@@ -149,7 +167,8 @@ describe('CRM - Exportação CSV com dados do cliente', () => {
 
     expect(csv).toContain('Cliente');
     expect(csv).toContain('Contato');
-    expect(csv).toContain('Empresa XYZ');
+    // DataSanitizer normaliza para Title Case: "Empresa Xyz"
+    expect(csv).toContain('Empresa Xyz');
     expect(csv).toContain('(92) 98888-8888');
   });
 
