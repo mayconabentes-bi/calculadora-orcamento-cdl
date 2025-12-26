@@ -188,12 +188,12 @@ function mostrarInfoSala() {
         <strong style="display: block; margin-bottom: 8px;">${sala.unidade} - ${sala.nome}</strong>
         <div style="margin: 4px 0;">Capacidade: ${sala.capacidade} pessoas</div>
         <div style="margin: 4px 0;">Área: ${sala.area} m²</div>
-        <div style="margin: 4px 0;">Custo Base: R$ ${CoreUtils.CoreUtils.formatarMoeda(sala.custoBase)}/h</div>
+        <div style="margin: 4px 0;">Custo Base: R$ ${CoreUtils.formatarMoeda(sala.custoBase)}/h</div>
         <br>
         <strong>Valores por Turno:</strong><br>
-        <div style="margin: 4px 0;">Manhã: R$ ${CoreUtils.CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.manha)}/h (×${multiplicadores.manha})</div>
-        <div style="margin: 4px 0;">Tarde: R$ ${CoreUtils.CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.tarde)}/h (×${multiplicadores.tarde})</div>
-        <div style="margin: 4px 0;">Noite: R$ ${CoreUtils.CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.noite)}/h (×${multiplicadores.noite})</div>
+        <div style="margin: 4px 0;">Manhã: R$ ${CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.manha)}/h (×${multiplicadores.manha})</div>
+        <div style="margin: 4px 0;">Tarde: R$ ${CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.tarde)}/h (×${multiplicadores.tarde})</div>
+        <div style="margin: 4px 0;">Noite: R$ ${CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.noite)}/h (×${multiplicadores.noite})</div>
     `;
 }
 
@@ -211,7 +211,7 @@ function carregarExtrasCheckboxes() {
         div.className = 'checkbox-group';
         div.innerHTML = `
             <input type="checkbox" id="extra-${extra.id}" value="${extra.id}">
-            <label for="extra-${extra.id}">${extra.nome} (+R$ ${CoreUtils.CoreUtils.formatarMoeda(extra.custo)}/h)</label>
+            <label for="extra-${extra.id}">${extra.nome} (+R$ ${CoreUtils.formatarMoeda(extra.custo)}/h)</label>
         `;
         container.appendChild(div);
     });
