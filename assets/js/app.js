@@ -604,6 +604,9 @@ function calcularOrcamento() {
     // - Simulação de cenários parciais
     // - Pipeline de oportunidades mais denso (ML/BI)
     
+    // Rastrear se usamos fallbacks (para classificação de risco)
+    let usouFallbacks = false;
+    
     // 1. ELIMINAÇÃO DE BLOQUEIO DE IDENTIDADE
     // Se nome estiver vazio, gerar identificador de teste automático
     let clienteNomeSanitizado = clienteNome;
@@ -614,6 +617,7 @@ function calcularOrcamento() {
         clienteNomeSanitizado = "Teste_Sistema_" + Date.now();
         console.warn('⚠️ Nome do cliente vazio - usando fallback:', clienteNomeSanitizado);
         mostrarNotificacao('⚠️ Cálculo sem nome do cliente - usando identificador de teste', 4000);
+        usouFallbacks = true;
     } else {
         // VALIDAÇÃO COM DATA SANITIZER - Gatekeeper de Qualidade de Dados
         // Sempre tentar sanitizar para manter qualidade dos dados
@@ -645,6 +649,7 @@ function calcularOrcamento() {
             salaId = salasDisponiveis[0].id;
             console.warn('⚠️ Sala não selecionada - usando primeira disponível:', salasDisponiveis[0].nome);
             mostrarNotificacao('⚠️ Sala não selecionada - usando padrão de teste', 4000);
+            usouFallbacks = true;
         }
     }
     
@@ -663,6 +668,7 @@ function calcularOrcamento() {
         dataEvento = dataEventoObj.toISOString().split('T')[0];
         console.warn('⚠️ Data não informada - usando data atual:', dataEvento);
         mostrarNotificacao('⚠️ Data não informada - usando data atual', 4000);
+        usouFallbacks = true;
     } else {
         dataEventoObj = new Date(dataEvento + 'T00:00:00');
         const hoje = new Date();
@@ -691,6 +697,7 @@ function calcularOrcamento() {
         diasSelecionados = [1]; // Segunda-feira
         console.warn('⚠️ Nenhum dia selecionado - usando Segunda-feira como padrão');
         mostrarNotificacao('⚠️ Nenhum dia selecionado - usando Segunda-feira', 4000);
+        usouFallbacks = true;
     }
     
     // 5. VALIDAÇÃO DE HORÁRIOS (mantida mas não interruptiva)
@@ -732,7 +739,8 @@ function calcularOrcamento() {
         desconto,
         resultado,
         dataEvento,
-        data: new Date().toLocaleDateString('pt-BR')
+        data: new Date().toLocaleDateString('pt-BR'),
+        calculoIncompleto: usouFallbacks  // Marcar se usou fallbacks
     };
     
     // Salvar no histórico
@@ -744,15 +752,17 @@ function calcularOrcamento() {
     }
     
     // Exibir resultados
-    exibirResultados(resultado);
+    exibirResultados(resultado, usouFallbacks);
     
     mostrarNotificacao('Orçamento calculado com sucesso!');
 }
 
 /**
  * Exibe os resultados na interface
+ * @param {Object} resultado - Resultado do cálculo
+ * @param {boolean} calculoIncompleto - Se true, cálculo usou fallbacks
  */
-function exibirResultados(resultado) {
+function exibirResultados(resultado, calculoIncompleto = false) {
     // Valores principais
     document.getElementById('valor-total').textContent = CoreUtils.formatarMoeda(resultado.valorFinal);
     document.getElementById('valor-hora').textContent = CoreUtils.formatarMoeda(resultado.valorPorHora);
@@ -763,7 +773,7 @@ function exibirResultados(resultado) {
     document.getElementById('economia').textContent = CoreUtils.formatarMoeda(resultado.economia);
     
     // Exibir alertas de viabilidade e classificação de risco
-    exibirAlertaViabilidade(resultado);
+    exibirAlertaViabilidade(resultado, calculoIncompleto);
     
     // Exibir estrutura de custos
     exibirEstruturaCustos(resultado);
@@ -847,8 +857,10 @@ function exibirResultados(resultado) {
 /**
  * Exibe alerta de viabilidade e classificação de risco
  * Complexidade: O(1) - Operações constantes de cálculo e atualização DOM
+ * @param {Object} resultado - Resultado do cálculo
+ * @param {boolean} calculoIncompleto - Se true, cálculo usou fallbacks (força ALTO RISCO)
  */
-function exibirAlertaViabilidade(resultado) {
+function exibirAlertaViabilidade(resultado, calculoIncompleto = false) {
     const alertDiv = document.getElementById('viability-alert');
     const configBI = dataManager.obterConfiguracoesBI();
     
@@ -871,7 +883,7 @@ function exibirAlertaViabilidade(resultado) {
     const pontoEquilibrio = percentualMargemContrib > 0 ? custoFixo / (percentualMargemContrib / 100) : 0;
     
     // Obter classificação de risco centralizada do DataManager (fonte única da verdade)
-    const riscoClassificacao = dataManager.calcularClassificacaoRisco(resultado);
+    const riscoClassificacao = dataManager.calcularClassificacaoRisco(resultado, calculoIncompleto);
     const classificacaoRisco = riscoClassificacao.nivel;
     const corRisco = riscoClassificacao.cor;
     const bgColor = riscoClassificacao.bgColor;
@@ -904,7 +916,11 @@ function exibirAlertaViabilidade(resultado) {
     messageElement.style.color = corRisco;
     
     // Montar mensagem
-    if (margemLiquida < 0) {
+    if (calculoIncompleto) {
+        // Cálculo incompleto - ALTO RISCO por falta de dados
+        titleElement.textContent = '⚠️ ATENÇÃO: Cálculo com Dados Incompletos';
+        messageElement.innerHTML = `<strong>Classificação: ALTO RISCO</strong> (dados faltantes preenchidos com valores padrão). Custos variáveis: <strong>${riscoMaoObra.toFixed(1)}%</strong> | Margem líquida: <strong>${margemLiquida.toFixed(2)}%</strong> | Este é um cálculo de <strong>simulação</strong>.`;
+    } else if (margemLiquida < 0) {
         titleElement.textContent = '⚠️ ALERTA: Proposta Deficitária!';
         messageElement.innerHTML = `Margem líquida <strong>negativa de ${Math.abs(margemLiquida).toFixed(2)}%</strong>. Este projeto gerará prejuízo. Recomenda-se aumentar a margem ou reduzir o desconto.`;
     } else if (pontoEquilibrio > resultado.valorFinal) {
