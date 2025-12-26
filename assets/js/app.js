@@ -613,10 +613,10 @@ function calcularOrcamento() {
     let clienteContatoSanitizado = clienteContato;
     
     if (!clienteNome || clienteNome.length === 0) {
-        // Fallback: nome automático para teste do sistema
-        clienteNomeSanitizado = "Teste_Sistema_" + Date.now();
+        // Fallback: nome automático para simulação do sistema
+        clienteNomeSanitizado = "Simulação_Axioma_" + Date.now();
         console.warn('⚠️ Nome do cliente vazio - usando fallback:', clienteNomeSanitizado);
-        mostrarNotificacao('⚠️ Cálculo sem nome do cliente - usando identificador de teste', 4000);
+        mostrarNotificacao('⚠️ Cálculo sem nome do cliente - usando identificador de simulação', 4000);
         usouFallbacks = true;
     } else {
         // VALIDAÇÃO COM DATA SANITIZER - Gatekeeper de Qualidade de Dados
@@ -642,22 +642,38 @@ function calcularOrcamento() {
     }
     
     // 2. FLEXIBILIZAÇÃO DE ESPAÇO
-    // Se sala não selecionada, usar primeira sala disponível (padrão de teste)
+    // Se sala não selecionada, usar primeira sala disponível (padrão de simulação)
     if (!salaId) {
         const salasDisponiveis = dataManager.obterSalas();
         if (salasDisponiveis.length > 0) {
             salaId = salasDisponiveis[0].id;
             console.warn('⚠️ Sala não selecionada - usando primeira disponível:', salasDisponiveis[0].nome);
-            mostrarNotificacao('⚠️ Sala não selecionada - usando padrão de teste', 4000);
+            mostrarNotificacao('⚠️ Sala não selecionada - usando padrão de simulação', 4000);
+            usouFallbacks = true;
+        } else {
+            // Situação crítica: sem salas no sistema
+            // Criar sala virtual mínima para permitir o cálculo
+            console.error('⚠️ AVISO CRÍTICO: Nenhuma sala disponível - criando sala virtual para simulação');
+            mostrarNotificacao('⚠️ Sistema sem salas configuradas - usando valores padrão de simulação', 5000);
+            // Não podemos criar sala no sistema, mas podemos simular uma temporariamente
+            // O cálculo continuará mas será marcado como ALTO RISCO
             usouFallbacks = true;
         }
     }
     
-    const sala = dataManager.obterSalaPorId(salaId);
+    let sala = dataManager.obterSalaPorId(salaId);
     if (!sala) {
-        console.error('❌ Nenhuma sala disponível no sistema');
-        mostrarNotificacao('❌ Erro: Nenhuma sala disponível', 5000);
-        return;
+        // Criar objeto de sala virtual para permitir o cálculo
+        console.warn('⚠️ Criando sala virtual para simulação');
+        sala = {
+            id: 1,
+            nome: 'Sala Virtual (Simulação)',
+            unidade: 'Sistema',
+            capacidade: 50,
+            area: 100,
+            custoBase: 100.00
+        };
+        usouFallbacks = true;
     }
     
     // 3. FLEXIBILIZAÇÃO DE DATA
