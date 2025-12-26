@@ -14,6 +14,11 @@
  * - Auditoria de Atualização de Dados
  */
 class DataManager {
+    // ========== CONSTANTES DE RISCO FINANCEIRO ==========
+    // Fonte única da verdade para thresholds de viabilidade
+    static THRESHOLD_RISCO_ALTO = 60;    // % de custos variáveis > 60% = RISCO ALTO
+    static THRESHOLD_RISCO_MEDIO = 40;   // % de custos variáveis >= 40% = RISCO MÉDIO
+    
     constructor() {
         this.storageKey = 'cdl-calculadora-v5-data';
         // Limite de dias para considerar dados desatualizados (proteção contra inflação)
@@ -841,7 +846,7 @@ class DataManager {
             horasTotais: calculo.resultado.horasTotais,
             valorFinal: calculo.resultado.valorFinal,
             margemLiquida: ((calculo.resultado.valorFinal - calculo.resultado.subtotalSemMargem) / calculo.resultado.valorFinal * 100),
-            classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado),
+            classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado).nivel,
             subtotalSemMargem: calculo.resultado.subtotalSemMargem,
             valorMargem: calculo.resultado.valorMargem,
             valorDesconto: calculo.resultado.valorDesconto,
@@ -865,15 +870,42 @@ class DataManager {
 
     /**
      * Calcula classificação de risco baseada nos custos
+     * Fonte única da verdade para classificação de risco e cores (Verde/Amarelo/Vermelho)
+     * 
+     * @param {Object} resultado - Objeto com dados financeiros do cálculo
+     * @returns {Object} Classificação completa com { nivel, cor, bgColor, borderColor, percentual }
      */
     calcularClassificacaoRisco(resultado) {
         const custoVariavel = resultado.custoMaoObraTotal + resultado.custoValeTransporte + 
                              (resultado.custoTransporteApp || 0) + (resultado.custoRefeicao || 0);
         const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
         
-        if (riscoMaoObra > 60) return 'ALTO';
-        if (riscoMaoObra >= 40) return 'MÉDIO';
-        return 'BAIXO';
+        let nivel, cor, bgColor, borderColor;
+        
+        if (riscoMaoObra > DataManager.THRESHOLD_RISCO_ALTO) {
+            nivel = 'ALTO';
+            cor = '#dc2626';      // Vermelho
+            bgColor = '#fee2e2';
+            borderColor = '#dc2626';
+        } else if (riscoMaoObra >= DataManager.THRESHOLD_RISCO_MEDIO) {
+            nivel = 'MÉDIO';
+            cor = '#d97706';      // Amarelo/Laranja
+            bgColor = '#fef3c7';
+            borderColor = '#d97706';
+        } else {
+            nivel = 'BAIXO';
+            cor = '#16a34a';      // Verde
+            bgColor = '#dcfce7';
+            borderColor = '#16a34a';
+        }
+        
+        return {
+            nivel,
+            cor,
+            bgColor,
+            borderColor,
+            percentual: riscoMaoObra
+        };
     }
 
     /**
@@ -1500,27 +1532,6 @@ function mostrarNotificacao(mensagem, duracao = 3000) {
             notification.classList.remove('show');
         }, duracao);
     }
-}
-
-/**
- * Formata número como moeda brasileira
- * @param {number} valor - Valor a ser formatado
- * @returns {string} Valor formatado
- */
-function formatarMoeda(valor) {
-    return valor.toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-/**
- * Formata número simples com 2 casas decimais
- * @param {number} valor - Valor a ser formatado
- * @returns {string} Valor formatado
- */
-function formatarNumero(valor) {
-    return valor.toFixed(2);
 }
 
 // Exportar instância global do DataManager

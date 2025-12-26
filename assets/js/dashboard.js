@@ -57,13 +57,13 @@ class DashboardController {
         // Receita Total Potencial (Pipeline)
         const receitaTotalEl = document.getElementById('kpi-receita-total');
         if (receitaTotalEl) {
-            receitaTotalEl.textContent = this.formatarMoeda(kpis.receitaTotal);
+            receitaTotalEl.textContent = CoreUtils.formatarMoeda(kpis.receitaTotal);
         }
         
         // Receita Confirmada (Convertidos)
         const receitaConfirmadaEl = document.getElementById('kpi-receita-confirmada');
         if (receitaConfirmadaEl) {
-            receitaConfirmadaEl.textContent = this.formatarMoeda(kpis.receitaConfirmada);
+            receitaConfirmadaEl.textContent = CoreUtils.formatarMoeda(kpis.receitaConfirmada);
         }
         
         // Margem Média Geral (%)
@@ -75,7 +75,7 @@ class DashboardController {
         // Ticket Médio
         const ticketMedioEl = document.getElementById('kpi-ticket-medio');
         if (ticketMedioEl) {
-            ticketMedioEl.textContent = this.formatarMoeda(kpis.ticketMedio);
+            ticketMedioEl.textContent = CoreUtils.formatarMoeda(kpis.ticketMedio);
         }
         
         // Calcular taxa de conversão
@@ -209,7 +209,7 @@ class DashboardController {
                                 if (label) {
                                     label += ': ';
                                 }
-                                label += 'R$ ' + this.formatarMoeda(context.parsed.y);
+                                label += 'R$ ' + CoreUtils.formatarMoeda(context.parsed.y);
                                 return label;
                             }
                         }
@@ -219,7 +219,7 @@ class DashboardController {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: (value) => 'R$ ' + this.formatarMoedaCompacta(value)
+                            callback: (value) => 'R$ ' + CoreUtils.formatarMoedaCompacta(value)
                         }
                     }
                 }
@@ -294,7 +294,7 @@ class DashboardController {
                                 const value = context.parsed || 0;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                 const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                return `${label}: R$ ${this.formatarMoeda(value)} (${percentage}%)`;
+                                return `${label}: R$ ${CoreUtils.formatarMoeda(value)} (${percentage}%)`;
                             }
                         }
                     }
@@ -379,28 +379,6 @@ class DashboardController {
                 }
             }
         });
-    }
-    
-    /**
-     * Formata número como moeda brasileira
-     */
-    formatarMoeda(valor) {
-        return valor.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
-    }
-    
-    /**
-     * Formata número como moeda compacta (para eixos)
-     */
-    formatarMoedaCompacta(valor) {
-        if (valor >= 1000000) {
-            return (valor / 1000000).toFixed(1) + 'M';
-        } else if (valor >= 1000) {
-            return (valor / 1000).toFixed(1) + 'K';
-        }
-        return valor.toFixed(0);
     }
     
     /**

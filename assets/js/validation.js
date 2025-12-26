@@ -8,6 +8,63 @@ const MAX_SAFE_MONETARY_VALUE = Number.MAX_SAFE_INTEGER / 100;
 const MAX_DECIMAL_PLACES = 10;
 const PRECISION_THRESHOLD = 0.001;
 
+/* =================================================================
+   CORE UTILS - Centralização de Utilitários de Formatação
+   Fonte única da verdade para apresentação de dados financeiros
+   ================================================================= */
+
+/**
+ * Classe estática CoreUtils
+ * Centraliza todas as funções de formatação e utilitários do sistema
+ * Garante consistência na apresentação de dados em toda a aplicação
+ */
+class CoreUtils {
+    /**
+     * Formata número como moeda brasileira
+     * @param {number} valor - Valor a ser formatado
+     * @returns {string} Valor formatado (ex: "1.234,56")
+     */
+    static formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    /**
+     * Formata número simples com 2 casas decimais
+     * @param {number} valor - Valor a ser formatado
+     * @returns {string} Valor formatado (ex: "1234.56")
+     */
+    static formatarNumero(valor) {
+        return valor.toFixed(2);
+    }
+
+    /**
+     * Converte horário em formato HH:MM para minutos
+     * @param {string} timeString - Horário no formato "HH:MM"
+     * @returns {number} Total de minutos
+     */
+    static parseTimeToMinutes(timeString) {
+        const [hora, minuto] = timeString.split(':').map(Number);
+        return hora * 60 + minuto;
+    }
+
+    /**
+     * Formata número como moeda compacta (para eixos de gráficos)
+     * @param {number} valor - Valor a ser formatado
+     * @returns {string} Valor formatado (ex: "1.2M", "500K")
+     */
+    static formatarMoedaCompacta(valor) {
+        if (valor >= 1000000) {
+            return (valor / 1000000).toFixed(1) + 'M';
+        } else if (valor >= 1000) {
+            return (valor / 1000).toFixed(1) + 'K';
+        }
+        return valor.toFixed(0);
+    }
+}
+
 /**
  * Valida valores monetários
  * Verifica se o valor está dentro dos limites seguros para cálculos financeiros
