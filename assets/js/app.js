@@ -1,5 +1,6 @@
 /* =================================================================
-   APP.JS - CALCULADORA DE ORÇAMENTO CDL/UTV v5.0
+   APP.JS - AXIOMA: INTELIGÊNCIA DE MARGEM v5.1.0
+   Calculadora de Orçamento CDL/UTV
    Lógica principal da aplicação, cálculos e interface do usuário
    ================================================================= */
 
@@ -8,6 +9,9 @@ let ultimoCalculoRealizado = null;
 let horariosCount = 0;
 let horarios = [];
 let modoVisualizacaoHistorico = 'convertidos'; // 'convertidos' ou 'pipeline'
+
+// Instância do Motor de Cálculo de Orçamentos
+let budgetEngine = null;
 
 // ========== SVG ICONS ==========
 const ICONS = {
@@ -25,6 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
  * Inicializa toda a aplicação
  */
 function inicializarAplicacao() {
+    // Inicializar o Motor de Cálculo de Orçamentos
+    budgetEngine = new BudgetEngine(dataManager);
+    
     configurarNavegacaoAbas();
     carregarSelectEspacos();
     carregarExtrasCheckboxes();
@@ -181,12 +188,12 @@ function mostrarInfoSala() {
         <strong style="display: block; margin-bottom: 8px;">${sala.unidade} - ${sala.nome}</strong>
         <div style="margin: 4px 0;">Capacidade: ${sala.capacidade} pessoas</div>
         <div style="margin: 4px 0;">Área: ${sala.area} m²</div>
-        <div style="margin: 4px 0;">Custo Base: R$ ${formatarMoeda(sala.custoBase)}/h</div>
+        <div style="margin: 4px 0;">Custo Base: R$ ${CoreUtils.CoreUtils.formatarMoeda(sala.custoBase)}/h</div>
         <br>
         <strong>Valores por Turno:</strong><br>
-        <div style="margin: 4px 0;">Manhã: R$ ${formatarMoeda(sala.custoBase * multiplicadores.manha)}/h (×${multiplicadores.manha})</div>
-        <div style="margin: 4px 0;">Tarde: R$ ${formatarMoeda(sala.custoBase * multiplicadores.tarde)}/h (×${multiplicadores.tarde})</div>
-        <div style="margin: 4px 0;">Noite: R$ ${formatarMoeda(sala.custoBase * multiplicadores.noite)}/h (×${multiplicadores.noite})</div>
+        <div style="margin: 4px 0;">Manhã: R$ ${CoreUtils.CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.manha)}/h (×${multiplicadores.manha})</div>
+        <div style="margin: 4px 0;">Tarde: R$ ${CoreUtils.CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.tarde)}/h (×${multiplicadores.tarde})</div>
+        <div style="margin: 4px 0;">Noite: R$ ${CoreUtils.CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.noite)}/h (×${multiplicadores.noite})</div>
     `;
 }
 
@@ -204,7 +211,7 @@ function carregarExtrasCheckboxes() {
         div.className = 'checkbox-group';
         div.innerHTML = `
             <input type="checkbox" id="extra-${extra.id}" value="${extra.id}">
-            <label for="extra-${extra.id}">${extra.nome} (+R$ ${formatarMoeda(extra.custo)}/h)</label>
+            <label for="extra-${extra.id}">${extra.nome} (+R$ ${CoreUtils.CoreUtils.formatarMoeda(extra.custo)}/h)</label>
         `;
         container.appendChild(div);
     });
@@ -293,14 +300,6 @@ function renderizarHorarios() {
 }
 
 /**
- * Converte horário em formato HH:MM para minutos
- */
-function parseTimeToMinutes(timeString) {
-    const [hora, minuto] = timeString.split(':').map(Number);
-    return hora * 60 + minuto;
-}
-
-/**
  * Calcula o total de horas de todos os horários
  * 
  * Complexidade: O(h) onde h = número de horários configurados
@@ -314,8 +313,8 @@ function calcularTotalHorasPorDia() {
     
     // Loop O(h) - linear sobre horários
     for (const horario of horarios) {
-        const minutosInicio = parseTimeToMinutes(horario.inicio);
-        const minutosFim = parseTimeToMinutes(horario.fim);
+        const minutosInicio = CoreUtils.parseTimeToMinutes(horario.inicio);
+        const minutosFim = CoreUtils.parseTimeToMinutes(horario.fim);
         
         if (minutosInicio < minutosFim) {
             totalHoras += (minutosFim - minutosInicio) / 60;
@@ -330,8 +329,8 @@ function calcularTotalHorasPorDia() {
  */
 function validarHorarios() {
     for (const horario of horarios) {
-        const minutosInicio = parseTimeToMinutes(horario.inicio);
-        const minutosFim = parseTimeToMinutes(horario.fim);
+        const minutosInicio = CoreUtils.parseTimeToMinutes(horario.inicio);
+        const minutosFim = CoreUtils.parseTimeToMinutes(horario.fim);
         
         if (minutosInicio >= minutosFim) {
             return false;
@@ -392,9 +391,9 @@ function carregarTabelaCustos() {
                        min="0"
                        data-sala-id="${sala.id}">
             </td>
-            <td>R$ ${formatarMoeda(sala.custoBase * multiplicadores.manha)}</td>
-            <td>R$ ${formatarMoeda(sala.custoBase * multiplicadores.tarde)}</td>
-            <td>R$ ${formatarMoeda(sala.custoBase * multiplicadores.noite)}</td>
+            <td>R$ ${CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.manha)}</td>
+            <td>R$ ${CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.tarde)}</td>
+            <td>R$ ${CoreUtils.formatarMoeda(sala.custoBase * multiplicadores.noite)}</td>
             <td>
                 <button class="btn-small btn-edit" onclick="salvarCustoSala(${sala.id})">${ICONS.save} Salvar</button>
             </td>
@@ -418,7 +417,7 @@ function carregarExtrasConfig() {
         div.innerHTML = `
             <div style="flex: 1;">
                 <strong>${extra.nome}</strong><br>
-                <span style="color: #6b7280;">R$ ${formatarMoeda(extra.custo)}/h</span>
+                <span style="color: #6b7280;">R$ ${CoreUtils.formatarMoeda(extra.custo)}/h</span>
             </div>
             <div>
                 <button class="btn-small btn-edit" onclick="editarExtra(${extra.id})">${ICONS.edit}</button>
@@ -482,12 +481,12 @@ function carregarListaFuncionarios() {
                         ${func.ativo ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold;">ATIVO</span>' : ''}
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.9em; color: #6b7280;">
-                        <div>Hora Normal: <strong>R$ ${formatarMoeda(func.horaNormal)}</strong></div>
-                        <div>HE 50%: <strong>R$ ${formatarMoeda(func.he50)}</strong></div>
-                        <div>HE 100%: <strong>R$ ${formatarMoeda(func.he100)}</strong></div>
-                        <div>Vale Transporte: <strong>R$ ${formatarMoeda(func.valeTransporte)}</strong></div>
-                        <div>Transporte App: <strong>R$ ${formatarMoeda(func.transporteApp || 0)}</strong></div>
-                        <div>Refeição: <strong>R$ ${formatarMoeda(func.refeicao || 0)}</strong></div>
+                        <div>Hora Normal: <strong>R$ ${CoreUtils.formatarMoeda(func.horaNormal)}</strong></div>
+                        <div>HE 50%: <strong>R$ ${CoreUtils.formatarMoeda(func.he50)}</strong></div>
+                        <div>HE 100%: <strong>R$ ${CoreUtils.formatarMoeda(func.he100)}</strong></div>
+                        <div>Vale Transporte: <strong>R$ ${CoreUtils.formatarMoeda(func.valeTransporte)}</strong></div>
+                        <div>Transporte App: <strong>R$ ${CoreUtils.formatarMoeda(func.transporteApp || 0)}</strong></div>
+                        <div>Refeição: <strong>R$ ${CoreUtils.formatarMoeda(func.refeicao || 0)}</strong></div>
                         ${dataEscalaInfo}
                     </div>
                 </div>
@@ -565,6 +564,22 @@ function atualizarRangeValue(event) {
 }
 
 // ========== CÁLCULO DO ORÇAMENTO ==========
+
+/**
+ * Coleta IDs dos itens extras selecionados no DOM
+ * @returns {Array<number>} Array com IDs dos extras selecionados
+ */
+function obterExtrasSelecionados() {
+    const extrasIds = [];
+    const extras = dataManager.obterExtras();
+    extras.forEach(extra => {
+        const checkbox = document.getElementById(`extra-${extra.id}`);
+        if (checkbox && checkbox.checked) {
+            extrasIds.push(extra.id);
+        }
+    });
+    return extrasIds;
+}
 
 /**
  * Calcula o orçamento completo
@@ -676,8 +691,20 @@ function calcularOrcamento() {
     // Calcular total de horas por dia
     const horasPorDia = calcularTotalHorasPorDia();
     
-    // Calcular horas e custos
-    const resultado = calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto);
+    // Obter IDs dos extras selecionados
+    const extrasIds = obterExtrasSelecionados();
+    
+    // Calcular horas e custos usando o Motor de Cálculo (BudgetEngine)
+    const resultado = budgetEngine.calcularValores({
+        sala,
+        duracao,
+        duracaoTipo,
+        diasSelecionados,
+        horasPorDia,
+        margem,
+        desconto,
+        extrasIds
+    });
     
     // Armazenar para exportação (usando dados sanitizados)
     ultimoCalculoRealizado = {
@@ -711,208 +738,17 @@ function calcularOrcamento() {
 }
 
 /**
- * Realiza todos os cálculos do orçamento
- * 
- * Complexidade Algoritmica: O(d + f) onde:
- * - d = número de dias selecionados na semana (max 7)
- * - f = número de funcionários ativos
- * 
- * Análise de Performance:
- * - Processamento de dias: O(d) - dois loops sobre diasSelecionados (max 7 elementos)
- * - Processamento de funcionários: O(f) - um loop sobre funcionários ativos
- * - Total: O(d + f) que é linear e eficiente
- * 
- * Nota sobre Precisão Numérica:
- * Esta função realiza múltiplas operações com valores monetários.
- * Para aplicações críticas ou valores muito grandes, considere usar
- * bibliotecas de precisão decimal como decimal.js
- * 
- * @param {Object} sala - Dados da sala/espaço
- * @param {number} duracao - Duração do contrato
- * @param {string} duracaoTipo - Tipo: 'dias' ou 'meses'
- * @param {Array<number>} diasSelecionados - Array com dias da semana (0-6)
- * @param {number} horasPorDia - Horas por dia de trabalho
- * @param {number} margem - Margem de lucro (0-1, ex: 0.20 = 20%)
- * @param {number} desconto - Desconto (0-1, ex: 0.10 = 10%)
- * @returns {Object} Resultado dos cálculos
- */
-function calcularValores(sala, duracao, duracaoTipo, diasSelecionados, horasPorDia, margem, desconto) {
-    const funcionariosAtivos = dataManager.obterFuncionariosAtivos();
-    const multiplicadores = dataManager.obterMultiplicadoresTurno();
-    
-    // Converter duração para dias
-    let duracaoEmDias = duracao;
-    if (duracaoTipo === 'meses') {
-        duracaoEmDias = duracao * 30; // Aproximadamente 30 dias por mês
-    }
-    
-    // Calcular total de dias trabalhados
-    const semanas = Math.floor(duracaoEmDias / 7);
-    const diasRestantes = duracaoEmDias % 7;
-    
-    let diasTrabalhadosPorTipo = {
-        normais: 0,  // Segunda a Sexta
-        sabado: 0,
-        domingo: 0
-    };
-    
-    // Contar dias por tipo nas semanas completas
-    // Complexidade: O(d) onde d = diasSelecionados.length (max 7)
-    diasSelecionados.forEach(dia => {
-        if (dia === 6) {
-            diasTrabalhadosPorTipo.sabado += semanas;
-        } else if (dia === 0) {
-            diasTrabalhadosPorTipo.domingo += semanas;
-        } else {
-            diasTrabalhadosPorTipo.normais += semanas;
-        }
-    });
-    
-    // Adicionar dias restantes (proporcional)
-    // Complexidade: O(d) onde d = diasSelecionados.length (max 7)
-    if (diasRestantes > 0) {
-        diasSelecionados.forEach(dia => {
-            const proporcao = diasRestantes / 7;
-            if (dia === 6) {
-                diasTrabalhadosPorTipo.sabado += proporcao;
-            } else if (dia === 0) {
-                diasTrabalhadosPorTipo.domingo += proporcao;
-            } else {
-                diasTrabalhadosPorTipo.normais += proporcao;
-            }
-        });
-    }
-    
-    const diasTotais = diasTrabalhadosPorTipo.normais + diasTrabalhadosPorTipo.sabado + diasTrabalhadosPorTipo.domingo;
-    
-    // Calcular horas por tipo
-    const horasNormais = diasTrabalhadosPorTipo.normais * horasPorDia;
-    const horasHE50 = diasTrabalhadosPorTipo.sabado * horasPorDia; // Sábado - HE 50%
-    const horasHE100 = diasTrabalhadosPorTipo.domingo * horasPorDia; // Domingo - HE 100%
-    const horasTotais = horasNormais + horasHE50 + horasHE100;
-    
-    // Calcular custo operacional base (usa média dos multiplicadores de turno)
-    const multiplicadorMedio = (multiplicadores.manha + multiplicadores.tarde + multiplicadores.noite) / 3;
-    const custoOperacionalBase = sala.custoBase * multiplicadorMedio * horasTotais;
-    
-    // Calcular custos de mão de obra para cada funcionário
-    // Complexidade: O(f) onde f = funcionariosAtivos.length
-    // IMPORTANTE: Este loop é linear, não aninhado - mantém eficiência O(n)
-    const detalhamentoFuncionarios = [];
-    let custoMaoObraNormal = 0;
-    let custoMaoObraHE50 = 0;
-    let custoMaoObraHE100 = 0;
-    let custoValeTransporte = 0;
-    let custoTransporteApp = 0;
-    let custoRefeicao = 0;
-    
-    funcionariosAtivos.forEach(func => {
-        const custoFuncNormal = horasNormais * func.horaNormal;
-        const custoFuncHE50 = horasHE50 * func.he50;
-        const custoFuncHE100 = horasHE100 * func.he100;
-        const custoFuncVT = diasTotais * func.valeTransporte;
-        const custoFuncTransApp = diasTotais * (func.transporteApp || 0);
-        const custoFuncRefeicao = diasTotais * (func.refeicao || 0);
-        
-        const custoFuncTotal = custoFuncNormal + custoFuncHE50 + custoFuncHE100 + 
-                               custoFuncVT + custoFuncTransApp + custoFuncRefeicao;
-        
-        detalhamentoFuncionarios.push({
-            nome: func.nome,
-            horasNormais: horasNormais,
-            horasHE50: horasHE50,
-            horasHE100: horasHE100,
-            custoNormal: custoFuncNormal,
-            custoHE50: custoFuncHE50,
-            custoHE100: custoFuncHE100,
-            custoVT: custoFuncVT,
-            custoTransApp: custoFuncTransApp,
-            custoRefeicao: custoFuncRefeicao,
-            custoTotal: custoFuncTotal
-        });
-        
-        custoMaoObraNormal += custoFuncNormal;
-        custoMaoObraHE50 += custoFuncHE50;
-        custoMaoObraHE100 += custoFuncHE100;
-        custoValeTransporte += custoFuncVT;
-        custoTransporteApp += custoFuncTransApp;
-        custoRefeicao += custoFuncRefeicao;
-    });
-    
-    const custoMaoObraTotal = custoMaoObraNormal + custoMaoObraHE50 + custoMaoObraHE100;
-    
-    // Calcular itens extras
-    let custoExtras = 0;
-    const extras = dataManager.obterExtras();
-    extras.forEach(extra => {
-        const checkbox = document.getElementById(`extra-${extra.id}`);
-        if (checkbox && checkbox.checked) {
-            custoExtras += extra.custo * horasTotais;
-        }
-    });
-    
-    // Subtotal sem margem
-    const subtotalSemMargem = custoOperacionalBase + custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao + custoExtras;
-    
-    // Aplicar margem de lucro
-    const valorMargem = subtotalSemMargem * margem;
-    const subtotalComMargem = subtotalSemMargem + valorMargem;
-    
-    // Aplicar desconto
-    const valorDesconto = subtotalComMargem * desconto;
-    const valorFinal = subtotalComMargem - valorDesconto;
-    
-    // Calcular valor por hora
-    const valorPorHora = valorFinal / horasTotais;
-    
-    // Calcular economia (desconto)
-    const economia = valorDesconto;
-    
-    // Calcular total de custos dos funcionários
-    const totalCustosFuncionarios = custoMaoObraTotal + custoValeTransporte + custoTransporteApp + custoRefeicao;
-    
-    return {
-        horasTotais,
-        horasNormais,
-        horasHE50,
-        horasHE100,
-        diasTotais,
-        custoOperacionalBase,
-        custoMaoObraNormal,
-        custoMaoObraHE50,
-        custoMaoObraHE100,
-        custoMaoObraTotal,
-        custoValeTransporte,
-        custoTransporteApp,
-        custoRefeicao,
-        custoExtras,
-        subtotalSemMargem,
-        valorMargem,
-        subtotalComMargem,
-        valorDesconto,
-        valorFinal,
-        valorPorHora,
-        economia,
-        margemPercent: margem * 100,
-        descontoPercent: desconto * 100,
-        quantidadeFuncionarios: funcionariosAtivos.length,
-        totalCustosFuncionarios,
-        detalhamentoFuncionarios
-    };
-}
-
-/**
  * Exibe os resultados na interface
  */
 function exibirResultados(resultado) {
     // Valores principais
-    document.getElementById('valor-total').textContent = formatarMoeda(resultado.valorFinal);
-    document.getElementById('valor-hora').textContent = formatarMoeda(resultado.valorPorHora);
+    document.getElementById('valor-total').textContent = CoreUtils.formatarMoeda(resultado.valorFinal);
+    document.getElementById('valor-hora').textContent = CoreUtils.formatarMoeda(resultado.valorPorHora);
     document.getElementById('total-horas').textContent = resultado.horasTotais.toFixed(1);
     
     const sala = dataManager.obterSalaPorId(document.getElementById('espaco').value);
-    document.getElementById('custo-hora').textContent = formatarMoeda(sala.custoBase);
-    document.getElementById('economia').textContent = formatarMoeda(resultado.economia);
+    document.getElementById('custo-hora').textContent = CoreUtils.formatarMoeda(sala.custoBase);
+    document.getElementById('economia').textContent = CoreUtils.formatarMoeda(resultado.economia);
     
     // Exibir alertas de viabilidade e classificação de risco
     exibirAlertaViabilidade(resultado);
@@ -921,13 +757,13 @@ function exibirResultados(resultado) {
     exibirEstruturaCustos(resultado);
     
     // Detalhamento
-    document.getElementById('custo-base').textContent = formatarMoeda(resultado.custoOperacionalBase);
+    document.getElementById('custo-base').textContent = CoreUtils.formatarMoeda(resultado.custoOperacionalBase);
     
     // Informações dos funcionários - Detalhamento completo
     if (resultado.quantidadeFuncionarios > 0 && resultado.detalhamentoFuncionarios) {
         document.getElementById('funcionarios-detalhamento').style.display = 'block';
         document.getElementById('quantidade-funcionarios').textContent = resultado.quantidadeFuncionarios;
-        document.getElementById('total-custos-funcionarios').textContent = formatarMoeda(resultado.totalCustosFuncionarios);
+        document.getElementById('total-custos-funcionarios').textContent = CoreUtils.formatarMoeda(resultado.totalCustosFuncionarios);
         
         const listaDetalhamento = document.getElementById('funcionarios-detalhamento-lista');
         listaDetalhamento.innerHTML = '';
@@ -939,17 +775,17 @@ function exibirResultados(resultado) {
                 <div style="font-weight: bold; color: #0c4a6e; margin-bottom: 5px;">${func.nome}</div>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; font-size: 0.85em; color: #6b7280;">
                     <div>⏰ Horas Normais: <strong>${func.horasNormais.toFixed(1)}h</strong></div>
-                    <div>💵 Custo: <strong>R$ ${formatarMoeda(func.custoNormal)}</strong></div>
+                    <div>💵 Custo: <strong>R$ ${CoreUtils.formatarMoeda(func.custoNormal)}</strong></div>
                     <div>📈 HE 50%: <strong>${func.horasHE50.toFixed(1)}h</strong></div>
-                    <div>💵 Custo: <strong>R$ ${formatarMoeda(func.custoHE50)}</strong></div>
+                    <div>💵 Custo: <strong>R$ ${CoreUtils.formatarMoeda(func.custoHE50)}</strong></div>
                     <div>📊 HE 100%: <strong>${func.horasHE100.toFixed(1)}h</strong></div>
-                    <div>💵 Custo: <strong>R$ ${formatarMoeda(func.custoHE100)}</strong></div>
-                    <div>🎫 Vale Transp.: <strong>R$ ${formatarMoeda(func.custoVT)}</strong></div>
-                    ${func.custoTransApp > 0 ? `<div>🚗 Transp. App: <strong>R$ ${formatarMoeda(func.custoTransApp)}</strong></div>` : ''}
-                    ${func.custoRefeicao > 0 ? `<div>🍽️ Refeição: <strong>R$ ${formatarMoeda(func.custoRefeicao)}</strong></div>` : ''}
+                    <div>💵 Custo: <strong>R$ ${CoreUtils.formatarMoeda(func.custoHE100)}</strong></div>
+                    <div>🎫 Vale Transp.: <strong>R$ ${CoreUtils.formatarMoeda(func.custoVT)}</strong></div>
+                    ${func.custoTransApp > 0 ? `<div>🚗 Transp. App: <strong>R$ ${CoreUtils.formatarMoeda(func.custoTransApp)}</strong></div>` : ''}
+                    ${func.custoRefeicao > 0 ? `<div>🍽️ Refeição: <strong>R$ ${CoreUtils.formatarMoeda(func.custoRefeicao)}</strong></div>` : ''}
                 </div>
                 <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-weight: bold; color: #0284c7;">
-                    Total do Funcionário: R$ ${formatarMoeda(func.custoTotal)}
+                    Total do Funcionário: R$ ${CoreUtils.formatarMoeda(func.custoTotal)}
                 </div>
             `;
             listaDetalhamento.appendChild(divFunc);
@@ -958,15 +794,15 @@ function exibirResultados(resultado) {
         document.getElementById('funcionarios-detalhamento').style.display = 'none';
     }
     
-    document.getElementById('mao-obra-normal').textContent = formatarMoeda(resultado.custoMaoObraNormal);
-    document.getElementById('mao-obra-he50').textContent = formatarMoeda(resultado.custoMaoObraHE50);
-    document.getElementById('mao-obra-he100').textContent = formatarMoeda(resultado.custoMaoObraHE100);
-    document.getElementById('vale-transporte').textContent = formatarMoeda(resultado.custoValeTransporte);
+    document.getElementById('mao-obra-normal').textContent = CoreUtils.formatarMoeda(resultado.custoMaoObraNormal);
+    document.getElementById('mao-obra-he50').textContent = CoreUtils.formatarMoeda(resultado.custoMaoObraHE50);
+    document.getElementById('mao-obra-he100').textContent = CoreUtils.formatarMoeda(resultado.custoMaoObraHE100);
+    document.getElementById('vale-transporte').textContent = CoreUtils.formatarMoeda(resultado.custoValeTransporte);
     
     // Transporte por Aplicativo
     if (resultado.custoTransporteApp > 0) {
         document.getElementById('transporte-app-line').style.display = 'flex';
-        document.getElementById('transporte-app').textContent = formatarMoeda(resultado.custoTransporteApp);
+        document.getElementById('transporte-app').textContent = CoreUtils.formatarMoeda(resultado.custoTransporteApp);
     } else {
         document.getElementById('transporte-app-line').style.display = 'none';
     }
@@ -974,7 +810,7 @@ function exibirResultados(resultado) {
     // Refeição
     if (resultado.custoRefeicao > 0) {
         document.getElementById('refeicao-line').style.display = 'flex';
-        document.getElementById('refeicao').textContent = formatarMoeda(resultado.custoRefeicao);
+        document.getElementById('refeicao').textContent = CoreUtils.formatarMoeda(resultado.custoRefeicao);
     } else {
         document.getElementById('refeicao-line').style.display = 'none';
     }
@@ -982,18 +818,18 @@ function exibirResultados(resultado) {
     // Extras
     if (resultado.custoExtras > 0) {
         document.getElementById('extras-line').style.display = 'flex';
-        document.getElementById('valor-extras').textContent = formatarMoeda(resultado.custoExtras);
+        document.getElementById('valor-extras').textContent = CoreUtils.formatarMoeda(resultado.custoExtras);
     } else {
         document.getElementById('extras-line').style.display = 'none';
     }
     
-    document.getElementById('subtotal-sem-margem').textContent = formatarMoeda(resultado.subtotalSemMargem);
+    document.getElementById('subtotal-sem-margem').textContent = CoreUtils.formatarMoeda(resultado.subtotalSemMargem);
     document.getElementById('margem-percent').textContent = resultado.margemPercent.toFixed(0);
-    document.getElementById('valor-margem').textContent = formatarMoeda(resultado.valorMargem);
-    document.getElementById('subtotal-com-margem').textContent = formatarMoeda(resultado.subtotalComMargem);
+    document.getElementById('valor-margem').textContent = CoreUtils.formatarMoeda(resultado.valorMargem);
+    document.getElementById('subtotal-com-margem').textContent = CoreUtils.formatarMoeda(resultado.subtotalComMargem);
     document.getElementById('desconto-percent').textContent = resultado.descontoPercent.toFixed(0);
-    document.getElementById('valor-desconto').textContent = formatarMoeda(resultado.valorDesconto);
-    document.getElementById('valor-final').textContent = formatarMoeda(resultado.valorFinal);
+    document.getElementById('valor-desconto').textContent = CoreUtils.formatarMoeda(resultado.valorDesconto);
+    document.getElementById('valor-final').textContent = CoreUtils.formatarMoeda(resultado.valorFinal);
 }
 
 /**
@@ -1022,27 +858,21 @@ function exibirAlertaViabilidade(resultado) {
     const percentualMargemContrib = (margemContribuicao / resultado.valorFinal * 100);
     const pontoEquilibrio = percentualMargemContrib > 0 ? custoFixo / (percentualMargemContrib / 100) : 0;
     
-    // Classificação de risco operacional
-    const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
-    let classificacaoRisco, corRisco, bgColor, borderColor, iconPath;
+    // Obter classificação de risco centralizada do DataManager (fonte única da verdade)
+    const riscoClassificacao = dataManager.calcularClassificacaoRisco(resultado);
+    const classificacaoRisco = riscoClassificacao.nivel;
+    const corRisco = riscoClassificacao.cor;
+    const bgColor = riscoClassificacao.bgColor;
+    const borderColor = riscoClassificacao.borderColor;
+    const riscoMaoObra = riscoClassificacao.percentual;
     
-    if (riscoMaoObra > 60 || margemLiquida < 0) {
-        classificacaoRisco = 'ALTO';
-        corRisco = '#dc2626'; // Vermelho
-        bgColor = '#fee2e2';
-        borderColor = '#dc2626';
+    // Determinar ícone SVG baseado no nível de risco
+    let iconPath;
+    if (classificacaoRisco === 'ALTO' || margemLiquida < 0) {
         iconPath = '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>';
-    } else if (riscoMaoObra >= 40 || margemLiquida < 5) {
-        classificacaoRisco = 'MÉDIO';
-        corRisco = '#d97706'; // Amarelo/Laranja
-        bgColor = '#fef3c7';
-        borderColor = '#d97706';
+    } else if (classificacaoRisco === 'MÉDIO' || margemLiquida < 5) {
         iconPath = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
     } else {
-        classificacaoRisco = 'BAIXO';
-        corRisco = '#16a34a'; // Verde
-        bgColor = '#dcfce7';
-        borderColor = '#16a34a';
         iconPath = '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>';
     }
     
@@ -1067,10 +897,10 @@ function exibirAlertaViabilidade(resultado) {
         messageElement.innerHTML = `Margem líquida <strong>negativa de ${Math.abs(margemLiquida).toFixed(2)}%</strong>. Este projeto gerará prejuízo. Recomenda-se aumentar a margem ou reduzir o desconto.`;
     } else if (pontoEquilibrio > resultado.valorFinal) {
         titleElement.textContent = '⚠️ ATENÇÃO: Abaixo do Ponto de Equilíbrio';
-        messageElement.innerHTML = `O valor final (R$ ${formatarMoeda(resultado.valorFinal)}) está <strong>abaixo do ponto de equilíbrio</strong> (R$ ${formatarMoeda(pontoEquilibrio)}). Margem líquida: ${margemLiquida.toFixed(2)}%.`;
+        messageElement.innerHTML = `O valor final (R$ ${CoreUtils.formatarMoeda(resultado.valorFinal)}) está <strong>abaixo do ponto de equilíbrio</strong> (R$ ${CoreUtils.formatarMoeda(pontoEquilibrio)}). Margem líquida: ${margemLiquida.toFixed(2)}%.`;
     } else {
         titleElement.textContent = `Classificação de Risco: ${classificacaoRisco}`;
-        messageElement.innerHTML = `Custos variáveis: <strong>${riscoMaoObra.toFixed(1)}%</strong> da receita | Margem líquida: <strong>${margemLiquida.toFixed(2)}%</strong> | Ponto de equilíbrio: R$ ${formatarMoeda(pontoEquilibrio)}`;
+        messageElement.innerHTML = `Custos variáveis: <strong>${riscoMaoObra.toFixed(1)}%</strong> da receita | Margem líquida: <strong>${margemLiquida.toFixed(2)}%</strong> | Ponto de equilíbrio: R$ ${CoreUtils.formatarMoeda(pontoEquilibrio)}`;
     }
 }
 
@@ -1257,7 +1087,7 @@ function exibirOportunidadesRenovacao() {
                         📞 Contato: <strong>${op.contato}</strong><br>
                         🏢 Espaço anterior: <strong>${op.espaco}</strong><br>
                         📅 Data do evento: <strong>${op.dataEvento}</strong> (há ${op.mesesAtras} ${op.mesesAtras === 1 ? 'mês' : 'meses'})<br>
-                        💰 Valor anterior: <strong>R$ ${formatarMoeda(op.valorAnterior)}</strong>
+                        💰 Valor anterior: <strong>R$ ${CoreUtils.formatarMoeda(op.valorAnterior)}</strong>
                     </div>
                     ${!op.convertido ? `
                     <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #d1d5db; font-size: 0.85em; color: #047857; font-weight: bold;">
@@ -1335,11 +1165,11 @@ function toggleCostDetail(type) {
             <div style="padding: 10px 0;">
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="color: #6b7280;">💼 Custo Operacional Base</span>
-                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoOperacionalBase)}</strong>
+                    <strong style="color: #1f2937;">R$ ${CoreUtils.formatarMoeda(resultado.custoOperacionalBase)}</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; background: #f3f4f6; padding: 12px; border-radius: 6px;">
                     <span style="color: #374151; font-weight: 600;">Total de Custos Fixos</span>
-                    <strong style="color: #1f2937; font-size: 1.1em;">R$ ${formatarMoeda(resultado.custoOperacionalBase)}</strong>
+                    <strong style="color: #1f2937; font-size: 1.1em;">R$ ${CoreUtils.formatarMoeda(resultado.custoOperacionalBase)}</strong>
                 </div>
                 <p style="margin-top: 12px; color: #6b7280; font-size: 0.85em; font-style: italic;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
@@ -1363,39 +1193,39 @@ function toggleCostDetail(type) {
             <div style="padding: 10px 0;">
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="color: #6b7280;">⏰ Mão de Obra - Horas Normais</span>
-                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoMaoObraNormal)}</strong>
+                    <strong style="color: #1f2937;">R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraNormal)}</strong>
                 </div>
                 ${resultado.custoMaoObraHE50 > 0 ? `
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="color: #6b7280;">📈 Mão de Obra - HE 50% (Sábado)</span>
-                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoMaoObraHE50)}</strong>
+                    <strong style="color: #1f2937;">R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraHE50)}</strong>
                 </div>
                 ` : ''}
                 ${resultado.custoMaoObraHE100 > 0 ? `
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="color: #6b7280;">📊 Mão de Obra - HE 100% (Domingo)</span>
-                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoMaoObraHE100)}</strong>
+                    <strong style="color: #1f2937;">R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraHE100)}</strong>
                 </div>
                 ` : ''}
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="color: #6b7280;">🎫 Vale Transporte</span>
-                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoValeTransporte)}</strong>
+                    <strong style="color: #1f2937;">R$ ${CoreUtils.formatarMoeda(resultado.custoValeTransporte)}</strong>
                 </div>
                 ${hasTransporteApp ? `
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="color: #6b7280;">🚗 Transporte por Aplicativo</span>
-                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoTransporteApp)}</strong>
+                    <strong style="color: #1f2937;">R$ ${CoreUtils.formatarMoeda(resultado.custoTransporteApp)}</strong>
                 </div>
                 ` : ''}
                 ${hasRefeicao ? `
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                     <span style="color: #6b7280;">🍽️ Refeição</span>
-                    <strong style="color: #1f2937;">R$ ${formatarMoeda(resultado.custoRefeicao)}</strong>
+                    <strong style="color: #1f2937;">R$ ${CoreUtils.formatarMoeda(resultado.custoRefeicao)}</strong>
                 </div>
                 ` : ''}
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; background: #fef3c7; padding: 12px; border-radius: 6px;">
                     <span style="color: #92400e; font-weight: 600;">Total de Custos Variáveis</span>
-                    <strong style="color: #92400e; font-size: 1.1em;">R$ ${formatarMoeda(resultado.custoMaoObraTotal + resultado.custoValeTransporte + (resultado.custoTransporteApp || 0) + (resultado.custoRefeicao || 0))}</strong>
+                    <strong style="color: #92400e; font-size: 1.1em;">R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraTotal + resultado.custoValeTransporte + (resultado.custoTransporteApp || 0) + (resultado.custoRefeicao || 0))}</strong>
                 </div>
                 <p style="margin-top: 12px; color: #6b7280; font-size: 0.85em; font-style: italic;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
@@ -1445,16 +1275,16 @@ function toggleCostDetail(type) {
                     <div style="display: flex; justify-content: space-between; align-items: start; padding: 10px 0; ${index < selectedExtras.length - 1 ? 'border-bottom: 1px solid #e5e7eb;' : ''}">
                         <div style="flex: 1;">
                             <div style="color: #374151; font-weight: 500; margin-bottom: 4px;">${extra.nome}</div>
-                            <div style="color: #6b7280; font-size: 0.85em;">R$ ${formatarMoeda(extra.custoPorHora)}/h × ${resultado.horasTotais.toFixed(1)}h</div>
+                            <div style="color: #6b7280; font-size: 0.85em;">R$ ${CoreUtils.formatarMoeda(extra.custoPorHora)}/h × ${resultado.horasTotais.toFixed(1)}h</div>
                         </div>
-                        <strong style="color: #1f2937;">R$ ${formatarMoeda(extra.custoTotal)}</strong>
+                        <strong style="color: #1f2937;">R$ ${CoreUtils.formatarMoeda(extra.custoTotal)}</strong>
                     </div>
                 `;
             });
             extrasHTML += `
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; background: #f3e8ff; padding: 12px; border-radius: 6px;">
                     <span style="color: #6b21a8; font-weight: 600;">Total de Itens Extras</span>
-                    <strong style="color: #6b21a8; font-size: 1.1em;">R$ ${formatarMoeda(resultado.custoExtras)}</strong>
+                    <strong style="color: #6b21a8; font-size: 1.1em;">R$ ${CoreUtils.formatarMoeda(resultado.custoExtras)}</strong>
                 </div>
                 <p style="margin-top: 12px; color: #6b7280; font-size: 0.85em; font-style: italic;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
@@ -2116,11 +1946,11 @@ function exportarPDFCliente() {
     y += 8;
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Valor por hora: R$ ${formatarMoeda(resultado.valorPorHora)}`, 20, y);
+    doc.text(`Valor por hora: R$ ${CoreUtils.formatarMoeda(resultado.valorPorHora)}`, 20, y);
     y += 6;
     doc.text(`Desconto aplicado: ${resultado.descontoPercent.toFixed(0)}%`, 20, y);
     y += 6;
-    doc.text(`Economia: R$ ${formatarMoeda(resultado.economia)}`, 20, y);
+    doc.text(`Economia: R$ ${CoreUtils.formatarMoeda(resultado.economia)}`, 20, y);
     
     // Valor final (destaque)
     y += 15;
@@ -2129,7 +1959,7 @@ function exportarPDFCliente() {
     
     doc.setFontSize(16);
     doc.setTextColor(255, 255, 255);
-    doc.text(`VALOR TOTAL: R$ ${formatarMoeda(resultado.valorFinal)}`, 105, y, { align: 'center' });
+    doc.text(`VALOR TOTAL: R$ ${CoreUtils.formatarMoeda(resultado.valorFinal)}`, 105, y, { align: 'center' });
     
     // Footer
     y = 270;
@@ -2188,7 +2018,7 @@ function exportarPDFSuperintendencia() {
     doc.setFont(undefined, 'normal');
     doc.text(`Espaço: ${sala.unidade} - ${sala.nome}`, 20, y);
     y += 5;
-    doc.text(`Capacidade: ${sala.capacidade} pessoas | Área: ${sala.area} m² | Custo base: R$ ${formatarMoeda(sala.custoBase)}/h`, 20, y);
+    doc.text(`Capacidade: ${sala.capacidade} pessoas | Área: ${sala.area} m² | Custo base: R$ ${CoreUtils.formatarMoeda(sala.custoBase)}/h`, 20, y);
     
     // Parâmetros do contrato
     y += 10;
@@ -2238,24 +2068,24 @@ function exportarPDFSuperintendencia() {
     
     // Tabela de custos
     const custos = [
-        ['Custo Operacional Base', `R$ ${formatarMoeda(resultado.custoOperacionalBase)}`],
-        ['Mão de Obra - Horas Normais', `R$ ${formatarMoeda(resultado.custoMaoObraNormal)}`],
-        ['Mão de Obra - HE 50% (Sábado)', `R$ ${formatarMoeda(resultado.custoMaoObraHE50)}`],
-        ['Mão de Obra - HE 100% (Domingo)', `R$ ${formatarMoeda(resultado.custoMaoObraHE100)}`],
-        ['Vale Transporte', `R$ ${formatarMoeda(resultado.custoValeTransporte)}`]
+        ['Custo Operacional Base', `R$ ${CoreUtils.formatarMoeda(resultado.custoOperacionalBase)}`],
+        ['Mão de Obra - Horas Normais', `R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraNormal)}`],
+        ['Mão de Obra - HE 50% (Sábado)', `R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraHE50)}`],
+        ['Mão de Obra - HE 100% (Domingo)', `R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraHE100)}`],
+        ['Vale Transporte', `R$ ${CoreUtils.formatarMoeda(resultado.custoValeTransporte)}`]
     ];
     
     // Adicionar transporte por aplicativo se houver
     if (resultado.custoTransporteApp > 0) {
-        custos.push(['Transporte por Aplicativo', `R$ ${formatarMoeda(resultado.custoTransporteApp)}`]);
+        custos.push(['Transporte por Aplicativo', `R$ ${CoreUtils.formatarMoeda(resultado.custoTransporteApp)}`]);
     }
     
     // Adicionar refeição se houver
     if (resultado.custoRefeicao > 0) {
-        custos.push(['Refeição', `R$ ${formatarMoeda(resultado.custoRefeicao)}`]);
+        custos.push(['Refeição', `R$ ${CoreUtils.formatarMoeda(resultado.custoRefeicao)}`]);
     }
     
-    custos.push(['Itens Extras', `R$ ${formatarMoeda(resultado.custoExtras)}`]);
+    custos.push(['Itens Extras', `R$ ${CoreUtils.formatarMoeda(resultado.custoExtras)}`]);
     
     custos.forEach(([item, valor]) => {
         doc.text(item, 20, y);
@@ -2296,42 +2126,42 @@ function exportarPDFSuperintendencia() {
             // Horas normais
             if (func.horasNormais > 0) {
                 doc.text(`• Horas Normais: ${func.horasNormais.toFixed(1)}h`, 25, y);
-                doc.text(`R$ ${formatarMoeda(func.custoNormal)}`, 190, y, { align: 'right' });
+                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoNormal)}`, 190, y, { align: 'right' });
                 y += 4;
             }
             
             // HE 50% (Sábado)
             if (func.horasHE50 > 0) {
                 doc.text(`• HE 50% (Sábado): ${func.horasHE50.toFixed(1)}h`, 25, y);
-                doc.text(`R$ ${formatarMoeda(func.custoHE50)}`, 190, y, { align: 'right' });
+                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoHE50)}`, 190, y, { align: 'right' });
                 y += 4;
             }
             
             // HE 100% (Domingo)
             if (func.horasHE100 > 0) {
                 doc.text(`• HE 100% (Domingo): ${func.horasHE100.toFixed(1)}h`, 25, y);
-                doc.text(`R$ ${formatarMoeda(func.custoHE100)}`, 190, y, { align: 'right' });
+                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoHE100)}`, 190, y, { align: 'right' });
                 y += 4;
             }
             
             // Vale Transporte
             if (func.custoVT > 0) {
                 doc.text(`• Vale Transporte: ${Math.round(resultado.diasTotais)} dias`, 25, y);
-                doc.text(`R$ ${formatarMoeda(func.custoVT)}`, 190, y, { align: 'right' });
+                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoVT)}`, 190, y, { align: 'right' });
                 y += 4;
             }
             
             // Transporte por aplicativo
             if (func.custoTransApp > 0) {
                 doc.text(`• Transporte por Aplicativo: ${Math.round(resultado.diasTotais)} dias`, 25, y);
-                doc.text(`R$ ${formatarMoeda(func.custoTransApp)}`, 190, y, { align: 'right' });
+                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoTransApp)}`, 190, y, { align: 'right' });
                 y += 4;
             }
             
             // Refeição
             if (func.custoRefeicao > 0) {
                 doc.text(`• Refeição: ${Math.round(resultado.diasTotais)} dias`, 25, y);
-                doc.text(`R$ ${formatarMoeda(func.custoRefeicao)}`, 190, y, { align: 'right' });
+                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoRefeicao)}`, 190, y, { align: 'right' });
                 y += 4;
             }
             
@@ -2344,7 +2174,7 @@ function exportarPDFSuperintendencia() {
             
             doc.setFont(undefined, 'bold');
             doc.text(`Subtotal ${func.nome}:`, 25, y);
-            doc.text(`R$ ${formatarMoeda(func.custoTotal)}`, 190, y, { align: 'right' });
+            doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoTotal)}`, 190, y, { align: 'right' });
             
             y += 7;
             doc.setFont(undefined, 'normal');
@@ -2358,22 +2188,22 @@ function exportarPDFSuperintendencia() {
     
     doc.setFont(undefined, 'bold');
     doc.text('SUBTOTAL (sem margem)', 20, y);
-    doc.text(`R$ ${formatarMoeda(resultado.subtotalSemMargem)}`, 190, y, { align: 'right' });
+    doc.text(`R$ ${CoreUtils.formatarMoeda(resultado.subtotalSemMargem)}`, 190, y, { align: 'right' });
     
     y += 7;
     doc.setFont(undefined, 'normal');
     doc.text(`Margem de Lucro (${resultado.margemPercent.toFixed(0)}%)`, 20, y);
-    doc.text(`R$ ${formatarMoeda(resultado.valorMargem)}`, 190, y, { align: 'right' });
+    doc.text(`R$ ${CoreUtils.formatarMoeda(resultado.valorMargem)}`, 190, y, { align: 'right' });
     
     y += 5;
     doc.setFont(undefined, 'bold');
     doc.text('SUBTOTAL (com margem)', 20, y);
-    doc.text(`R$ ${formatarMoeda(resultado.subtotalComMargem)}`, 190, y, { align: 'right' });
+    doc.text(`R$ ${CoreUtils.formatarMoeda(resultado.subtotalComMargem)}`, 190, y, { align: 'right' });
     
     y += 7;
     doc.setFont(undefined, 'normal');
     doc.text(`Desconto (${resultado.descontoPercent.toFixed(0)}%)`, 20, y);
-    doc.text(`- R$ ${formatarMoeda(resultado.valorDesconto)}`, 190, y, { align: 'right' });
+    doc.text(`- R$ ${CoreUtils.formatarMoeda(resultado.valorDesconto)}`, 190, y, { align: 'right' });
     
     y += 5;
     doc.setDrawColor(30, 71, 138);
@@ -2389,7 +2219,7 @@ function exportarPDFSuperintendencia() {
     doc.setFont(undefined, 'bold');
     doc.setTextColor(255, 255, 255);
     doc.text('VALOR FINAL', 20, y);
-    doc.text(`R$ ${formatarMoeda(resultado.valorFinal)}`, 190, y, { align: 'right' });
+    doc.text(`R$ ${CoreUtils.formatarMoeda(resultado.valorFinal)}`, 190, y, { align: 'right' });
     
     // Indicadores financeiros
     y += 15;
@@ -2405,13 +2235,13 @@ function exportarPDFSuperintendencia() {
     const custoHoraFinal = resultado.valorPorHora;
     const markup = ((resultado.subtotalComMargem / resultado.subtotalSemMargem - 1) * 100).toFixed(2);
     
-    doc.text(`• Valor por hora: R$ ${formatarMoeda(custoHoraFinal)}`, 20, y);
+    doc.text(`• Valor por hora: R$ ${CoreUtils.formatarMoeda(custoHoraFinal)}`, 20, y);
     y += 5;
     doc.text(`• Margem líquida: ${margemLiquida}%`, 20, y);
     y += 5;
     doc.text(`• Markup aplicado: ${markup}%`, 20, y);
     y += 5;
-    doc.text(`• Economia total para cliente: R$ ${formatarMoeda(resultado.economia)}`, 20, y);
+    doc.text(`• Economia total para cliente: R$ ${CoreUtils.formatarMoeda(resultado.economia)}`, 20, y);
     
     // === 5. ANÁLISE DE VIABILIDADE ===
     y += 12;
@@ -2442,19 +2272,18 @@ function exportarPDFSuperintendencia() {
     // Ponto de equilíbrio (evitar divisão por zero)
     const pontoEquilibrio = percentualMargemContrib > 0 ? custoFixo / (percentualMargemContrib / 100) : 0;
     
-    // Análise de risco operacional
-    const riscoMaoObra = (custoVariavel / resultado.valorFinal * 100);
-    let classificacaoRisco = '';
-    let corRisco = [0, 0, 0];
+    // Obter classificação de risco centralizada do DataManager
+    const riscoClassificacao = dataManager.calcularClassificacaoRisco(resultado);
+    const riscoMaoObra = riscoClassificacao.percentual;
+    const classificacaoRisco = riscoClassificacao.nivel;
     
-    if (riscoMaoObra > 60) {
-        classificacaoRisco = 'ALTO';
+    // Converter cores hex para RGB para jsPDF
+    let corRisco = [0, 0, 0];
+    if (classificacaoRisco === 'ALTO') {
         corRisco = [220, 38, 38]; // Vermelho
-    } else if (riscoMaoObra >= 40) {
-        classificacaoRisco = 'MÉDIO';
+    } else if (classificacaoRisco === 'MÉDIO') {
         corRisco = [234, 179, 8]; // Amarelo
     } else {
-        classificacaoRisco = 'BAIXO';
         corRisco = [34, 197, 94]; // Verde
     }
     
@@ -2464,11 +2293,11 @@ function exportarPDFSuperintendencia() {
     y += 6;
     
     doc.setFont(undefined, 'normal');
-    doc.text(`• Custos Fixos (Operacional): R$ ${formatarMoeda(custoFixo)} (${percentualFixo.toFixed(1)}%)`, 25, y);
+    doc.text(`• Custos Fixos (Operacional): R$ ${CoreUtils.formatarMoeda(custoFixo)} (${percentualFixo.toFixed(1)}%)`, 25, y);
     y += 5;
-    doc.text(`• Custos Variáveis (Pessoal): R$ ${formatarMoeda(custoVariavel)} (${percentualVariavel.toFixed(1)}%)`, 25, y);
+    doc.text(`• Custos Variáveis (Pessoal): R$ ${CoreUtils.formatarMoeda(custoVariavel)} (${percentualVariavel.toFixed(1)}%)`, 25, y);
     y += 5;
-    doc.text(`• Custos Extras: R$ ${formatarMoeda(resultado.custoExtras)} (${(resultado.custoExtras/custoTotal*100).toFixed(1)}%)`, 25, y);
+    doc.text(`• Custos Extras: R$ ${CoreUtils.formatarMoeda(resultado.custoExtras)} (${(resultado.custoExtras/custoTotal*100).toFixed(1)}%)`, 25, y);
     
     y += 8;
     doc.setFont(undefined, 'bold');
@@ -2476,9 +2305,9 @@ function exportarPDFSuperintendencia() {
     y += 6;
     
     doc.setFont(undefined, 'normal');
-    doc.text(`• Margem de Contribuição: R$ ${formatarMoeda(margemContribuicao)} (${percentualMargemContrib.toFixed(1)}%)`, 25, y);
+    doc.text(`• Margem de Contribuição: R$ ${CoreUtils.formatarMoeda(margemContribuicao)} (${percentualMargemContrib.toFixed(1)}%)`, 25, y);
     y += 5;
-    doc.text(`• Ponto de Equilíbrio: R$ ${formatarMoeda(pontoEquilibrio)}`, 25, y);
+    doc.text(`• Ponto de Equilíbrio: R$ ${CoreUtils.formatarMoeda(pontoEquilibrio)}`, 25, y);
     
     y += 8;
     doc.setFont(undefined, 'bold');
@@ -2673,12 +2502,12 @@ function imprimirOrcamento() {
             <div class="pdf-section">
                 <h2>Valores</h2>
                 <table class="pdf-table">
-                    <tr><td>Valor por hora:</td><td>R$ ${formatarMoeda(resultado.valorPorHora)}</td></tr>
+                    <tr><td>Valor por hora:</td><td>R$ ${CoreUtils.formatarMoeda(resultado.valorPorHora)}</td></tr>
                     <tr><td>Desconto aplicado:</td><td>${resultado.descontoPercent.toFixed(0)}%</td></tr>
-                    <tr><td>Economia:</td><td>R$ ${formatarMoeda(resultado.economia)}</td></tr>
+                    <tr><td>Economia:</td><td>R$ ${CoreUtils.formatarMoeda(resultado.economia)}</td></tr>
                     <tr style="font-size: 1.2em; font-weight: bold; background: #f3f4f6;">
                         <td>VALOR TOTAL:</td>
-                        <td>R$ ${formatarMoeda(resultado.valorFinal)}</td>
+                        <td>R$ ${CoreUtils.formatarMoeda(resultado.valorFinal)}</td>
                     </tr>
                 </table>
             </div>
@@ -2801,7 +2630,7 @@ function carregarTabelaHistorico() {
         const espaco = `${calc.sala.unidade} - ${calc.sala.nome}`;
         
         // Valor Final
-        const valorFinal = `R$ ${formatarMoeda(calc.valorFinal)}`;
+        const valorFinal = `R$ ${CoreUtils.formatarMoeda(calc.valorFinal)}`;
         
         // Margem Líquida
         const margemLiquida = `${calc.margemLiquida.toFixed(2)}%`;

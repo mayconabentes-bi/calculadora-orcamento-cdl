@@ -1,7 +1,7 @@
 {
   "name": "calculadora-orcamento-cdl",
-  "version": "5.0.0",
-  "description": "Sistema de cálculo de orçamentos para locação de espaços CDL/UTV",
+  "version": "5.1.0",
+  "description": "Axioma: Inteligência de Margem - Sistema de precificação para locação de espaços CDL/UTV",
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",

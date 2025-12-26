@@ -11,69 +11,71 @@
 const fs = require('fs');
 const path = require('path');
 
-// Carregar funções de formatação do data-manager.js
-const dataManagerCode = fs.readFileSync(
-  path.join(__dirname, '../../assets/js/data-manager.js'),
+// Carregar CoreUtils do validation.js
+const validationCode = fs.readFileSync(
+  path.join(__dirname, '../../assets/js/validation.js'),
   'utf8'
 );
 
-eval(dataManagerCode);
+// Executar código e extrair CoreUtils
+const executar = new Function(validationCode + '; return { CoreUtils };');
+const { CoreUtils } = executar();
 
 describe('Utilitários - Formatação de Moeda', () => {
   test('deve formatar número inteiro', () => {
-    const resultado = formatarMoeda(1000);
+    const resultado = CoreUtils.formatarMoeda(1000);
     expect(resultado).toBe('1.000,00');
   });
 
   test('deve formatar número com decimais', () => {
-    const resultado = formatarMoeda(1234.56);
+    const resultado = CoreUtils.formatarMoeda(1234.56);
     expect(resultado).toBe('1.234,56');
   });
 
   test('deve formatar zero', () => {
-    const resultado = formatarMoeda(0);
+    const resultado = CoreUtils.formatarMoeda(0);
     expect(resultado).toBe('0,00');
   });
 
   test('deve formatar números negativos', () => {
-    const resultado = formatarMoeda(-500.75);
+    const resultado = CoreUtils.formatarMoeda(-500.75);
     expect(resultado).toBe('-500,75');
   });
 
   test('deve sempre ter 2 casas decimais', () => {
-    const resultado = formatarMoeda(10);
+    const resultado = CoreUtils.formatarMoeda(10);
     expect(resultado).toBe('10,00');
   });
 
   test('deve formatar números grandes', () => {
-    const resultado = formatarMoeda(1000000);
+    const resultado = CoreUtils.formatarMoeda(1000000);
     expect(resultado).toBe('1.000.000,00');
   });
 
   test('deve arredondar para 2 casas decimais', () => {
-    const resultado = formatarMoeda(10.999);
+    const resultado = CoreUtils.formatarMoeda(10.999);
     expect(resultado).toBe('11,00');
   });
 
   test('deve formatar centavos', () => {
-    const resultado = formatarMoeda(0.99);
+    const resultado = CoreUtils.formatarMoeda(0.99);
     expect(resultado).toBe('0,99');
   });
 });
 
 describe('Utilitários - Formatação de Número', () => {
   test('deve formatar número com 2 casas decimais', () => {
-    const resultado = formatarNumero(10);
+    const resultado = CoreUtils.formatarNumero(10);
     expect(resultado).toBe('10.00');
   });
 
   test('deve formatar com ponto decimal', () => {
-    const resultado = formatarNumero(123.456);
+    const resultado = CoreUtils.formatarNumero(123.456);
     expect(resultado).toBe('123.46');
   });
 
   test('deve arredondar corretamente', () => {
-    const resultado = formatarNumero(10.995);
+    const resultado = CoreUtils.formatarNumero(10.995);
     // toFixed arredonda de forma banker's rounding (para o número par mais próximo)
     // então 10.995 pode arredondar para 10.99 ou 11.00 dependendo da implementação
     expect(resultado).toMatch(/^(10\.99|11\.00)$/);
