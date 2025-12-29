@@ -552,6 +552,147 @@ function configurarEventListeners() {
     document.getElementById('exportar-dataset-ml').addEventListener('click', exportarDatasetML);
     document.getElementById('exportar-dataset-bi').addEventListener('click', exportarDatasetBI);
     document.getElementById('limpar-historico').addEventListener('click', limparHistoricoConfirmacao);
+    
+    // Importar Lead
+    const btnImportarLead = document.getElementById('btn-importar-lead');
+    if (btnImportarLead) {
+        btnImportarLead.addEventListener('click', abrirModalImportarLead);
+    }
+}
+
+// ========== IMPORTAÇÃO DE LEADS ==========
+
+/**
+ * Abre o modal para importar leads
+ */
+function abrirModalImportarLead() {
+    const modal = document.getElementById('modal-importar-lead');
+    if (modal) {
+        modal.style.display = 'flex';
+        carregarLeadsNoModal();
+    }
+}
+
+/**
+ * Fecha o modal de importar leads
+ */
+function fecharModalImportarLead() {
+    const modal = document.getElementById('modal-importar-lead');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+/**
+ * Carrega os leads disponíveis no modal
+ */
+function carregarLeadsNoModal() {
+    const tbody = document.getElementById('modal-leads-body');
+    const semLeads = document.getElementById('modal-sem-leads');
+    const contador = document.getElementById('contador-leads');
+    
+    if (!tbody) return;
+
+    // Obter leads com status LEAD_NOVO
+    const leads = dataManager.obterLeads('LEAD_NOVO');
+    
+    // Atualizar contador
+    if (contador) {
+        const totalLeads = leads.length;
+        contador.innerHTML = `
+            <p style="margin: 0; font-size: 0.9em; color: #475569; text-align: center;">
+                <strong style="color: #0284c7; font-size: 1.2em;">${totalLeads}</strong>
+                lead${totalLeads !== 1 ? 's' : ''} disponível${totalLeads !== 1 ? 'is' : ''} para importação
+            </p>
+        `;
+    }
+
+    if (leads.length === 0) {
+        tbody.innerHTML = '';
+        semLeads.style.display = 'block';
+        return;
+    }
+
+    semLeads.style.display = 'none';
+
+    // Renderizar linhas da tabela
+    tbody.innerHTML = '';
+    
+    leads.forEach(lead => {
+        const tr = document.createElement('tr');
+        
+        // Formatar data
+        const data = new Date(lead.dataCriacao).toLocaleDateString('pt-BR');
+        
+        // Formatar tipo de evento
+        const tiposEvento = {
+            'reuniao': 'Reunião',
+            'treinamento': 'Treinamento',
+            'palestra': 'Palestra',
+            'conferencia': 'Conferência',
+            'evento-corporativo': 'Evento Corporativo',
+            'formatura': 'Formatura',
+            'outro': 'Outro'
+        };
+        const tipoEvento = tiposEvento[lead.tipoEvento] || lead.tipoEvento || 'Não informado';
+        
+        // Contato (telefone ou email)
+        const contato = lead.telefone || lead.email || 'Não informado';
+        
+        tr.innerHTML = `
+            <td style="white-space: nowrap;">${data}</td>
+            <td><strong>${lead.nome}</strong></td>
+            <td>${contato}</td>
+            <td>${tipoEvento}</td>
+            <td style="text-align: center;">${lead.quantidadePessoas || '-'}</td>
+            <td style="white-space: nowrap;">
+                <button class="btn-primary btn-success" onclick="importarLeadSelecionado(${lead.id})" style="padding: 6px 12px; font-size: 0.85em;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Importar
+                </button>
+            </td>
+        `;
+        
+        tbody.appendChild(tr);
+    });
+}
+
+/**
+ * Importa um lead selecionado e preenche os dados do cliente
+ * @param {number} leadId - ID do lead a ser importado
+ */
+function importarLeadSelecionado(leadId) {
+    const lead = dataManager.obterLeadPorId(leadId);
+    
+    if (!lead) {
+        mostrarNotificacao('Lead não encontrado!');
+        return;
+    }
+
+    // Preencher campos do cliente
+    document.getElementById('cliente-nome').value = lead.nome || '';
+    
+    // Priorizar telefone, mas pode usar email se telefone não estiver disponível
+    const contato = lead.telefone || lead.email || '';
+    document.getElementById('cliente-contato').value = contato;
+    
+    // Preencher data do evento se disponível
+    if (lead.dataEvento) {
+        document.getElementById('data-evento').value = lead.dataEvento;
+    }
+    
+    // Atualizar status do lead para "EM_ATENDIMENTO"
+    dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
+    
+    // Fechar modal
+    fecharModalImportarLead();
+    
+    // Scroll para o topo da calculadora
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    mostrarNotificacao(`Lead "${lead.nome}" importado com sucesso!`);
 }
 
 /**

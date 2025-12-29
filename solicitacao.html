@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Solicitação de Orçamento - CDL/UTV">
+    <meta name="keywords" content="CDL, UTV, Orçamento, Solicitação, Evento">
+    <meta name="author" content="CDL Manaus">
+    
+    <title>Solicitação de Orçamento - Axioma CDL/UTV</title>
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <style>
+        /* Mobile-first styles specific to this page */
+        .solicitacao-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .success-message {
+            display: none;
+            padding: 20px;
+            background: #dcfce7;
+            border-left: 4px solid #16a34a;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .capture-indicator {
+            display: none;
+            font-size: 0.85em;
+            color: #16a34a;
+            margin-top: 5px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .capture-indicator.show {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Container Principal -->
+    <div class="container solicitacao-container">
+        <!-- Header -->
+        <div class="header" style="text-align: center;">
+            <h1>
+                <img src="assets/images/logo-cdl.png" alt="Câmara de Dirigentes Lojistas Manaus logo" class="header-logo">
+                <span style="display: block; margin-top: 10px;">
+                    Solicitação de Orçamento
+                </span>
+            </h1>
+            <p>
+                CDL/UTV - Locação de Espaços para Eventos
+            </p>
+        </div>
+
+        <!-- Success Message -->
+        <div id="success-message" class="success-message">
+            <strong style="color: #16a34a; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Solicitação Enviada com Sucesso!
+            </strong>
+            <p style="margin: 0; color: #374151;">
+                Obrigado! Entraremos em contato em breve com seu orçamento personalizado.
+            </p>
+        </div>
+
+        <!-- Formulário de Solicitação -->
+        <div class="card">
+            <h2 class="card-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                Dados do Solicitante
+            </h2>
+            
+            <div style="margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;">
+                <strong style="color: #0284c7; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    Sobre este Formulário
+                </strong>
+                <p style="margin: 0; font-size: 0.9em; color: #6b7280;">
+                    Preencha seus dados de contato e informações básicas sobre o evento desejado. 
+                    Nossa equipe comercial entrará em contato para finalizar o orçamento.
+                </p>
+            </div>
+
+            <form id="form-solicitacao">
+                <!-- Dados de Contato -->
+                <div class="form-group">
+                    <label for="nome">Nome Completo: <span style="color: #dc2626;">*</span></label>
+                    <input type="text" id="nome" class="form-control" placeholder="Digite seu nome completo" required>
+                    <div id="nome-captured" class="capture-indicator">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Salvo automaticamente
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="telefone">Telefone / WhatsApp: <span style="color: #dc2626;">*</span></label>
+                    <input type="tel" id="telefone" class="form-control" placeholder="(00) 00000-0000" required>
+                    <div id="telefone-captured" class="capture-indicator">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Salvo automaticamente
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">E-mail: <span style="color: #dc2626;">*</span></label>
+                    <input type="email" id="email" class="form-control" placeholder="seu@email.com" required>
+                    <div id="email-captured" class="capture-indicator">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Salvo automaticamente
+                    </div>
+                </div>
+
+                <!-- Dados do Evento -->
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 20px 0; color: #374151; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Sobre o Evento
+                    </h3>
+
+                    <div class="form-group">
+                        <label for="dataEvento">Data Prevista do Evento:</label>
+                        <input type="date" id="dataEvento" class="form-control">
+                        <small style="color: #6b7280; font-size: 0.85em; display: block; margin-top: 5px;">
+                            Se já souber a data aproximada, isso ajuda a agilizar o orçamento
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tipoEvento">Tipo de Evento:</label>
+                        <select id="tipoEvento" class="form-control">
+                            <option value="">Selecione...</option>
+                            <option value="reuniao">Reunião</option>
+                            <option value="treinamento">Treinamento / Capacitação</option>
+                            <option value="palestra">Palestra / Workshop</option>
+                            <option value="conferencia">Conferência</option>
+                            <option value="evento-corporativo">Evento Corporativo</option>
+                            <option value="formatura">Formatura</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantidadePessoas">Quantidade Estimada de Pessoas:</label>
+                        <input type="number" id="quantidadePessoas" class="form-control" placeholder="Ex: 50" min="1">
+                        <small style="color: #6b7280; font-size: 0.85em; display: block; margin-top: 5px;">
+                            Estimativa aproximada ajuda a indicar o espaço mais adequado
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observacoes">Observações ou Necessidades Especiais:</label>
+                        <textarea id="observacoes" class="form-control" rows="3" placeholder="Descreva qualquer informação adicional que considere importante..."></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 20px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 2L11 13"/>
+                        <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                    Enviar Solicitação
+                </button>
+            </form>
+        </div>
+
+        <!-- Informações de Contato -->
+        <div class="card" style="margin-top: 20px; background: #f9fafb; border: 1px solid #e5e7eb;">
+            <div style="text-align: center;">
+                <h3 style="margin: 0 0 15px 0; color: #374151; font-size: 1em;">
+                    Precisa de ajuda?
+                </h3>
+                <p style="margin: 0; color: #6b7280; font-size: 0.9em;">
+                    Entre em contato conosco através dos nossos canais de atendimento:
+                </p>
+                <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: #0284c7;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                        <span style="font-weight: 500;">Telefone: (92) 3000-0000</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; color: #0284c7;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <span style="font-weight: 500;">E-mail: contato@cdlmanaus.org.br</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <span id="notification-text">Operação realizada com sucesso!</span>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/validation.js"></script>
+    <script src="assets/js/data-manager.js"></script>
+    <script>
+        // Shadow Capture - Salva dados ao sair dos campos (blur event)
+        const STORAGE_KEY = 'cdl-leads-temp';
+        let currentLeadId = null;
+
+        // Função para exibir notificação
+        function mostrarNotificacao(mensagem, duracao = 3000) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            if (notification && notificationText) {
+                notificationText.textContent = mensagem;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, duracao);
+            }
+        }
+
+        // Shadow Capture: Salvar dados automaticamente ao perder o foco
+        function setupShadowCapture() {
+            const camposContato = ['nome', 'telefone', 'email'];
+            
+            camposContato.forEach(campo => {
+                const input = document.getElementById(campo);
+                if (input) {
+                    input.addEventListener('blur', function() {
+                        const valor = this.value.trim();
+                        if (valor) {
+                            salvarLeadShadow(campo, valor);
+                            mostrarIndicadorCaptura(campo);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Salva o lead temporário (Shadow Capture)
+        function salvarLeadShadow(campo, valor) {
+            // Obter lead temporário existente ou criar novo
+            let leadTemp = obterLeadTemporario();
+            
+            if (!leadTemp) {
+                leadTemp = {
+                    id: Date.now(),
+                    status: 'LEAD_NOVO',
+                    dataCriacao: new Date().toISOString()
+                };
+                currentLeadId = leadTemp.id;
+            }
+            
+            // Atualizar campo
+            leadTemp[campo] = valor;
+            leadTemp.dataUltimaAtualizacao = new Date().toISOString();
+            
+            // Salvar no localStorage
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
+            
+            console.log('Shadow Capture: Campo salvo -', campo, valor);
+        }
+
+        // Obtém o lead temporário do localStorage
+        function obterLeadTemporario() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                return stored ? JSON.parse(stored) : null;
+            } catch (error) {
+                console.error('Erro ao obter lead temporário:', error);
+                return null;
+            }
+        }
+
+        // Mostra indicador visual de que o campo foi capturado
+        function mostrarIndicadorCaptura(campo) {
+            const indicador = document.getElementById(`${campo}-captured`);
+            if (indicador) {
+                indicador.classList.add('show');
+                setTimeout(() => {
+                    indicador.classList.remove('show');
+                }, 2000);
+            }
+        }
+
+        // Envio do formulário
+        document.getElementById('form-solicitacao').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Verificar se dataManager está disponível
+            if (typeof dataManager === 'undefined') {
+                alert('Erro: Sistema não carregado corretamente. Por favor, recarregue a página.');
+                console.error('dataManager não está disponível');
+                return;
+            }
+            
+            // Coletar todos os dados do formulário
+            const lead = {
+                id: currentLeadId || Date.now(),
+                // Status sempre LEAD_NOVO no momento da submissão final
+                status: 'LEAD_NOVO',
+                dataCriacao: new Date().toISOString(),
+                nome: document.getElementById('nome').value.trim(),
+                telefone: document.getElementById('telefone').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                dataEvento: document.getElementById('dataEvento').value,
+                tipoEvento: document.getElementById('tipoEvento').value,
+                quantidadePessoas: document.getElementById('quantidadePessoas').value,
+                observacoes: document.getElementById('observacoes').value.trim()
+            };
+            
+            // Salvar lead definitivo usando o DataManager
+            const resultado = dataManager.salvarLead(lead);
+            
+            if (!resultado) {
+                alert('Erro ao salvar solicitação. Verifique se todos os campos obrigatórios estão preenchidos.');
+                return;
+            }
+            
+            // Limpar lead temporário
+            localStorage.removeItem(STORAGE_KEY);
+            currentLeadId = null;
+            
+            // Mostrar mensagem de sucesso
+            document.getElementById('success-message').classList.add('show');
+            
+            // Limpar formulário
+            this.reset();
+            
+            // Scroll para o topo
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Ocultar mensagem após 5 segundos
+            setTimeout(() => {
+                document.getElementById('success-message').classList.remove('show');
+            }, 5000);
+            
+            mostrarNotificacao('Solicitação enviada com sucesso!');
+        });
+
+        // Inicializar Shadow Capture ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            setupShadowCapture();
+            
+            // Verificar se há lead temporário e restaurar
+            const leadTemp = obterLeadTemporario();
+            if (leadTemp) {
+                if (leadTemp.nome) document.getElementById('nome').value = leadTemp.nome;
+                if (leadTemp.telefone) document.getElementById('telefone').value = leadTemp.telefone;
+                if (leadTemp.email) document.getElementById('email').value = leadTemp.email;
+                currentLeadId = leadTemp.id;
+                
+                mostrarNotificacao('Dados recuperados da sessão anterior');
+            }
+        });
+    </script>
+</body>
+</html>
