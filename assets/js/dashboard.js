@@ -410,6 +410,9 @@ class DashboardController {
 let dashboardController = null;
 
 // Senha da Superintendência (em produção, deve ser gerenciada de forma mais segura)
+// NOTA: Esta é uma implementação de protótipo. Em produção, a autenticação deve ser
+// feita no backend com hash bcrypt, JWT tokens, e sistema de sessão adequado.
+// A senha atual é mantida no código para fins de demonstração conforme especificação.
 const SENHA_SUPERINTENDENCIA = 'CDL2025';
 
 /**

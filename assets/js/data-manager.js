@@ -259,6 +259,25 @@ class DataManager {
             erros.push('clientes deve ser um array');
         }
 
+        // Validar leads (opcional)
+        if (dados.leads !== undefined) {
+            if (!Array.isArray(dados.leads)) {
+                erros.push('leads deve ser um array');
+            } else {
+                dados.leads.forEach((lead, index) => {
+                    if (!lead.id || typeof lead.id !== 'number') {
+                        erros.push(`lead[${index}]: id inválido`);
+                    }
+                    if (!lead.nome || typeof lead.nome !== 'string') {
+                        erros.push(`lead[${index}]: nome inválido`);
+                    }
+                    if (!lead.status || typeof lead.status !== 'string') {
+                        erros.push(`lead[${index}]: status inválido`);
+                    }
+                });
+            }
+        }
+
         return {
             valido: erros.length === 0,
             erros
@@ -404,17 +423,28 @@ class DataManager {
             this.dados.leads = [];
         }
 
+        // Validação de campos obrigatórios
+        if (!lead.nome || typeof lead.nome !== 'string' || lead.nome.trim() === '') {
+            console.error('Nome é obrigatório para salvar lead');
+            return null;
+        }
+
+        if (!lead.telefone && !lead.email) {
+            console.error('Telefone ou email é obrigatório para salvar lead');
+            return null;
+        }
+
         const novoLead = {
             id: lead.id || Date.now(),
             status: lead.status || 'LEAD_NOVO',
             dataCriacao: lead.dataCriacao || new Date().toISOString(),
-            nome: lead.nome,
-            telefone: lead.telefone,
-            email: lead.email,
+            nome: lead.nome.trim(),
+            telefone: lead.telefone ? lead.telefone.trim() : '',
+            email: lead.email ? lead.email.trim() : '',
             dataEvento: lead.dataEvento || null,
             tipoEvento: lead.tipoEvento || '',
             quantidadePessoas: lead.quantidadePessoas || null,
-            observacoes: lead.observacoes || ''
+            observacoes: lead.observacoes ? lead.observacoes.trim() : ''
         };
 
         // Verificar se já existe lead com mesmo ID

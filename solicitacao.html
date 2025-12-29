@@ -348,9 +348,17 @@
         document.getElementById('form-solicitacao').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // Verificar se dataManager está disponível
+            if (typeof dataManager === 'undefined') {
+                alert('Erro: Sistema não carregado corretamente. Por favor, recarregue a página.');
+                console.error('dataManager não está disponível');
+                return;
+            }
+            
             // Coletar todos os dados do formulário
             const lead = {
                 id: currentLeadId || Date.now(),
+                // Status sempre LEAD_NOVO no momento da submissão final
                 status: 'LEAD_NOVO',
                 dataCriacao: new Date().toISOString(),
                 nome: document.getElementById('nome').value.trim(),
@@ -363,7 +371,12 @@
             };
             
             // Salvar lead definitivo usando o DataManager
-            dataManager.salvarLead(lead);
+            const resultado = dataManager.salvarLead(lead);
+            
+            if (!resultado) {
+                alert('Erro ao salvar solicitação. Verifique se todos os campos obrigatórios estão preenchidos.');
+                return;
+            }
             
             // Limpar lead temporário
             localStorage.removeItem(STORAGE_KEY);
