@@ -387,8 +387,113 @@ class DataManager {
                 }
             },
             historicoCalculos: [],
-            clientes: []
+            clientes: [],
+            leads: []  // Nova lista para gerenciar leads
         };
+    }
+
+    // ========== MÉTODOS DE GESTÃO DE LEADS ==========
+
+    /**
+     * Salva um novo lead no sistema
+     * @param {Object} lead - Dados do lead
+     * @returns {Object} Lead salvo
+     */
+    salvarLead(lead) {
+        if (!this.dados.leads) {
+            this.dados.leads = [];
+        }
+
+        const novoLead = {
+            id: lead.id || Date.now(),
+            status: lead.status || 'LEAD_NOVO',
+            dataCriacao: lead.dataCriacao || new Date().toISOString(),
+            nome: lead.nome,
+            telefone: lead.telefone,
+            email: lead.email,
+            dataEvento: lead.dataEvento || null,
+            tipoEvento: lead.tipoEvento || '',
+            quantidadePessoas: lead.quantidadePessoas || null,
+            observacoes: lead.observacoes || ''
+        };
+
+        // Verificar se já existe lead com mesmo ID
+        const index = this.dados.leads.findIndex(l => l.id === novoLead.id);
+        if (index !== -1) {
+            // Atualizar lead existente
+            this.dados.leads[index] = novoLead;
+        } else {
+            // Adicionar novo lead
+            this.dados.leads.unshift(novoLead);
+        }
+
+        this.salvarDados();
+        return novoLead;
+    }
+
+    /**
+     * Obtém todos os leads
+     * @param {string} status - Filtrar por status (opcional)
+     * @returns {Array} Lista de leads
+     */
+    obterLeads(status = null) {
+        if (!this.dados.leads) {
+            this.dados.leads = [];
+        }
+
+        if (status) {
+            return this.dados.leads.filter(lead => lead.status === status);
+        }
+
+        return this.dados.leads;
+    }
+
+    /**
+     * Obtém um lead por ID
+     * @param {number} id - ID do lead
+     * @returns {Object|null} Lead encontrado ou null
+     */
+    obterLeadPorId(id) {
+        if (!this.dados.leads) {
+            return null;
+        }
+        return this.dados.leads.find(lead => lead.id === id);
+    }
+
+    /**
+     * Atualiza o status de um lead
+     * @param {number} id - ID do lead
+     * @param {string} novoStatus - Novo status
+     * @returns {boolean} True se atualizado com sucesso
+     */
+    atualizarStatusLead(id, novoStatus) {
+        const lead = this.obterLeadPorId(id);
+        if (lead) {
+            lead.status = novoStatus;
+            lead.dataAtualizacao = new Date().toISOString();
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove um lead
+     * @param {number} id - ID do lead
+     * @returns {boolean} True se removido com sucesso
+     */
+    removerLead(id) {
+        if (!this.dados.leads) {
+            return false;
+        }
+
+        const index = this.dados.leads.findIndex(lead => lead.id === id);
+        if (index !== -1) {
+            this.dados.leads.splice(index, 1);
+            this.salvarDados();
+            return true;
+        }
+        return false;
     }
 
     // ========== MÉTODOS DE GESTÃO DE SALAS ==========
@@ -972,7 +1077,12 @@ class DataManager {
             // Novos campos para ML
             dataEvento: dataEvento,
             leadTimeDays: leadTimeDays,
-            turnoPredominante: turnoPredominante
+            turnoPredominante: turnoPredominante,
+            // Campos para workflow de aprovação
+            statusAprovacao: calculo.statusAprovacao || 'AGUARDANDO_APROVACAO',
+            justificativaRejeicao: null,
+            dataAprovacao: null,
+            aprovadoPor: null
         };
 
         // Limitar histórico a 500 registros mais recentes (amostragem estatística suficiente)
@@ -1080,6 +1190,68 @@ class DataManager {
      */
     obterHistoricoCalculos() {
         return this.dados.historicoCalculos || [];
+    }
+
+    /**
+     * Obtém orçamentos por status de aprovação
+     * @param {string} statusAprovacao - Status desejado ('AGUARDANDO_APROVACAO', 'APROVADO', 'REPROVADO')
+     * @returns {Array} Lista de orçamentos com o status especificado
+     */
+    obterOrcamentosPorStatus(statusAprovacao) {
+        if (!this.dados.historicoCalculos) {
+            return [];
+        }
+
+        return this.dados.historicoCalculos.filter(calc => {
+            // Para compatibilidade com registros antigos que não têm statusAprovacao
+            const status = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
+            return status === statusAprovacao;
+        });
+    }
+
+    /**
+     * Atualiza o status de aprovação de um orçamento
+     * @param {number} id - ID do orçamento no histórico
+     * @param {string} novoStatus - Novo status ('APROVADO' ou 'REPROVADO')
+     * @param {string} justificativa - Justificativa (obrigatória para REPROVADO)
+     * @param {string} aprovadoPor - Nome de quem aprovou/reprovou (opcional)
+     * @returns {boolean} True se atualizado com sucesso
+     */
+    atualizarStatusOrcamento(id, novoStatus, justificativa = null, aprovadoPor = null) {
+        if (!this.dados.historicoCalculos) {
+            return false;
+        }
+
+        // Validar status
+        const statusValidos = ['AGUARDANDO_APROVACAO', 'APROVADO', 'REPROVADO'];
+        if (!statusValidos.includes(novoStatus)) {
+            console.error('Status inválido:', novoStatus);
+            return false;
+        }
+
+        // Se REPROVADO, justificativa é obrigatória
+        if (novoStatus === 'REPROVADO' && (!justificativa || justificativa.trim() === '')) {
+            console.error('Justificativa é obrigatória para REPROVADO');
+            return false;
+        }
+
+        const registro = this.dados.historicoCalculos.find(calc => calc.id === id);
+        if (registro) {
+            registro.statusAprovacao = novoStatus;
+            registro.dataAprovacao = new Date().toISOString();
+            registro.aprovadoPor = aprovadoPor;
+            
+            if (novoStatus === 'REPROVADO') {
+                registro.justificativaRejeicao = justificativa;
+            } else {
+                registro.justificativaRejeicao = null;
+            }
+
+            this.salvarDados();
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1428,65 +1600,76 @@ class DataManager {
             const subtotalSemMargem = calc.subtotalSemMargem || 0;
             const convertido = calc.convertido === true;
             
-            // KPIs gerais
-            receitaTotal += valorFinal;
-            if (convertido) {
-                receitaConfirmada += valorFinal;
-                countConvertidos++;
+            // Verificar status de aprovação (para compatibilidade com registros antigos)
+            const statusAprovacao = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
+            
+            // KPIs gerais - APENAS incluir orçamentos APROVADOS
+            if (statusAprovacao === 'APROVADO') {
+                receitaTotal += valorFinal;
+                if (convertido) {
+                    receitaConfirmada += valorFinal;
+                    countConvertidos++;
+                }
+                somaMargens += calc.margemLiquida || 0;
+                
+                // Agregação por unidade - APENAS APROVADOS
+                if (!porUnidade[unidade]) {
+                    porUnidade[unidade] = {
+                        receita: 0,
+                        custoVariavel: 0,
+                        custoFixo: 0,
+                        margemContribuicao: 0,
+                        count: 0
+                    };
+                }
+                
+                // Calcular custos com validação para evitar valores negativos
+                let custoFixo = calc.custoOperacionalBase || (subtotalSemMargem * ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL);
+                // Garantir que custoFixo não exceda subtotalSemMargem
+                custoFixo = Math.min(custoFixo, subtotalSemMargem);
+                
+                const custoVariavel = Math.max(0, subtotalSemMargem - custoFixo);
+                const margemContribuicao = valorFinal - custoVariavel;
+                
+                porUnidade[unidade].receita += valorFinal;
+                porUnidade[unidade].custoVariavel += custoVariavel;
+                porUnidade[unidade].custoFixo += custoFixo;
+                porUnidade[unidade].margemContribuicao += margemContribuicao;
+                porUnidade[unidade].count += 1;
             }
-            somaMargens += calc.margemLiquida || 0;
-            
-            // Agregação por unidade
-            if (!porUnidade[unidade]) {
-                porUnidade[unidade] = {
-                    receita: 0,
-                    custoVariavel: 0,
-                    custoFixo: 0,
-                    margemContribuicao: 0,
-                    count: 0
-                };
-            }
-            
-            // Calcular custos com validação para evitar valores negativos
-            let custoFixo = calc.custoOperacionalBase || (subtotalSemMargem * ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL);
-            // Garantir que custoFixo não exceda subtotalSemMargem
-            custoFixo = Math.min(custoFixo, subtotalSemMargem);
-            
-            const custoVariavel = Math.max(0, subtotalSemMargem - custoFixo);
-            const margemContribuicao = valorFinal - custoVariavel;
-            
-            porUnidade[unidade].receita += valorFinal;
-            porUnidade[unidade].custoVariavel += custoVariavel;
-            porUnidade[unidade].custoFixo += custoFixo;
-            porUnidade[unidade].margemContribuicao += margemContribuicao;
-            porUnidade[unidade].count += 1;
         });
         
         // Calcular evolução mensal
         const mesesMap = {};
         historicoRecente.forEach(calc => {
-            const dataCalc = new Date(calc.data);
-            if (dataCalc >= dataLimite6Meses) {
-                const mesAno = `${dataCalc.getFullYear()}-${String(dataCalc.getMonth() + 1).padStart(2, '0')}`;
-                
-                if (!mesesMap[mesAno]) {
-                    mesesMap[mesAno] = {
-                        mes: mesAno,
-                        receita: 0,
-                        custos: 0,
-                        margemLiquida: 0,
-                        count: 0
-                    };
+            // Verificar status de aprovação
+            const statusAprovacao = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
+            
+            // APENAS incluir APROVADOS na evolução mensal
+            if (statusAprovacao === 'APROVADO') {
+                const dataCalc = new Date(calc.data);
+                if (dataCalc >= dataLimite6Meses) {
+                    const mesAno = `${dataCalc.getFullYear()}-${String(dataCalc.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    if (!mesesMap[mesAno]) {
+                        mesesMap[mesAno] = {
+                            mes: mesAno,
+                            receita: 0,
+                            custos: 0,
+                            margemLiquida: 0,
+                            count: 0
+                        };
+                    }
+                    
+                    const valorFinal = calc.valorFinal || 0;
+                    const subtotalSemMargem = calc.subtotalSemMargem || 0;
+                    const margemLiquidaValor = valorFinal - subtotalSemMargem;
+                    
+                    mesesMap[mesAno].receita += valorFinal;
+                    mesesMap[mesAno].custos += subtotalSemMargem;
+                    mesesMap[mesAno].margemLiquida += margemLiquidaValor;
+                    mesesMap[mesAno].count += 1;
                 }
-                
-                const valorFinal = calc.valorFinal || 0;
-                const subtotalSemMargem = calc.subtotalSemMargem || 0;
-                const margemLiquidaValor = valorFinal - subtotalSemMargem;
-                
-                mesesMap[mesAno].receita += valorFinal;
-                mesesMap[mesAno].custos += subtotalSemMargem;
-                mesesMap[mesAno].margemLiquida += margemLiquidaValor;
-                mesesMap[mesAno].count += 1;
             }
         });
         
@@ -1500,9 +1683,14 @@ class DataManager {
         
         evolucaoMensal.sort((a, b) => a.mes.localeCompare(b.mes));
         
-        // Calcular médias
-        const margemMedia = historicoRecente.length > 0 ? somaMargens / historicoRecente.length : 0;
-        const ticketMedio = historicoRecente.length > 0 ? receitaTotal / historicoRecente.length : 0;
+        // Calcular médias - APENAS para orçamentos APROVADOS
+        const historicoAprovado = historicoRecente.filter(calc => {
+            const statusAprovacao = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
+            return statusAprovacao === 'APROVADO';
+        });
+        
+        const margemMedia = historicoAprovado.length > 0 ? somaMargens / historicoAprovado.length : 0;
+        const ticketMedio = historicoAprovado.length > 0 ? receitaTotal / historicoAprovado.length : 0;
         
         return {
             kpis: {
