@@ -4,7 +4,6 @@
    ================================================================= */
 
 // ========== VARIÁVEIS GLOBAIS ==========
-let dataManager = null;
 let clienteEditandoId = null;
 
 // ========== INICIALIZAÇÃO ==========
@@ -16,8 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
  * Inicializa a página de clientes
  */
 function inicializarPaginaCliente() {
-    // Inicializar DataManager
-    dataManager = new DataManager();
+    // DataManager já está disponível como variável global
+    // definida em data-manager.js
     
     // Carregar select de espaços
     carregarSelectEspacos();
