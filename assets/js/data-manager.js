@@ -1391,6 +1391,11 @@ class DataManager {
             contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
                 ? (resultadoSanitizacao.dados.clienteContato || '') 
                 : '';
+        } else {
+            // Fallback: sanitização básica se DataSanitizer não estiver disponível
+            console.warn('DataSanitizer não disponível, usando sanitização básica');
+            nomeArmazenado = clienteNome.trim();
+            contatoArmazenado = clienteContato.trim();
         }
 
         // Calcular Lead Time (dias entre cotação e evento)

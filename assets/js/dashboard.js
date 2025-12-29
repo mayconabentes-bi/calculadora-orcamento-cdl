@@ -518,7 +518,7 @@ async function carregarTabelaAprovacoes() {
         <tr>
             <td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="loading-spinner">
                         <line x1="12" y1="2" x2="12" y2="6"></line>
                         <line x1="12" y1="18" x2="12" y2="22"></line>
                         <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
@@ -534,19 +534,6 @@ async function carregarTabelaAprovacoes() {
         </tr>
     `;
     semPendentes.style.display = 'none';
-
-    // Adicionar CSS para animação de loading
-    if (!document.getElementById('loading-animation-style')) {
-        const style = document.createElement('style');
-        style.id = 'loading-animation-style';
-        style.textContent = `
-            @keyframes spin {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(360deg); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
 
     // Obter orçamentos aguardando aprovação do Firebase
     const orcamentosPendentes = await dataManager.obterOrcamentosPendentes();
