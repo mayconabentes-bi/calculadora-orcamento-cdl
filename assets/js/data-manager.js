@@ -1,7 +1,11 @@
 /* =================================================================
    DATA MANAGER - AXIOMA: INTELIGÊNCIA DE MARGEM v5.1.0
-   Sistema de gerenciamento de dados com persistência em LocalStorage
+   Sistema de gerenciamento de dados com persistência em Firebase Firestore
+   Com fallback para LocalStorage para compatibilidade
    ================================================================= */
+
+// Imports do Firebase Firestore
+import { db, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from './firebase-config.js';
 
 /**
  * Classe DataManager
@@ -10,7 +14,8 @@
  * - Itens Extras
  * - Custos de Funcionário
  * - Multiplicadores de Turno
- * - Persistência em LocalStorage
+ * - Persistência em Firebase Firestore
+ * - Fallback para LocalStorage
  * - Auditoria de Atualização de Dados
  */
 class DataManager {
@@ -24,6 +29,29 @@ class DataManager {
         // Limite de dias para considerar dados desatualizados (proteção contra inflação)
         this.LIMITE_DIAS_AUDITORIA = 90;
         this.dados = this.carregarDados();
+        
+        // Mapeamento de Coleções Firebase
+        this.COLLECTIONS = {
+            LEADS: 'leads',
+            ORCAMENTOS: 'orcamentos',
+            CONFIGURACOES: 'configuracoes'
+        };
+        
+        // Flag para indicar se Firebase está disponível
+        this.firebaseEnabled = this.verificarFirebaseDisponivel();
+    }
+
+    /**
+     * Verifica se o Firebase está configurado e disponível
+     * @returns {boolean}
+     */
+    verificarFirebaseDisponivel() {
+        try {
+            return db !== null && db !== undefined;
+        } catch (error) {
+            console.warn('Firebase não disponível, usando LocalStorage:', error);
+            return false;
+        }
     }
 
     /**
@@ -902,6 +930,337 @@ class DataManager {
         );
     }
 
+    // ========== MÉTODOS FIREBASE FIRESTORE (NOVOS) ==========
+
+    /**
+     * Salva um lead (dados do cliente) no Firestore
+     * @param {Object} lead - Dados do lead/cliente
+     * @returns {Promise<Object>} Lead salvo com ID
+     */
+    async salvarLead(lead) {
+        if (!this.firebaseEnabled) {
+            console.warn('Firebase não disponível. Lead não foi salvo no Firestore.');
+            return null;
+        }
+
+        try {
+            const leadData = {
+                ...lead,
+                dataCadastro: new Date().toISOString()
+            };
+            
+            const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), leadData);
+            console.log('Lead salvo no Firestore com ID:', docRef.id);
+            
+            return {
+                id: docRef.id,
+                ...leadData
+            };
+        } catch (error) {
+            console.error('Erro ao salvar lead no Firestore:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Obtém orçamentos pendentes de aprovação
+     * @returns {Promise<Array>} Lista de orçamentos aguardando aprovação
+     */
+    async obterOrcamentosPendentes() {
+        if (!this.firebaseEnabled) {
+            console.warn('Firebase não disponível.');
+            return [];
+        }
+
+        try {
+            const q = query(
+                collection(db, this.COLLECTIONS.ORCAMENTOS),
+                where('statusAprovacao', '==', 'AGUARDANDO_APROVACAO')
+            );
+            
+            const querySnapshot = await getDocs(q);
+            const orcamentos = [];
+            querySnapshot.forEach((doc) => {
+                orcamentos.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            console.log(`Encontrados ${orcamentos.length} orçamentos pendentes`);
+            return orcamentos;
+        } catch (error) {
+            console.error('Erro ao obter orçamentos pendentes:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Atualiza o status de aprovação de um orçamento
+     * @param {string} id - ID do orçamento no Firestore
+     * @param {string} status - Novo status (APROVADO, REJEITADO, etc)
+     * @param {string} justificativa - Justificativa da decisão
+     * @returns {Promise<boolean>} True se atualizado com sucesso
+     */
+    async atualizarStatusOrcamento(id, status, justificativa = '') {
+        if (!this.firebaseEnabled) {
+            console.warn('Firebase não disponível.');
+            return false;
+        }
+
+        try {
+            const docRef = doc(db, this.COLLECTIONS.ORCAMENTOS, id);
+            await updateDoc(docRef, {
+                statusAprovacao: status,
+                justificativa: justificativa,
+                dataAtualizacao: new Date().toISOString()
+            });
+            
+            console.log(`Status do orçamento ${id} atualizado para ${status}`);
+            return true;
+        } catch (error) {
+            console.error('Erro ao atualizar status do orçamento:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Versão async de adicionarCalculoHistorico que salva no Firestore
+     * com status inicial AGUARDANDO_APROVACAO
+     * @param {Object} calculo - Dados do cálculo realizado
+     * @returns {Promise<Object>} Orçamento salvo
+     */
+    async adicionarCalculoHistoricoFirestore(calculo) {
+        if (!this.firebaseEnabled) {
+            console.warn('Firebase não disponível. Usando localStorage.');
+            return this.adicionarCalculoHistorico(calculo);
+        }
+
+        try {
+            // Blindagem automática
+            const clienteNome = calculo.clienteNome || '';
+            const clienteContato = calculo.clienteContato || '';
+            
+            let nomeArmazenado = clienteNome;
+            let contatoArmazenado = clienteContato;
+            
+            if (typeof DataSanitizer !== 'undefined') {
+                const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+                nomeArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+                    ? resultadoSanitizacao.dados.clienteNome 
+                    : '';
+                contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+                    ? (resultadoSanitizacao.dados.clienteContato || '') 
+                    : '';
+            }
+
+            // Calcular Lead Time
+            let leadTimeDays = null;
+            let dataEvento = null;
+            
+            if (calculo.dataEvento) {
+                dataEvento = calculo.dataEvento;
+                const dataCotacao = new Date();
+                const dataEventoObj = new Date(calculo.dataEvento);
+                const diferencaMs = dataEventoObj.getTime() - dataCotacao.getTime();
+                leadTimeDays = Math.floor(diferencaMs / (1000 * 60 * 60 * 24));
+            }
+
+            // Inferir turno
+            let turnoPredominante = this.inferirTurnoPredominante(calculo.horarios);
+
+            const registroHistorico = {
+                data: new Date().toISOString(),
+                cliente: nomeArmazenado,
+                contato: contatoArmazenado,
+                sala: {
+                    id: calculo.sala.id,
+                    nome: calculo.sala.nome,
+                    unidade: calculo.sala.unidade
+                },
+                duracao: calculo.duracao,
+                duracaoTipo: calculo.duracaoTipo,
+                horasTotais: calculo.resultado.horasTotais,
+                valorFinal: calculo.resultado.valorFinal,
+                margemLiquida: ((calculo.resultado.valorFinal - calculo.resultado.subtotalSemMargem) / calculo.resultado.valorFinal * 100),
+                classificacaoRisco: this.calcularClassificacaoRisco(calculo.resultado, calculo.calculoIncompleto || false).nivel,
+                subtotalSemMargem: calculo.resultado.subtotalSemMargem,
+                valorMargem: calculo.resultado.valorMargem,
+                valorDesconto: calculo.resultado.valorDesconto,
+                descontoPercent: calculo.desconto * 100,
+                // Campos de workflow colaborativo
+                statusAprovacao: 'AGUARDANDO_APROVACAO',
+                convertido: false,
+                // Campos para ML
+                dataEvento: dataEvento,
+                leadTimeDays: leadTimeDays,
+                turnoPredominante: turnoPredominante
+            };
+
+            const docRef = await addDoc(collection(db, this.COLLECTIONS.ORCAMENTOS), registroHistorico);
+            console.log('Orçamento salvo no Firestore com ID:', docRef.id);
+            
+            return {
+                id: docRef.id,
+                ...registroHistorico
+            };
+        } catch (error) {
+            console.error('Erro ao adicionar cálculo ao Firestore:', error);
+            // Fallback para localStorage
+            return this.adicionarCalculoHistorico(calculo);
+        }
+    }
+
+    /**
+     * Versão async de obterDadosAnaliticos que filtra por aprovados
+     * @returns {Promise<Object>} Dados analíticos agregados
+     */
+    async obterDadosAnaliticosFirestore() {
+        if (!this.firebaseEnabled) {
+            console.warn('Firebase não disponível. Usando dados do localStorage.');
+            return this.obterDadosAnaliticos();
+        }
+
+        try {
+            // Obter todos os orçamentos do Firestore
+            const querySnapshot = await getDocs(collection(db, this.COLLECTIONS.ORCAMENTOS));
+            const todosOrcamentos = [];
+            querySnapshot.forEach((doc) => {
+                todosOrcamentos.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+
+            // Filtrar apenas aprovados para KPIs
+            const orcamentosAprovados = todosOrcamentos.filter(orc => orc.statusAprovacao === 'APROVADO');
+
+            const ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL = 0.3;
+            
+            if (orcamentosAprovados.length === 0) {
+                return {
+                    kpis: {
+                        receitaTotal: 0,
+                        receitaConfirmada: 0,
+                        margemMedia: 0,
+                        ticketMedio: 0
+                    },
+                    porUnidade: {},
+                    evolucaoMensal: []
+                };
+            }
+            
+            // Filtrar últimos 12 meses
+            const dataLimite = new Date();
+            dataLimite.setMonth(dataLimite.getMonth() - 12);
+            
+            const historicoRecente = orcamentosAprovados.filter(calc => {
+                const dataCalc = new Date(calc.data);
+                return dataCalc >= dataLimite;
+            });
+            
+            let receitaTotal = 0;
+            let receitaConfirmada = 0;
+            let somaMargens = 0;
+            let countConvertidos = 0;
+            
+            const porUnidade = {};
+            const dataLimite6Meses = new Date();
+            dataLimite6Meses.setMonth(dataLimite6Meses.getMonth() - 6);
+            
+            historicoRecente.forEach(calc => {
+                const valorFinal = calc.valorFinal || 0;
+                const subtotalSemMargem = calc.subtotalSemMargem || 0;
+                const convertido = calc.convertido === true;
+                
+                receitaTotal += valorFinal;
+                if (convertido) {
+                    receitaConfirmada += valorFinal;
+                    countConvertidos++;
+                }
+                somaMargens += calc.margemLiquida || 0;
+                
+                // Agregação por unidade
+                const unidade = calc.sala.unidade;
+                if (!porUnidade[unidade]) {
+                    porUnidade[unidade] = {
+                        receita: 0,
+                        custoVariavel: 0,
+                        custoFixo: 0,
+                        margemContribuicao: 0,
+                        count: 0
+                    };
+                }
+                
+                let custoFixo = calc.custoOperacionalBase || (subtotalSemMargem * ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL);
+                custoFixo = Math.min(custoFixo, subtotalSemMargem);
+                const custoVariavel = Math.max(0, subtotalSemMargem - custoFixo);
+                const margemContribuicao = valorFinal - custoVariavel;
+                
+                porUnidade[unidade].receita += valorFinal;
+                porUnidade[unidade].custoVariavel += custoVariavel;
+                porUnidade[unidade].custoFixo += custoFixo;
+                porUnidade[unidade].margemContribuicao += margemContribuicao;
+                porUnidade[unidade].count += 1;
+            });
+            
+            // Evolução mensal
+            const mesesMap = {};
+            historicoRecente.forEach(calc => {
+                const dataCalc = new Date(calc.data);
+                if (dataCalc >= dataLimite6Meses) {
+                    const mesAno = `${dataCalc.getFullYear()}-${String(dataCalc.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    if (!mesesMap[mesAno]) {
+                        mesesMap[mesAno] = {
+                            mes: mesAno,
+                            receita: 0,
+                            custos: 0,
+                            margemLiquida: 0,
+                            count: 0
+                        };
+                    }
+                    
+                    const valorFinal = calc.valorFinal || 0;
+                    const subtotalSemMargem = calc.subtotalSemMargem || 0;
+                    const margemLiquidaValor = valorFinal - subtotalSemMargem;
+                    
+                    mesesMap[mesAno].receita += valorFinal;
+                    mesesMap[mesAno].custos += subtotalSemMargem;
+                    mesesMap[mesAno].margemLiquida += margemLiquidaValor;
+                    mesesMap[mesAno].count += 1;
+                }
+            });
+            
+            const evolucaoMensal = [];
+            Object.keys(mesesMap).forEach(mesAno => {
+                const mes = mesesMap[mesAno];
+                mes.margemLiquidaPercent = mes.receita > 0 ? (mes.margemLiquida / mes.receita * 100) : 0;
+                evolucaoMensal.push(mes);
+            });
+            
+            evolucaoMensal.sort((a, b) => a.mes.localeCompare(b.mes));
+            
+            const margemMedia = historicoRecente.length > 0 ? somaMargens / historicoRecente.length : 0;
+            const ticketMedio = historicoRecente.length > 0 ? receitaTotal / historicoRecente.length : 0;
+            
+            return {
+                kpis: {
+                    receitaTotal: receitaTotal,
+                    receitaConfirmada: receitaConfirmada,
+                    margemMedia: margemMedia,
+                    ticketMedio: ticketMedio
+                },
+                porUnidade: porUnidade,
+                evolucaoMensal: evolucaoMensal
+            };
+        } catch (error) {
+            console.error('Erro ao obter dados analíticos do Firestore:', error);
+            // Fallback para localStorage
+            return this.obterDadosAnaliticos();
+        }
+    }
+
     // ========== MÉTODOS DE HISTÓRICO DE CÁLCULOS ==========
 
     /**
@@ -1658,5 +2017,11 @@ function mostrarNotificacao(mensagem, duracao = 3000) {
     }
 }
 
-// Exportar instância global do DataManager
+// Exportar instância global do DataManager (Singleton Pattern)
 const dataManager = new DataManager();
+
+// Para compatibilidade com scripts legados (não-módulos)
+window.dataManager = dataManager;
+
+// Export ES6 para módulos
+export default dataManager;
