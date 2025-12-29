@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestão de clientes - CDL/UTV">
+    <meta name="keywords" content="CDL, UTV, Clientes, CRM, Gestão">
+    <meta name="author" content="CDL Manaus">
+    
+    <title>Gestão de Clientes - Axioma CDL/UTV v5.1.0</title>
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <!-- Container Principal -->
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <img src="assets/images/logo-cdl.png" alt="Câmara de Dirigentes Lojistas Manaus logo" class="header-logo">
+                <span>
+                    Gestão de Clientes - Axioma
+                    <span style="display: inline-block; font-size: 0.75rem; font-weight: 500; background: rgba(255, 255, 255, 0.2); padding: 0.125rem 0.625rem; border-radius: 9999px; margin-left: 0.75rem; vertical-align: middle;">v5.1.0</span>
+                </span>
+            </h1>
+            <p>
+                CDL/UTV - Cadastro e Gestão de Clientes
+            </p>
+            <div style="margin-top: 15px;">
+                <a href="index.html" class="btn-primary btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                    Voltar para Calculadora
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulário de Cliente -->
+        <div class="card">
+            <h2 class="card-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Cadastro de Cliente
+            </h2>
+            
+            <div style="margin-bottom: 20px; padding: 15px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;">
+                <strong style="color: #0284c7; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    Informações do Formulário
+                </strong>
+                <p style="margin: 0; font-size: 0.9em; color: #6b7280;">
+                    Cadastre clientes para facilitar orçamentos futuros. Os dados são baseados nas características da calculadora de orçamento.
+                </p>
+            </div>
+
+            <form id="form-cliente">
+                <!-- Dados Pessoais/Empresariais -->
+                <div style="margin-bottom: 30px; padding: 20px; background: #f9fafb; border-radius: 8px;">
+                    <h3 style="margin: 0 0 20px 0; color: #374151; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Dados Básicos
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label for="cliente-tipo">Tipo de Cliente: <span style="color: #dc2626;">*</span></label>
+                        <select id="cliente-tipo" class="form-control" required>
+                            <option value="">Selecione...</option>
+                            <option value="pessoa-fisica">Pessoa Física</option>
+                            <option value="pessoa-juridica">Pessoa Jurídica</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-nome">Nome / Razão Social: <span style="color: #dc2626;">*</span></label>
+                        <input type="text" id="cliente-nome" class="form-control" placeholder="Ex: Empresa ABC Ltda ou João Silva" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-cpf-cnpj">CPF / CNPJ:</label>
+                        <input type="text" id="cliente-cpf-cnpj" class="form-control" placeholder="Ex: 000.000.000-00 ou 00.000.000/0000-00">
+                    </div>
+                </div>
+
+                <!-- Dados de Contato -->
+                <div style="margin-bottom: 30px; padding: 20px; background: #f0fdf4; border-radius: 8px;">
+                    <h3 style="margin: 0 0 20px 0; color: #374151; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                        Informações de Contato
+                    </h3>
+
+                    <div class="form-group">
+                        <label for="cliente-telefone">Telefone Principal: <span style="color: #dc2626;">*</span></label>
+                        <input type="tel" id="cliente-telefone" class="form-control" placeholder="Ex: (92) 99999-9999" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-telefone-2">Telefone Alternativo:</label>
+                        <input type="tel" id="cliente-telefone-2" class="form-control" placeholder="Ex: (92) 3234-5678">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-email">E-mail: <span style="color: #dc2626;">*</span></label>
+                        <input type="email" id="cliente-email" class="form-control" placeholder="Ex: contato@empresa.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-whatsapp">WhatsApp:</label>
+                        <input type="tel" id="cliente-whatsapp" class="form-control" placeholder="Ex: (92) 99999-9999">
+                    </div>
+                </div>
+
+                <!-- Endereço -->
+                <div style="margin-bottom: 30px; padding: 20px; background: #fef3c7; border-radius: 8px;">
+                    <h3 style="margin: 0 0 20px 0; color: #374151; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        Endereço
+                    </h3>
+
+                    <div class="form-group">
+                        <label for="cliente-cep">CEP:</label>
+                        <input type="text" id="cliente-cep" class="form-control" placeholder="Ex: 69000-000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-endereco">Endereço:</label>
+                        <input type="text" id="cliente-endereco" class="form-control" placeholder="Ex: Rua, Avenida, etc.">
+                    </div>
+
+                    <div class="input-group">
+                        <div class="form-group">
+                            <label for="cliente-numero">Número:</label>
+                            <input type="text" id="cliente-numero" class="form-control" placeholder="Ex: 123">
+                        </div>
+                        <div class="form-group">
+                            <label for="cliente-complemento">Complemento:</label>
+                            <input type="text" id="cliente-complemento" class="form-control" placeholder="Ex: Sala 101">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="form-group">
+                            <label for="cliente-bairro">Bairro:</label>
+                            <input type="text" id="cliente-bairro" class="form-control" placeholder="Ex: Centro">
+                        </div>
+                        <div class="form-group">
+                            <label for="cliente-cidade">Cidade:</label>
+                            <input type="text" id="cliente-cidade" class="form-control" placeholder="Ex: Manaus">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-estado">Estado:</label>
+                        <select id="cliente-estado" class="form-control">
+                            <option value="">Selecione...</option>
+                            <option value="AC">Acre</option>
+                            <option value="AL">Alagoas</option>
+                            <option value="AP">Amapá</option>
+                            <option value="AM" selected>Amazonas</option>
+                            <option value="BA">Bahia</option>
+                            <option value="CE">Ceará</option>
+                            <option value="DF">Distrito Federal</option>
+                            <option value="ES">Espírito Santo</option>
+                            <option value="GO">Goiás</option>
+                            <option value="MA">Maranhão</option>
+                            <option value="MT">Mato Grosso</option>
+                            <option value="MS">Mato Grosso do Sul</option>
+                            <option value="MG">Minas Gerais</option>
+                            <option value="PA">Pará</option>
+                            <option value="PB">Paraíba</option>
+                            <option value="PR">Paraná</option>
+                            <option value="PE">Pernambuco</option>
+                            <option value="PI">Piauí</option>
+                            <option value="RJ">Rio de Janeiro</option>
+                            <option value="RN">Rio Grande do Norte</option>
+                            <option value="RS">Rio Grande do Sul</option>
+                            <option value="RO">Rondônia</option>
+                            <option value="RR">Roraima</option>
+                            <option value="SC">Santa Catarina</option>
+                            <option value="SP">São Paulo</option>
+                            <option value="SE">Sergipe</option>
+                            <option value="TO">Tocantins</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Preferências de Locação -->
+                <div style="margin-bottom: 30px; padding: 20px; background: #f5f3ff; border-radius: 8px;">
+                    <h3 style="margin: 0 0 20px 0; color: #374151; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+                            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+                            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+                            <path d="M10 6h4"/>
+                            <path d="M10 10h4"/>
+                            <path d="M10 14h4"/>
+                            <path d="M10 18h4"/>
+                        </svg>
+                        Preferências e Histórico
+                    </h3>
+
+                    <div class="form-group">
+                        <label for="cliente-espaco-preferido">Espaço Preferido:</label>
+                        <select id="cliente-espaco-preferido" class="form-control">
+                            <option value="">Nenhuma preferência</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-tipo-evento">Tipo de Evento Usual:</label>
+                        <input type="text" id="cliente-tipo-evento" class="form-control" placeholder="Ex: Treinamentos, Reuniões, Eventos Corporativos">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-observacoes">Observações / Notas:</label>
+                        <textarea id="cliente-observacoes" class="form-control" rows="4" placeholder="Informações adicionais sobre o cliente, preferências especiais, histórico de negociações, etc."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente-status">Status do Cliente:</label>
+                        <select id="cliente-status" class="form-control">
+                            <option value="ativo">Ativo</option>
+                            <option value="prospecto">Prospecto</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="reset" class="btn-primary btn-secondary">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        Limpar Formulário
+                    </button>
+                    <button type="submit" class="btn-primary btn-success">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Salvar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de Clientes -->
+        <div class="card">
+            <h2 class="card-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="23" y1="21" x2="19" y2="17"/>
+                    <circle cx="19" cy="14" r="3"/>
+                </svg>
+                Clientes Cadastrados
+            </h2>
+
+            <!-- Filtros -->
+            <div style="margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                <div class="input-group">
+                    <div class="form-group">
+                        <label for="filtro-busca">Buscar Cliente:</label>
+                        <input type="text" id="filtro-busca" class="form-control" placeholder="Nome, CPF/CNPJ, telefone ou e-mail...">
+                    </div>
+                    <div class="form-group">
+                        <label for="filtro-status">Status:</label>
+                        <select id="filtro-status" class="form-control">
+                            <option value="">Todos</option>
+                            <option value="ativo">Ativo</option>
+                            <option value="prospecto">Prospecto</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contador -->
+            <div style="margin-bottom: 15px; padding: 10px 15px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <p id="contador-clientes" style="margin: 0; font-size: 0.9em; color: #475569; text-align: center;">
+                    Carregando...
+                </p>
+            </div>
+
+            <!-- Tabela de Clientes -->
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nome / Razão Social</th>
+                            <th>Tipo</th>
+                            <th>Contato</th>
+                            <th>E-mail</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientes-body">
+                        <!-- Preenchido dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="clientes-vazio" style="display: none; text-align: center; padding: 40px; color: #6b7280;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 16px; opacity: 0.5;">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="23" y1="21" x2="19" y2="17"/>
+                    <circle cx="19" cy="14" r="3"/>
+                </svg>
+                <p style="font-size: 1.1em; margin: 0;">Nenhum cliente cadastrado</p>
+                <p style="font-size: 0.9em; margin-top: 8px;">Preencha o formulário acima para cadastrar o primeiro cliente</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <span id="notification-text">Operação realizada com sucesso!</span>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/validation.js"></script>
+    <script src="assets/js/data-manager.js"></script>
+    <script src="assets/js/cliente.js"></script>
+</body>
+</html>

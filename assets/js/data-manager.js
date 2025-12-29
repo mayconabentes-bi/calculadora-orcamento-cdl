@@ -254,6 +254,11 @@ class DataManager {
             erros.push('historicoCalculos deve ser um array');
         }
 
+        // Validar clientes (opcional)
+        if (dados.clientes !== undefined && !Array.isArray(dados.clientes)) {
+            erros.push('clientes deve ser um array');
+        }
+
         return {
             valido: erros.length === 0,
             erros
@@ -381,7 +386,8 @@ class DataManager {
                     exibirClassificacaoRisco: true
                 }
             },
-            historicoCalculos: []
+            historicoCalculos: [],
+            clientes: []
         };
     }
 
@@ -801,6 +807,99 @@ class DataManager {
             console.error('Erro ao limpar dados:', error);
             return false;
         }
+    }
+
+    // ========== MÉTODOS DE GESTÃO DE CLIENTES ==========
+
+    /**
+     * Obtém todos os clientes
+     */
+    obterClientes() {
+        if (!this.dados.clientes) {
+            this.dados.clientes = [];
+        }
+        return this.dados.clientes;
+    }
+
+    /**
+     * Obtém um cliente por ID
+     */
+    obterClientePorId(id) {
+        return this.obterClientes().find(cliente => cliente.id === id);
+    }
+
+    /**
+     * Adiciona um novo cliente
+     */
+    adicionarCliente(cliente) {
+        if (!this.dados.clientes) {
+            this.dados.clientes = [];
+        }
+
+        const novoCliente = {
+            id: Date.now(),
+            ...cliente,
+            dataCadastro: new Date().toISOString()
+        };
+
+        this.dados.clientes.push(novoCliente);
+        this.salvarDados();
+        return novoCliente;
+    }
+
+    /**
+     * Atualiza um cliente existente
+     */
+    atualizarCliente(cliente) {
+        if (!this.dados.clientes) {
+            this.dados.clientes = [];
+        }
+
+        const index = this.dados.clientes.findIndex(c => c.id === cliente.id);
+        if (index !== -1) {
+            this.dados.clientes[index] = {
+                ...this.dados.clientes[index],
+                ...cliente,
+                dataAtualizacao: new Date().toISOString()
+            };
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove um cliente
+     */
+    removerCliente(id) {
+        if (!this.dados.clientes) {
+            return false;
+        }
+
+        const index = this.dados.clientes.findIndex(cliente => cliente.id === id);
+        if (index !== -1) {
+            this.dados.clientes.splice(index, 1);
+            this.salvarDados();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Busca clientes por nome, e-mail ou telefone
+     */
+    buscarClientes(termo) {
+        if (!termo) {
+            return this.obterClientes();
+        }
+
+        const termoLower = termo.toLowerCase();
+        return this.obterClientes().filter(cliente => 
+            (cliente.nome && cliente.nome.toLowerCase().includes(termoLower)) ||
+            (cliente.email && cliente.email.toLowerCase().includes(termoLower)) ||
+            (cliente.telefone && cliente.telefone.includes(termo)) ||
+            (cliente.cpfCnpj && cliente.cpfCnpj.includes(termo))
+        );
     }
 
     // ========== MÉTODOS DE HISTÓRICO DE CÁLCULOS ==========
