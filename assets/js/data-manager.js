@@ -442,11 +442,13 @@ class DataManager {
     // ========== MÉTODOS DE GESTÃO DE LEADS ==========
 
     /**
-     * Salva um novo lead no sistema
+     * Salva um novo lead no sistema (Padrão Offline-First)
+     * 1. Salva SEMPRE no localStorage primeiro (backup imediato)
+     * 2. Tenta enviar para Firebase (não bloqueia se falhar)
      * @param {Object} lead - Dados do lead
-     * @returns {Object} Lead salvo
+     * @returns {Promise<Object>} Lead salvo
      */
-    salvarLead(lead) {
+    async salvarLead(lead) {
         if (!this.dados.leads) {
             this.dados.leads = [];
         }
@@ -475,17 +477,37 @@ class DataManager {
             observacoes: lead.observacoes ? lead.observacoes.trim() : ''
         };
 
-        // Verificar se já existe lead com mesmo ID
+        // PASSO 1: SEMPRE salvar no localStorage primeiro (backup imediato)
         const index = this.dados.leads.findIndex(l => l.id === novoLead.id);
         if (index !== -1) {
-            // Atualizar lead existente
             this.dados.leads[index] = novoLead;
         } else {
-            // Adicionar novo lead
             this.dados.leads.unshift(novoLead);
         }
-
         this.salvarDados();
+        console.log('Lead salvo no localStorage:', novoLead.id);
+
+        // PASSO 2: Tentar enviar para Firebase (não bloqueia se falhar)
+        if (this.firebaseEnabled) {
+            try {
+                const leadData = {
+                    ...novoLead,
+                    dataCadastro: new Date().toISOString()
+                };
+                
+                const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), leadData);
+                console.log('Lead sincronizado com Firebase, ID:', docRef.id);
+                
+                // Opcional: Atualizar o ID local com o ID do Firebase
+                novoLead.firebaseId = docRef.id;
+            } catch (error) {
+                // Firebase falhou, mas não quebra a aplicação (já está salvo localmente)
+                console.warn('Aviso: Não foi possível sincronizar com Firebase:', error.message);
+            }
+        } else {
+            console.warn('Firebase não disponível. Lead salvo apenas no localStorage.');
+        }
+
         return novoLead;
     }
 
@@ -1068,37 +1090,7 @@ class DataManager {
     // ========== MÉTODOS FIREBASE FIRESTORE (NOVOS) ==========
 
     /**
-     * Salva um lead (dados do cliente) no Firestore
-     * @param {Object} lead - Dados do lead/cliente
-     * @returns {Promise<Object>} Lead salvo com ID
-     */
-    async salvarLead(lead) {
-        if (!this.firebaseEnabled) {
-            console.warn('Firebase não disponível. Lead não foi salvo no Firestore.');
-            return null;
-        }
-
-        try {
-            const leadData = {
-                ...lead,
-                dataCadastro: new Date().toISOString()
-            };
-            
-            const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), leadData);
-            console.log('Lead salvo no Firestore com ID:', docRef.id);
-            
-            return {
-                id: docRef.id,
-                ...leadData
-            };
-        } catch (error) {
-            console.error('Erro ao salvar lead no Firestore:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Obtém orçamentos pendentes de aprovação
+     * Obtém orçamentos pendentes de aprovação (Firebase Exclusivo)
      * @returns {Promise<Array>} Lista de orçamentos aguardando aprovação
      */
     async obterOrcamentosPendentes() {
@@ -1122,40 +1114,11 @@ class DataManager {
                 });
             });
             
-            console.log(`Encontrados ${orcamentos.length} orçamentos pendentes`);
+            console.log(`Encontrados ${orcamentos.length} orçamentos pendentes no Firebase`);
             return orcamentos;
         } catch (error) {
             console.error('Erro ao obter orçamentos pendentes:', error);
             return [];
-        }
-    }
-
-    /**
-     * Atualiza o status de aprovação de um orçamento
-     * @param {string} id - ID do orçamento no Firestore
-     * @param {string} status - Novo status (APROVADO, REJEITADO, etc)
-     * @param {string} justificativa - Justificativa da decisão
-     * @returns {Promise<boolean>} True se atualizado com sucesso
-     */
-    async atualizarStatusOrcamento(id, status, justificativa = '') {
-        if (!this.firebaseEnabled) {
-            console.warn('Firebase não disponível.');
-            return false;
-        }
-
-        try {
-            const docRef = doc(db, this.COLLECTIONS.ORCAMENTOS, id);
-            await updateDoc(docRef, {
-                statusAprovacao: status,
-                justificativa: justificativa,
-                dataAtualizacao: new Date().toISOString()
-            });
-            
-            console.log(`Status do orçamento ${id} atualizado para ${status}`);
-            return true;
-        } catch (error) {
-            console.error('Erro ao atualizar status do orçamento:', error);
-            return false;
         }
     }
 
@@ -1399,31 +1362,36 @@ class DataManager {
     // ========== MÉTODOS DE HISTÓRICO DE CÁLCULOS ==========
 
     /**
-     * Adiciona um cálculo ao histórico
+     * Adiciona um cálculo ao histórico (Padrão Offline-First)
+     * 1. Salva SEMPRE no localStorage primeiro (backup imediato)
+     * 2. Tenta enviar para Firebase (não bloqueia se falhar)
      * Blindagem automática: Todos os dados passam pelo DataSanitizer antes do armazenamento
      * 
      * @param {Object} calculo - Dados do cálculo realizado
+     * @returns {Promise<Object>} Registro do histórico
      */
-    adicionarCalculoHistorico(calculo) {
+    async adicionarCalculoHistorico(calculo) {
         if (!this.dados.historicoCalculos) {
             this.dados.historicoCalculos = [];
         }
 
         // BLINDAGEM AUTOMÁTICA: Sanitizar dados do cliente antes de armazenar
-        // Garantir que nenhum dado subjetivo ou com viés seja guardado no LocalStorage
         const clienteNome = calculo.clienteNome || '';
         const clienteContato = calculo.clienteContato || '';
         
-        // Aplicar DataSanitizer para limpar dados
-        const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+        let nomeArmazenado = clienteNome;
+        let contatoArmazenado = clienteContato;
         
-        // Usar dados sanitizados (ou vazios se inválidos)
-        const nomeArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
-            ? resultadoSanitizacao.dados.clienteNome 
-            : '';
-        const contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
-            ? (resultadoSanitizacao.dados.clienteContato || '') 
-            : '';
+        // Aplicar DataSanitizer se disponível
+        if (typeof DataSanitizer !== 'undefined') {
+            const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+            nomeArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+                ? resultadoSanitizacao.dados.clienteNome 
+                : '';
+            contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+                ? (resultadoSanitizacao.dados.clienteContato || '') 
+                : '';
+        }
 
         // Calcular Lead Time (dias entre cotação e evento)
         let leadTimeDays = null;
@@ -1433,20 +1401,18 @@ class DataManager {
             dataEvento = calculo.dataEvento;
             const dataCotacao = new Date();
             const dataEventoObj = new Date(calculo.dataEvento);
-            
-            // Calcular diferença em dias
             const diferencaMs = dataEventoObj.getTime() - dataCotacao.getTime();
             leadTimeDays = Math.floor(diferencaMs / (1000 * 60 * 60 * 24));
         }
 
-        // Inferir turno predominante baseado nos horários
+        // Inferir turno predominante
         let turnoPredominante = this.inferirTurnoPredominante(calculo.horarios);
 
         const registroHistorico = {
             id: Date.now(),
             data: new Date().toISOString(),
-            cliente: nomeArmazenado,      // Dados sanitizados
-            contato: contatoArmazenado,   // Dados sanitizados
+            cliente: nomeArmazenado,
+            contato: contatoArmazenado,
             sala: {
                 id: calculo.sala.id,
                 nome: calculo.sala.nome,
@@ -1462,25 +1428,39 @@ class DataManager {
             valorMargem: calculo.resultado.valorMargem,
             valorDesconto: calculo.resultado.valorDesconto,
             descontoPercent: calculo.desconto * 100,
-            convertido: false,  // Variável target para modelo de regressão logística
-            // Novos campos para ML
+            convertido: false,
             dataEvento: dataEvento,
             leadTimeDays: leadTimeDays,
             turnoPredominante: turnoPredominante,
-            // Campos para workflow de aprovação
             statusAprovacao: calculo.statusAprovacao || 'AGUARDANDO_APROVACAO',
             justificativaRejeicao: null,
             dataAprovacao: null,
             aprovadoPor: null
         };
 
-        // Limitar histórico a 500 registros mais recentes (amostragem estatística suficiente)
+        // PASSO 1: SEMPRE salvar no localStorage primeiro (backup imediato)
         this.dados.historicoCalculos.unshift(registroHistorico);
         if (this.dados.historicoCalculos.length > 500) {
             this.dados.historicoCalculos = this.dados.historicoCalculos.slice(0, 500);
         }
-
         this.salvarDados();
+        console.log('Cálculo salvo no localStorage:', registroHistorico.id);
+
+        // PASSO 2: Tentar enviar para Firebase (não bloqueia se falhar)
+        if (this.firebaseEnabled) {
+            try {
+                const docRef = await addDoc(collection(db, this.COLLECTIONS.ORCAMENTOS), registroHistorico);
+                console.log('Cálculo sincronizado com Firebase, ID:', docRef.id);
+                
+                // Opcional: Atualizar com o ID do Firebase
+                registroHistorico.firebaseId = docRef.id;
+            } catch (error) {
+                console.warn('Aviso: Não foi possível sincronizar cálculo com Firebase:', error.message);
+            }
+        } else {
+            console.warn('Firebase não disponível. Cálculo salvo apenas no localStorage.');
+        }
+
         return registroHistorico;
     }
 
@@ -1599,44 +1579,65 @@ class DataManager {
     }
 
     /**
-     * Atualiza o status de aprovação de um orçamento
-     * @param {number} id - ID do orçamento no histórico
-     * @param {string} novoStatus - Novo status ('APROVADO' ou 'REPROVADO')
-     * @param {string} justificativa - Justificativa (obrigatória para REPROVADO)
-     * @param {string} aprovadoPor - Nome de quem aprovou/reprovou (opcional)
-     * @returns {boolean} True se atualizado com sucesso
+     * Atualiza o status de aprovação de um orçamento (Híbrido)
+     * Atualiza no Firebase primeiro, depois no localStorage como fallback
+     * @param {string|number} id - ID do orçamento (Firebase string ou localStorage number)
+     * @param {string} status - Novo status (APROVADO, REJEITADO, AGUARDANDO_APROVACAO)
+     * @param {string} justificativa - Justificativa da decisão
+     * @returns {Promise<boolean>} True se atualizado com sucesso
      */
-    atualizarStatusOrcamento(id, novoStatus, justificativa = null, aprovadoPor = null) {
-        if (!this.dados.historicoCalculos) {
-            return false;
-        }
-
+    async atualizarStatusOrcamento(id, status, justificativa = '') {
         // Validar status
         const statusValidos = ['AGUARDANDO_APROVACAO', 'APROVADO', 'REPROVADO'];
-        if (!statusValidos.includes(novoStatus)) {
-            console.error('Status inválido:', novoStatus);
+        if (!statusValidos.includes(status)) {
+            console.error('Status inválido:', status);
             return false;
         }
 
         // Se REPROVADO, justificativa é obrigatória
-        if (novoStatus === 'REPROVADO' && (!justificativa || justificativa.trim() === '')) {
+        if (status === 'REPROVADO' && (!justificativa || justificativa.trim() === '')) {
             console.error('Justificativa é obrigatória para REPROVADO');
             return false;
         }
 
-        const registro = this.dados.historicoCalculos.find(calc => calc.id === id);
+        // Tentar atualizar no Firebase primeiro
+        if (this.firebaseEnabled && typeof id === 'string') {
+            try {
+                const docRef = doc(db, this.COLLECTIONS.ORCAMENTOS, id);
+                await updateDoc(docRef, {
+                    statusAprovacao: status,
+                    justificativa: justificativa,
+                    dataAtualizacao: new Date().toISOString()
+                });
+                
+                console.log(`Status do orçamento ${id} atualizado no Firebase para ${status}`);
+                return true;
+            } catch (error) {
+                console.error('Erro ao atualizar status no Firebase:', error);
+                // Continua para tentar atualizar no localStorage
+            }
+        }
+
+        // Fallback: Atualizar no localStorage (se ID for numérico ou Firebase falhou)
+        if (!this.dados.historicoCalculos) {
+            return false;
+        }
+
+        const numericId = typeof id === 'string' ? parseInt(id) : id;
+        const registro = this.dados.historicoCalculos.find(calc => calc.id === numericId);
+        
         if (registro) {
-            registro.statusAprovacao = novoStatus;
+            registro.statusAprovacao = status;
             registro.dataAprovacao = new Date().toISOString();
-            registro.aprovadoPor = aprovadoPor;
             
-            if (novoStatus === 'REPROVADO') {
+            if (status === 'REPROVADO') {
                 registro.justificativaRejeicao = justificativa;
             } else {
                 registro.justificativaRejeicao = null;
             }
 
             this.salvarDados();
+            console.log(`Status do orçamento ${numericId} atualizado no localStorage para ${status}`);
             return true;
         }
 
@@ -1924,17 +1925,48 @@ class DataManager {
     // ========== MÉTODOS DE ANÁLISE DE DADOS (OLAP) ==========
 
     /**
-     * Obtém dados analíticos agregados para Dashboard
-     * Agrupa orçamentos por unidade e calcula métricas financeiras
-     * @returns {Object} Dados agregados para visualização
+     * Obtém dados analíticos agregados para Dashboard (Versão Assíncrona)
+     * Prioriza Firebase, com fallback para localStorage
+     * @returns {Promise<Object>} Dados agregados para visualização
      */
-    obterDadosAnaliticos() {
+    async obterDadosAnaliticosAsync() {
+        // Tentar obter dados do Firebase primeiro
+        if (this.firebaseEnabled) {
+            try {
+                const querySnapshot = await getDocs(collection(db, this.COLLECTIONS.ORCAMENTOS));
+                const todosOrcamentos = [];
+                querySnapshot.forEach((doc) => {
+                    todosOrcamentos.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                if (todosOrcamentos.length > 0) {
+                    console.log(`Dados analíticos carregados do Firebase: ${todosOrcamentos.length} orçamentos`);
+                    return this._processarDadosAnaliticos(todosOrcamentos);
+                }
+            } catch (error) {
+                console.warn('Erro ao obter dados do Firebase, usando fallback para localStorage:', error.message);
+            }
+        }
+
+        // Fallback: usar dados do localStorage
+        console.log('Usando dados analíticos do localStorage');
         const historico = this.obterHistoricoCalculos();
+        return this._processarDadosAnaliticos(historico);
+    }
+
+    /**
+     * Processa dados analíticos (lógica compartilhada)
+     * @private
+     * @param {Array} orcamentos - Lista de orçamentos para processar
+     * @returns {Object} Dados agregados
+     */
+    _processarDadosAnaliticos(orcamentos) {
+        const ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL = 0.3;
         
-        // Constante para estimativa de custos fixos quando não disponível
-        const ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL = 0.3; // 30% do subtotal
-        
-        if (historico.length === 0) {
+        if (orcamentos.length === 0) {
             return {
                 kpis: {
                     receitaTotal: 0,
@@ -1951,7 +1983,7 @@ class DataManager {
         const dataLimite = new Date();
         dataLimite.setMonth(dataLimite.getMonth() - 12);
         
-        const historicoRecente = historico.filter(calc => {
+        const historicoRecente = orcamentos.filter(calc => {
             const dataCalc = new Date(calc.data);
             return dataCalc >= dataLimite;
         });
@@ -1979,7 +2011,6 @@ class DataManager {
         const porUnidade = {};
         
         // Evolução mensal (últimos 6 meses)
-        const evolucaoMensal = [];
         const dataLimite6Meses = new Date();
         dataLimite6Meses.setMonth(dataLimite6Meses.getMonth() - 6);
         
@@ -1989,7 +2020,7 @@ class DataManager {
             const subtotalSemMargem = calc.subtotalSemMargem || 0;
             const convertido = calc.convertido === true;
             
-            // Verificar status de aprovação (para compatibilidade com registros antigos)
+            // Verificar status de aprovação
             const statusAprovacao = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
             
             // KPIs gerais - APENAS incluir orçamentos APROVADOS
@@ -2012,11 +2043,9 @@ class DataManager {
                     };
                 }
                 
-                // Calcular custos com validação para evitar valores negativos
+                // Calcular custos
                 let custoFixo = calc.custoOperacionalBase || (subtotalSemMargem * ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL);
-                // Garantir que custoFixo não exceda subtotalSemMargem
                 custoFixo = Math.min(custoFixo, subtotalSemMargem);
-                
                 const custoVariavel = Math.max(0, subtotalSemMargem - custoFixo);
                 const margemContribuicao = valorFinal - custoVariavel;
                 
@@ -2031,10 +2060,8 @@ class DataManager {
         // Calcular evolução mensal
         const mesesMap = {};
         historicoRecente.forEach(calc => {
-            // Verificar status de aprovação
             const statusAprovacao = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
             
-            // APENAS incluir APROVADOS na evolução mensal
             if (statusAprovacao === 'APROVADO') {
                 const dataCalc = new Date(calc.data);
                 if (dataCalc >= dataLimite6Meses) {
@@ -2063,16 +2090,16 @@ class DataManager {
         });
         
         // Converter para array e ordenar
+        const evolucaoMensal = [];
         Object.keys(mesesMap).forEach(mesAno => {
             const mes = mesesMap[mesAno];
-            // Calcular percentual de margem líquida
             mes.margemLiquidaPercent = mes.receita > 0 ? (mes.margemLiquida / mes.receita * 100) : 0;
             evolucaoMensal.push(mes);
         });
         
         evolucaoMensal.sort((a, b) => a.mes.localeCompare(b.mes));
         
-        // Calcular médias - APENAS para orçamentos APROVADOS
+        // Calcular médias
         const historicoAprovado = historicoRecente.filter(calc => {
             const statusAprovacao = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
             return statusAprovacao === 'APROVADO';
@@ -2091,6 +2118,16 @@ class DataManager {
             porUnidade: porUnidade,
             evolucaoMensal: evolucaoMensal
         };
+    }
+
+    /**
+     * Obtém dados analíticos agregados para Dashboard (Versão Síncrona - Mantida para compatibilidade)
+     * Agrupa orçamentos por unidade e calcula métricas financeiras
+     * @returns {Object} Dados agregados para visualização
+     */
+    obterDadosAnaliticos() {
+        const historico = this.obterHistoricoCalculos();
+        return this._processarDadosAnaliticos(historico);
     }
 
     // ========== MÉTODOS DE CONFIGURAÇÃO DE BI ==========
