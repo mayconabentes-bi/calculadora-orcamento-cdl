@@ -895,9 +895,9 @@ class DataManager {
 
         const termoLower = termo.toLowerCase();
         return this.obterClientes().filter(cliente => 
-            cliente.nome.toLowerCase().includes(termoLower) ||
-            cliente.email.toLowerCase().includes(termoLower) ||
-            cliente.telefone.includes(termo) ||
+            (cliente.nome && cliente.nome.toLowerCase().includes(termoLower)) ||
+            (cliente.email && cliente.email.toLowerCase().includes(termoLower)) ||
+            (cliente.telefone && cliente.telefone.includes(termo)) ||
             (cliente.cpfCnpj && cliente.cpfCnpj.includes(termo))
         );
     }

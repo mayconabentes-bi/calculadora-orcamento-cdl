@@ -235,7 +235,8 @@ function filtrarClientes() {
     
     for (let row of rows) {
         const texto = row.textContent.toLowerCase();
-        const clienteStatus = row.querySelector('span').textContent.toLowerCase();
+        const statusSpan = row.querySelector('span');
+        const clienteStatus = statusSpan ? statusSpan.textContent.toLowerCase() : '';
         
         const matchBusca = !busca || texto.includes(busca);
         const matchStatus = !status || clienteStatus.includes(status);
