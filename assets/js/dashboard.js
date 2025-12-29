@@ -409,6 +409,9 @@ class DashboardController {
 // Instância global do dashboard
 let dashboardController = null;
 
+// Senha da Superintendência (em produção, deve ser gerenciada de forma mais segura)
+const SENHA_SUPERINTENDENCIA = 'CDL2025';
+
 /**
  * Inicializa o dashboard quando a aba for aberta
  */
@@ -417,6 +420,9 @@ function inicializarDashboard() {
         dashboardController = new DashboardController();
     }
     dashboardController.inicializar();
+    
+    // Configurar event listeners para área restrita
+    configurarAreaRestrita();
 }
 
 /**
@@ -425,5 +431,208 @@ function inicializarDashboard() {
 function atualizarDashboard() {
     if (dashboardController) {
         dashboardController.atualizar();
+    }
+}
+
+/**
+ * Configura os event listeners para a área restrita da superintendência
+ */
+function configurarAreaRestrita() {
+    // Botão de acessar área restrita
+    const btnAcessar = document.getElementById('btn-acessar-superintendencia');
+    if (btnAcessar) {
+        btnAcessar.addEventListener('click', verificarAcessoSuperintendencia);
+    }
+
+    // Permitir Enter na senha
+    const senhaInput = document.getElementById('senha-superintendencia');
+    if (senhaInput) {
+        senhaInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verificarAcessoSuperintendencia();
+            }
+        });
+    }
+
+    // Botão de sair
+    const btnSair = document.getElementById('btn-sair-superintendencia');
+    if (btnSair) {
+        btnSair.addEventListener('click', sairAreaSuperintendencia);
+    }
+}
+
+/**
+ * Verifica a senha e autoriza acesso à área restrita
+ */
+function verificarAcessoSuperintendencia() {
+    const senhaInput = document.getElementById('senha-superintendencia');
+    const senha = senhaInput.value;
+
+    if (senha === SENHA_SUPERINTENDENCIA) {
+        // Acesso autorizado
+        document.getElementById('superintendencia-login').style.display = 'none';
+        document.getElementById('superintendencia-aprovacoes').style.display = 'block';
+        
+        // Carregar tabela de aprovações pendentes
+        carregarTabelaAprovacoes();
+        
+        // Limpar senha
+        senhaInput.value = '';
+        
+        mostrarNotificacao('Acesso autorizado à Área Restrita');
+    } else {
+        // Acesso negado
+        mostrarNotificacao('Senha incorreta! Acesso negado.', 3000);
+        senhaInput.value = '';
+        senhaInput.focus();
+    }
+}
+
+/**
+ * Sai da área restrita
+ */
+function sairAreaSuperintendencia() {
+    document.getElementById('superintendencia-login').style.display = 'block';
+    document.getElementById('superintendencia-aprovacoes').style.display = 'none';
+    document.getElementById('senha-superintendencia').value = '';
+    
+    mostrarNotificacao('Sessão encerrada');
+}
+
+/**
+ * Carrega a tabela de orçamentos pendentes de aprovação
+ */
+function carregarTabelaAprovacoes() {
+    const tbody = document.getElementById('aprovacoes-body');
+    const semPendentes = document.getElementById('sem-pendentes');
+    const contador = document.getElementById('contador-pendentes');
+    
+    if (!tbody) return;
+
+    // Obter orçamentos aguardando aprovação
+    const orcamentosPendentes = dataManager.obterOrcamentosPorStatus('AGUARDANDO_APROVACAO');
+    
+    // Atualizar contador
+    if (contador) {
+        const totalPendentes = orcamentosPendentes.length;
+        contador.innerHTML = `
+            <p style="margin: 0; font-size: 0.9em; color: #475569; text-align: center;">
+                <strong style="color: #0284c7; font-size: 1.2em;">${totalPendentes}</strong>
+                orçamento${totalPendentes !== 1 ? 's' : ''} aguardando aprovação
+            </p>
+        `;
+    }
+
+    if (orcamentosPendentes.length === 0) {
+        tbody.innerHTML = '';
+        semPendentes.style.display = 'block';
+        return;
+    }
+
+    semPendentes.style.display = 'none';
+
+    // Renderizar linhas da tabela
+    tbody.innerHTML = '';
+    
+    orcamentosPendentes.forEach(orc => {
+        const tr = document.createElement('tr');
+        
+        // Formatar data
+        const data = new Date(orc.data).toLocaleDateString('pt-BR');
+        
+        // Formatar valores
+        const valorFinal = CoreUtils.formatarMoeda(orc.valorFinal);
+        const margem = orc.margemLiquida.toFixed(1) + '%';
+        
+        // Badge de risco
+        let badgeRisco = '';
+        const risco = orc.classificacaoRisco;
+        if (risco === 'ALTO') {
+            badgeRisco = `<span style="display: inline-block; padding: 4px 8px; background: #fee2e2; color: #dc2626; border-radius: 4px; font-size: 0.85em; font-weight: 600;">ALTO</span>`;
+        } else if (risco === 'MÉDIO') {
+            badgeRisco = `<span style="display: inline-block; padding: 4px 8px; background: #fef3c7; color: #d97706; border-radius: 4px; font-size: 0.85em; font-weight: 600;">MÉDIO</span>`;
+        } else {
+            badgeRisco = `<span style="display: inline-block; padding: 4px 8px; background: #dcfce7; color: #16a34a; border-radius: 4px; font-size: 0.85em; font-weight: 600;">BAIXO</span>`;
+        }
+        
+        tr.innerHTML = `
+            <td>${data}</td>
+            <td>${orc.cliente || 'Não informado'}</td>
+            <td>${orc.sala.unidade} - ${orc.sala.nome}</td>
+            <td><strong>R$ ${valorFinal}</strong></td>
+            <td>${margem}</td>
+            <td>${badgeRisco}</td>
+            <td style="white-space: nowrap;">
+                <button class="btn-primary btn-success" onclick="aprovarOrcamento(${orc.id})" style="padding: 6px 12px; font-size: 0.85em; margin-right: 5px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Aprovar
+                </button>
+                <button class="btn-primary btn-danger" onclick="reprovarOrcamento(${orc.id})" style="padding: 6px 12px; font-size: 0.85em;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Reprovar
+                </button>
+            </td>
+        `;
+        
+        tbody.appendChild(tr);
+    });
+}
+
+/**
+ * Aprova um orçamento
+ * @param {number} id - ID do orçamento
+ */
+function aprovarOrcamento(id) {
+    if (confirm('Confirma a APROVAÇÃO deste orçamento?')) {
+        const sucesso = dataManager.atualizarStatusOrcamento(id, 'APROVADO', null, 'Superintendência');
+        
+        if (sucesso) {
+            mostrarNotificacao('Orçamento APROVADO com sucesso!');
+            carregarTabelaAprovacoes();
+            
+            // Atualizar dashboard de KPIs
+            if (dashboardController) {
+                dashboardController.atualizar();
+            }
+        } else {
+            mostrarNotificacao('Erro ao aprovar orçamento');
+        }
+    }
+}
+
+/**
+ * Reprova um orçamento (solicita justificativa)
+ * @param {number} id - ID do orçamento
+ */
+function reprovarOrcamento(id) {
+    const justificativa = prompt('Para REPROVAR este orçamento, informe a justificativa (obrigatória):');
+    
+    if (justificativa === null) {
+        // Usuário cancelou
+        return;
+    }
+    
+    if (!justificativa || justificativa.trim() === '') {
+        mostrarNotificacao('Justificativa é obrigatória para reprovar um orçamento!');
+        return;
+    }
+    
+    const sucesso = dataManager.atualizarStatusOrcamento(id, 'REPROVADO', justificativa.trim(), 'Superintendência');
+    
+    if (sucesso) {
+        mostrarNotificacao('Orçamento REPROVADO. Justificativa registrada.');
+        carregarTabelaAprovacoes();
+        
+        // Atualizar dashboard de KPIs
+        if (dashboardController) {
+            dashboardController.atualizar();
+        }
+    } else {
+        mostrarNotificacao('Erro ao reprovar orçamento');
     }
 }
