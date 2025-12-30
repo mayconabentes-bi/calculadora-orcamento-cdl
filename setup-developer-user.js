@@ -250,8 +250,8 @@ async function createDeveloperUser() {
 // Executar a função
 createDeveloperUser()
   .then(() => {
-    console.log('[SGQ-SECURITY] Processo concluído com sucesso');
-    console.log('[SGQ-SECURITY] Credenciais carregadas com sucesso\n');
+    console.log('[SGQ-SECURITY] Operação concluída com sucesso');
+    console.log('[SGQ-SECURITY] Todas as operações executadas corretamente\n');
     process.exit(0);
   })
   .catch((error) => {

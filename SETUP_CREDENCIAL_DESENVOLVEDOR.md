@@ -39,8 +39,20 @@ Dependências instaladas:
    - O arquivo JSON será baixado (NÃO salvar no repositório)
 
 2. **Criar arquivo .env:**
+   
+   **Linux/macOS:**
    ```bash
    cp .env.example .env
+   ```
+   
+   **Windows (PowerShell):**
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+   
+   **Windows (CMD):**
+   ```cmd
+   copy .env.example .env
    ```
 
 3. **Editar o arquivo .env com suas credenciais reais:**
