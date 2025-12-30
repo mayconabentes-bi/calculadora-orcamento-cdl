@@ -31,13 +31,65 @@ yarn.lock
 dist/
 build/
 
-# Environment
+# Environment variables (Zero Trust Security)
 .env
+.env.*
+!.env.example
+!.env.template
 .env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+.env.backup
+*.env
 
-# Firebase credentials
+# Firebase credentials (Zero Trust Security)
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
+*-adminsdk-*.json
+firebase-adminsdk-*.json
+firebaseServiceAccountKey.json
+firebase-service-account.json
+firebase-credentials.json
+.firebaserc.local
+firebase-debug.log
+firebase-debug.*.log
+
+# Cloud credentials (GCP, AWS, Azure)
+gcloud-service-key.json
+*-service-account*.json
+credentials.json
+google-credentials.json
+gcp-key.json
+aws-credentials.txt
+azure-credentials.json
+
+# API Keys and secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+secret.txt
+secrets.txt
+api-key.txt
+api-keys.txt
+.secrets
+.credentials
+
+# Private keys
+private-key*
+privatekey*
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
 
 # Test artifacts
 coverage/
