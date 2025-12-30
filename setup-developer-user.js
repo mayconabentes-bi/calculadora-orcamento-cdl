@@ -88,7 +88,7 @@ try {
     console.log('[SGQ-SECURITY] Método: Environment Variables (Zero Trust)\n');
   } else {
     console.log('[SGQ-SECURITY] ℹ️  Firebase Admin SDK já inicializado (reutilizando instância)');
-    console.log(`[SGQ-SECURITY] Project ID: ${admin.app().options.credential.projectId}\n`);
+    console.log(`[SGQ-SECURITY] Project ID: ${process.env.FIREBASE_PROJECT_ID}\n`);
   }
 } catch (error) {
   console.error('[SGQ-SECURITY] ❌ FALHA CRÍTICA: Erro na inicialização do Firebase Admin');
