@@ -1595,23 +1595,38 @@ class DataManager {
     /**
      * Atualiza o status de aprovação de um orçamento (Híbrido)
      * Atualiza no Firebase primeiro, depois no localStorage como fallback
+     * 
+     * DATA INTEGRITY GATE - SGQ v5.1.0:
+     * - Para status REPROVADO: justificativa obrigatória com mínimo 10 caracteres
+     * - Flag 'convertido' setada como true EXCLUSIVAMENTE para status APROVADO
+     * - Garante governança financeira e rastreabilidade de decisões executivas
+     * 
      * @param {string|number} id - ID do orçamento (Firebase string ou localStorage number)
      * @param {string} status - Novo status (APROVADO, REPROVADO, AGUARDANDO_APROVACAO)
-     * @param {string} justificativa - Justificativa da decisão (obrigatória se REPROVADO)
+     * @param {string} justificativa - Justificativa da decisão (obrigatória se REPROVADO, min 10 caracteres)
      * @returns {Promise<boolean>} True se atualizado com sucesso
+     * @throws {Error} Se validações de integridade falharem
      */
     async atualizarStatusOrcamento(id, status, justificativa = '') {
         // Validar status
         const statusValidos = ['AGUARDANDO_APROVACAO', 'APROVADO', 'REPROVADO'];
         if (!statusValidos.includes(status)) {
-            console.error('Status inválido:', status);
-            return false;
+            const erro = `Status inválido: ${status}. Deve ser um de: ${statusValidos.join(', ')}`;
+            console.error(erro);
+            throw new Error(erro);
         }
 
-        // Se REPROVADO, justificativa é obrigatória
-        if (status === 'REPROVADO' && (!justificativa || justificativa.trim() === '')) {
-            console.error('Justificativa é obrigatória para REPROVADO');
-            return false;
+        // DATA INTEGRITY GATE: Validação estrita para REPROVADO
+        // Justificativa é obrigatória e deve ter no mínimo 10 caracteres
+        if (status === 'REPROVADO') {
+            const justificativaTrimmed = justificativa ? justificativa.trim() : '';
+            
+            if (!justificativaTrimmed || justificativaTrimmed.length < 10) {
+                const erro = 'DATA INTEGRITY VIOLATION: Status REPROVADO requer justificativa com mínimo de 10 caracteres. ' +
+                            'Esta validação garante rastreabilidade e governança de decisões executivas.';
+                console.error(erro);
+                throw new Error(erro);
+            }
         }
 
         // Tentar atualizar no Firebase primeiro
@@ -1624,9 +1639,12 @@ class DataManager {
                     dataAtualizacao: new Date().toISOString()
                 };
                 
-                // Se aprovado, marcar como convertido
+                // DATA INTEGRITY GATE: Flag 'convertido' setada EXCLUSIVAMENTE para APROVADO
                 if (status === 'APROVADO') {
                     updateData.convertido = true;
+                } else {
+                    // Garantir que convertido é false para outros status (evita inconsistências)
+                    updateData.convertido = false;
                 }
                 
                 await updateDoc(docRef, updateData);
@@ -1651,9 +1669,12 @@ class DataManager {
             registro.statusAprovacao = status;
             registro.dataAprovacao = new Date().toISOString();
             
-            // Se aprovado, marcar como convertido
+            // DATA INTEGRITY GATE: Flag 'convertido' setada EXCLUSIVAMENTE para APROVADO
             if (status === 'APROVADO') {
                 registro.convertido = true;
+            } else {
+                // Garantir que convertido é false para outros status (evita inconsistências)
+                registro.convertido = false;
             }
             
             if (status === 'REPROVADO') {
@@ -1952,6 +1973,16 @@ class DataManager {
 
     /**
      * Obtém dados analíticos agregados para Dashboard (Versão Assíncrona)
+     * 
+     * DASHBOARD STRATEGIC FILTERING - SGQ v5.1.0:
+     * Filtra dados com alta precisão, separando:
+     * - Pipeline de Vendas: Todos os orçamentos (para projeção de demanda)
+     * - Receita Confirmada: Apenas orçamentos com status APROVADO
+     * 
+     * Esta separação evita o Viés de Sobrevivência Invertido e garante
+     * que os gráficos de "Participação na Receita" e "Evolução Mensal"
+     * reflitam APENAS dados aprovados.
+     * 
      * Prioriza Firebase, com fallback para localStorage
      * @returns {Promise<Object>} Dados agregados para visualização
      */
@@ -1985,9 +2016,20 @@ class DataManager {
 
     /**
      * Processa dados analíticos (lógica compartilhada)
+     * 
+     * DASHBOARD STRATEGIC FILTERING - SGQ v5.1.0:
+     * Implementa separação rigorosa de KPIs em duas camadas:
+     * 1. "Pipeline de Vendas" (Todos os orçamentos) - Para projeção de demanda
+     * 2. "Receita Confirmada" (Apenas orçamentos APROVADOS) - Para análise financeira real
+     * 
+     * Esta separação elimina o Viés de Sobrevivência Invertido, garantindo que:
+     * - Gráficos de participação na receita reflitam APENAS dados aprovados
+     * - Evolução mensal considere APENAS receita confirmada
+     * - KPIs financeiros sejam baseados em dados confiáveis
+     * 
      * @private
      * @param {Array} orcamentos - Lista de orçamentos para processar
-     * @returns {Object} Dados agregados
+     * @returns {Object} Dados agregados com KPIs estratificados
      */
     _processarDadosAnaliticos(orcamentos) {
         const ESTIMATIVA_CUSTOS_FIXOS_PERCENTUAL = 0.3;
@@ -2028,6 +2070,8 @@ class DataManager {
         }
         
         // Calcular KPIs gerais
+        // NOTA: receitaTotal = soma de todos os orçamentos APROVADOS (Pipeline Aprovado)
+        //       receitaConfirmada = soma dos orçamentos APROVADOS + CONVERTIDOS (Receita Real)
         let receitaTotal = 0;
         let receitaConfirmada = 0;
         let somaMargens = 0;
@@ -2050,6 +2094,8 @@ class DataManager {
             const statusAprovacao = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
             
             // KPIs gerais - APENAS incluir orçamentos APROVADOS
+            // receitaTotal = Pipeline Aprovado (todos os APROVADOS, convertidos ou não)
+            // receitaConfirmada = Receita Real (apenas APROVADOS que foram CONVERTIDOS)
             if (statusAprovacao === 'APROVADO') {
                 receitaTotal += valorFinal;
                 if (convertido) {
