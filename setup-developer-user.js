@@ -1,10 +1,17 @@
 /**
  * Script para criar o usuário inicial do desenvolvedor
  * 
+ * ⚠️  AVISO DE SEGURANÇA:
+ * Este script usa serviceAccountKey.json (método legado).
+ * Para melhor segurança, migre para variáveis de ambiente.
+ * Consulte: ENVIRONMENT_VARIABLES_GUIDE.md
+ * 
  * Uso:
  * 1. Instale o Firebase Admin SDK: npm install firebase-admin
  * 2. Baixe a chave de serviço do Firebase Console e salve como serviceAccountKey.json
  * 3. Execute: node setup-developer-user.js
+ * 
+ * ⚠️  IMPORTANTE: NUNCA commite serviceAccountKey.json no Git!
  * 
  * Credenciais criadas:
  * - Email: mayconabentes@gmail.com
@@ -13,6 +20,10 @@
  */
 
 const admin = require('firebase-admin');
+
+console.log('⚠️  AVISO DE SEGURANÇA: Este script usa método legado (serviceAccountKey.json)');
+console.log('   Para melhor segurança, migre para variáveis de ambiente.');
+console.log('   Consulte: ENVIRONMENT_VARIABLES_GUIDE.md\n');
 
 // Verificar se o arquivo de chave de serviço existe
 try {
@@ -29,6 +40,9 @@ try {
   console.error('2. Ir em Project Settings > Service Accounts');
   console.error('3. Clicar em "Generate new private key"');
   console.error('4. Salvar o arquivo como "serviceAccountKey.json" na raiz do projeto');
+  console.error('');
+  console.error('⚠️  IMPORTANTE: NUNCA commite serviceAccountKey.json no Git!');
+  console.error('   O arquivo já está no .gitignore para proteção.');
   console.error('');
   console.error('Alternativamente, crie o usuário manualmente seguindo as instruções em:');
   console.error('setup-initial-user.md');
