@@ -30,6 +30,15 @@ O sistema conta com autenticação via Firebase Authentication para proteger o a
 * **Gestão de Usuários**: Interface administrativa para criar e gerenciar usuários
 * **Roles e Permissões**: Suporte para usuários, administradores e superintendentes
 
+### 🔒 Documentação de Segurança
+Para informações completas sobre segurança e gerenciamento de credenciais:
+* **[SECURITY_README.md](./SECURITY_README.md)** - 🔐 Hub central de segurança e melhores práticas
+* **[SECURITY_REMEDIATION_GUIDE.md](./SECURITY_REMEDIATION_GUIDE.md)** - Resposta a incidentes e limpeza de credenciais
+* **[ENVIRONMENT_VARIABLES_GUIDE.md](./ENVIRONMENT_VARIABLES_GUIDE.md)** - Migração para arquitetura Zero Trust
+* **[FIREBASE_CREDENTIALS_EXPLAINED.md](./FIREBASE_CREDENTIALS_EXPLAINED.md)** - Diferenças entre credenciais públicas e privadas
+
+⚠️ **IMPORTANTE**: Nunca commite arquivos de credenciais (`.json`, `.env`) no Git! Use variáveis de ambiente.
+
 ### 🚀 Setup Inicial de Credenciais
 Para configurar sua credencial de acesso, consulte:
 * **[GUIA_RAPIDO_LOGIN.md](./GUIA_RAPIDO_LOGIN.md)** - Guia rápido de configuração (5 minutos)
