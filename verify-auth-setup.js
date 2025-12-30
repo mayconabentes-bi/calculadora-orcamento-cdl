@@ -75,7 +75,7 @@ const requiredVars = [
 
 let allVarsPresent = true;
 requiredVars.forEach(varName => {
-  if (process.env[varName]) {
+  if (process.env[varName] && process.env[varName].trim() !== '') {
     console.log(`   ✅ ${varName} is set`);
   } else {
     console.log(`   ❌ ${varName} is NOT set`);

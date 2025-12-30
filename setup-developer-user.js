@@ -26,7 +26,7 @@ const requiredEnvVars = [
 
 console.log('🔐 Verificando configuração de segurança...\n');
 
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName] || process.env[varName].trim() === '');
 if (missingVars.length > 0) {
   console.error('❌ Erro: Variáveis de ambiente obrigatórias não configuradas:');
   missingVars.forEach(varName => {
@@ -140,7 +140,7 @@ async function createDeveloperUser() {
     const userRecord = await auth.createUser({
       email: developerData.email,
       password: developerData.password,
-      emailVerified: true,
+      emailVerified: false,
       displayName: developerData.nome,
       disabled: false
     });
