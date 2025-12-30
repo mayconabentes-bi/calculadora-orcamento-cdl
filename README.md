@@ -24,8 +24,26 @@ Para garantir o rigor técnico, o sistema opera com as seguintes variáveis:
 * **Qualitativas/Categóricas**: Unidade, espaços e turnos predominantes.
 * **Modelagem Preditiva**: Foco em identificar a probabilidade de conversão com base em variáveis de confusão e preditores históricos.
 
+## Autenticação e Segurança
+O sistema conta com autenticação via Firebase Authentication para proteger o acesso ao dashboard administrativo:
+* **Login Seguro**: Email e senha com validação de usuário ativo
+* **Gestão de Usuários**: Interface administrativa para criar e gerenciar usuários
+* **Roles e Permissões**: Suporte para usuários, administradores e superintendentes
+
+### 🚀 Setup Inicial de Credenciais
+Para configurar sua credencial de acesso, consulte:
+* **[GUIA_RAPIDO_LOGIN.md](./GUIA_RAPIDO_LOGIN.md)** - Guia rápido de configuração (5 minutos)
+* **[RESOLUCAO_LOGIN.md](./RESOLUCAO_LOGIN.md)** - Documentação completa e troubleshooting
+* **[AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md)** - Guia técnico do sistema de autenticação
+
+**Ferramentas disponíveis:**
+```bash
+npm run setup:user      # Criar usuário desenvolvedor
+npm run verify:auth     # Verificar configuração de autenticação
+```
+
 ## Qualidade e Validação (QA)
-A precisão financeira é garantida por uma suite de mais de 235 testes automatizados (Jest e Playwright), cobrindo falhas de arredondamento e integridade de dados.
+A precisão financeira é garantida por uma suite de mais de 235 testes automatizados (Jest e Playwright), cobrindo falhas de arredondamento e integridade de dados. Adicionalmente, testes E2E verificam o fluxo completo de autenticação e acesso ao sistema.
 
 ## Implicações Estratégicas e Recomendações
 * **Vantagem Competitiva**: A utilização de modelos de gestão (como a análise de margem de contribuição) permite uma estratégia de **Liderança em Custo**.
