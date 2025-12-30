@@ -1584,11 +1584,20 @@ class DataManager {
     }
 
     /**
+     * Envia um orçamento para aprovação executiva
+     * @param {number|string} id - ID do orçamento no histórico
+     * @returns {Promise<boolean>} True se enviado com sucesso
+     */
+    async enviarParaAprovacao(id) {
+        return await this.atualizarStatusOrcamento(id, 'AGUARDANDO_APROVACAO');
+    }
+
+    /**
      * Atualiza o status de aprovação de um orçamento (Híbrido)
      * Atualiza no Firebase primeiro, depois no localStorage como fallback
      * @param {string|number} id - ID do orçamento (Firebase string ou localStorage number)
-     * @param {string} status - Novo status (APROVADO, REJEITADO, AGUARDANDO_APROVACAO)
-     * @param {string} justificativa - Justificativa da decisão
+     * @param {string} status - Novo status (APROVADO, REPROVADO, AGUARDANDO_APROVACAO)
+     * @param {string} justificativa - Justificativa da decisão (obrigatória se REPROVADO)
      * @returns {Promise<boolean>} True se atualizado com sucesso
      */
     async atualizarStatusOrcamento(id, status, justificativa = '') {
@@ -1609,11 +1618,18 @@ class DataManager {
         if (this.firebaseEnabled && typeof id === 'string') {
             try {
                 const docRef = doc(db, this.COLLECTIONS.ORCAMENTOS, id);
-                await updateDoc(docRef, {
+                const updateData = {
                     statusAprovacao: status,
                     justificativa: justificativa,
                     dataAtualizacao: new Date().toISOString()
-                });
+                };
+                
+                // Se aprovado, marcar como convertido
+                if (status === 'APROVADO') {
+                    updateData.convertido = true;
+                }
+                
+                await updateDoc(docRef, updateData);
                 
                 console.log(`Status do orçamento ${id} atualizado no Firebase para ${status}`);
                 return true;
@@ -1634,6 +1650,11 @@ class DataManager {
         if (registro) {
             registro.statusAprovacao = status;
             registro.dataAprovacao = new Date().toISOString();
+            
+            // Se aprovado, marcar como convertido
+            if (status === 'APROVADO') {
+                registro.convertido = true;
+            }
             
             if (status === 'REPROVADO') {
                 registro.justificativaRejeicao = justificativa;
