@@ -1,17 +1,13 @@
 /**
  * Script para criar o usuário inicial do desenvolvedor
+ * Versão 2.0 - Zero Trust com Variáveis de Ambiente
  * 
- * ⚠️  AVISO DE SEGURANÇA:
- * Este script usa serviceAccountKey.json (método legado).
- * Para melhor segurança, migre para variáveis de ambiente.
- * Consulte: ENVIRONMENT_VARIABLES_GUIDE.md
+ * ✅ Arquitetura Gemini: Credenciais via environment variables
  * 
  * Uso:
- * 1. Instale o Firebase Admin SDK: npm install firebase-admin
- * 2. Baixe a chave de serviço do Firebase Console e salve como serviceAccountKey.json
+ * 1. npm install firebase-admin dotenv
+ * 2. Copie .env.example para .env e configure as credenciais
  * 3. Execute: node setup-developer-user.js
- * 
- * ⚠️  IMPORTANTE: NUNCA commite serviceAccountKey.json no Git!
  * 
  * Credenciais criadas:
  * - Email: mayconabentes@gmail.com
@@ -19,33 +15,63 @@
  * - Role: admin
  */
 
+require('dotenv').config();
 const admin = require('firebase-admin');
 
-console.log('⚠️  AVISO DE SEGURANÇA: Este script usa método legado (serviceAccountKey.json)');
-console.log('   Para melhor segurança, migre para variáveis de ambiente.');
-console.log('   Consulte: ENVIRONMENT_VARIABLES_GUIDE.md\n');
+// Validação rigorosa de variáveis de ambiente obrigatórias
+const requiredEnvVars = [
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_PRIVATE_KEY',
+  'FIREBASE_CLIENT_EMAIL'
+];
 
-// Verificar se o arquivo de chave de serviço existe
-try {
-  const serviceAccount = require('./serviceAccountKey.json');
-  
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+console.log('🔐 Verificando configuração de segurança (Arquitetura Gemini)...\n');
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.error('❌ ERRO CRÍTICO: Variáveis de ambiente obrigatórias não configuradas');
+  console.error('');
+  console.error('Variáveis ausentes:');
+  missingVars.forEach(varName => {
+    console.error(`   ✗ ${varName}`);
   });
+  console.error('');
+  console.error('🔧 Para corrigir:');
+  console.error('   1. Copie o template: cp .env.example .env');
+  console.error('   2. Edite .env com suas credenciais do Firebase Console');
+  console.error('   3. Execute este script novamente');
+  console.error('');
+  console.error('📚 Documentação: ENVIRONMENT_VARIABLES_GUIDE.md');
+  console.error('🔒 Segurança: SECURITY_REMEDIATION_GUIDE.md');
+  console.error('');
+  console.error('⚠️  PRINCÍPIO ZERO TRUST: Este script NÃO aceita arquivos JSON locais');
+  process.exit(1);
+}
+
+// Inicializar Firebase Admin com credenciais de ambiente
+try {
+  const credential = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+  };
+
+  admin.initializeApp({
+    credential: admin.credential.cert(credential)
+  });
+
+  console.log('✅ Firebase Admin inicializado via variáveis de ambiente');
+  console.log(`   Project: ${process.env.FIREBASE_PROJECT_ID}`);
+  console.log(`   Service Account: ${process.env.FIREBASE_CLIENT_EMAIL}`);
+  console.log('');
 } catch (error) {
-  console.error('❌ Erro: Arquivo serviceAccountKey.json não encontrado');
+  console.error('❌ Erro ao inicializar Firebase Admin:', error.message);
   console.error('');
-  console.error('Para usar este script, você precisa:');
-  console.error('1. Acessar o Firebase Console');
-  console.error('2. Ir em Project Settings > Service Accounts');
-  console.error('3. Clicar em "Generate new private key"');
-  console.error('4. Salvar o arquivo como "serviceAccountKey.json" na raiz do projeto');
+  console.error('💡 Dicas de troubleshooting:');
+  console.error('   - Verifique o formato da FIREBASE_PRIVATE_KEY (deve incluir \\n)');
+  console.error('   - Confirme que as credenciais no .env estão corretas');
+  console.error('   - Valide se o service account tem permissões adequadas');
   console.error('');
-  console.error('⚠️  IMPORTANTE: NUNCA commite serviceAccountKey.json no Git!');
-  console.error('   O arquivo já está no .gitignore para proteção.');
-  console.error('');
-  console.error('Alternativamente, crie o usuário manualmente seguindo as instruções em:');
-  console.error('setup-initial-user.md');
   process.exit(1);
 }
 
