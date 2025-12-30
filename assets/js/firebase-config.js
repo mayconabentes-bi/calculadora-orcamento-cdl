@@ -1,17 +1,22 @@
 // assets/js/firebase-config.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
 
 const firebaseConfig = {
-  apiKey: "PREENCHER_COM_SUA_API_KEY",
-  authDomain: "axioma-cdl.firebaseapp.com",
-  projectId: "axioma-cdl",
-  storageBucket: "axioma-cdl.appspot.com",
-  messagingSenderId: "SEU_SENDER_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyD-V2GNT5koNgR4r95RGbhIyfKOJd1oUbc",
+  authDomain: "axioma-cdl-manaus.firebaseapp.com",
+  projectId: "axioma-cdl-manaus",
+  storageBucket: "axioma-cdl-manaus.firebasestorage.app",
+  messagingSenderId: "748023320826",
+  appId: "1:748023320826:web:97cd9ab757f19567fe3943",
+  measurementId: "G-0VF64LKRPG"
 };
 
+// Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const analytics = getAnalytics(app);
 
-export { db, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc };
+// Exportar instâncias e métodos do Firestore para o DataManager
+export { db, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc, analytics };
