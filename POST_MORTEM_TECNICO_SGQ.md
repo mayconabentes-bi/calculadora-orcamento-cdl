@@ -4,7 +4,7 @@
 ---
 
 **Documento**: POST-MORTEM-2024-001  
-**Data do Incidente**: 2024-Q4  
+**Data do Incidente**: [Data do Commit Inicial]  
 **Data do Relatório**: 2025-12-30  
 **Classificação**: CONFIDENCIAL - USO INTERNO  
 **Responsável**: Equipe de Segurança e DevOps  
@@ -35,7 +35,7 @@ A remediação foi executada com sucesso através da implementação de arquitet
 
 ### 2.2 Credencial Exposta
 
-- **Arquivo**: `axioma-cdl-manaus-firebase-adminsdk-fbsvc-586ddd7211.json`
+- **Arquivo**: `<project-id>-firebase-adminsdk-<hash>.json` (nome genérico por segurança)
 - **Tipo**: Firebase Admin SDK Service Account Key (formato JSON)
 - **Escopo de Permissões**: Acesso administrativo completo ao projeto Firebase
 - **Conteúdo Sensível**:
@@ -52,16 +52,18 @@ A análise de causa raiz identificou os seguintes fatores contribuintes:
 3. **Causa Sistêmica**: Falta de padronização para gerenciamento de credenciais via variáveis de ambiente
 4. **Fator Humano**: Treinamento insuficiente sobre práticas seguras de gerenciamento de secrets
 
+**Nota**: Este relatório serve como modelo técnico para documentação de incidentes similares. Datas e valores específicos devem ser preenchidos conforme o contexto real de cada incidente.
+
 ### 2.4 Cronologia do Incidente
 
 | Data/Hora | Evento | Ação |
 |-----------|--------|------|
-| 2024-Q4 | Commit inicial com credencial | Vulnerabilidade introduzida |
-| 2025-12-30 | Detecção da vulnerabilidade | Análise de segurança identificou exposição |
-| 2025-12-30 | Revogação imediata | Chave comprometida revogada no Firebase Console |
-| 2025-12-30 | Limpeza do histórico | Execução de git-filter-repo para remoção completa |
-| 2025-12-30 | Implementação de controles | Deploy de arquitetura Zero Trust |
-| 2025-12-30 | Verificação final | Confirmação de remediação completa |
+| T0 | Commit inicial com credencial | Vulnerabilidade introduzida |
+| T0 + X dias | Detecção da vulnerabilidade | Análise de segurança identificou exposição |
+| T0 + X dias | Revogação imediata | Chave comprometida revogada no Firebase Console |
+| T0 + X dias | Limpeza do histórico | Execução de git-filter-repo para remoção completa |
+| T0 + X dias | Implementação de controles | Deploy de arquitetura Zero Trust |
+| T0 + X dias | Verificação final | Confirmação de remediação completa |
 
 ---
 
@@ -107,7 +109,7 @@ A análise de causa raiz identificou os seguintes fatores contribuintes:
 ```plaintext
 Ação: Revogação imediata da service account key comprometida
 Local: Firebase Console → Project Settings → Service Accounts
-Método: Delete da chave com ID: 586ddd7211
+Método: Delete da chave exposta
 Status: ✅ Concluído
 Tempo de Resposta: < 30 minutos da detecção
 ```
@@ -195,7 +197,7 @@ echo ""
 # Remover arquivo específico de credencial
 echo -e "${YELLOW}🧹 Removendo credencial do histórico...${NC}"
 git filter-repo --invert-paths \
-  --path 'axioma-cdl-manaus-firebase-adminsdk-fbsvc-586ddd7211.json' \
+  --path '<project-id>-firebase-adminsdk-<hash>.json' \
   --force
 
 # Remover todos os padrões de credenciais Firebase
@@ -822,7 +824,7 @@ exit 0
 
 | Métrica | Valor | Avaliação |
 |---------|-------|-----------|
-| Tempo de Exposição | ~45 dias | ⚠️ Moderado |
+| Tempo de Exposição | Variável (dias) | ⚠️ A determinar por projeto |
 | Tempo de Detecção | N/A (interno) | ✅ Bom |
 | Tempo de Contenção | < 30 min | ✅ Excelente |
 | Tempo de Remediação | 4 horas | ✅ Excelente |
