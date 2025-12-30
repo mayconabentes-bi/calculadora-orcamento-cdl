@@ -2070,6 +2070,8 @@ class DataManager {
         }
         
         // Calcular KPIs gerais
+        // NOTA: receitaTotal = soma de todos os orçamentos APROVADOS (Pipeline Aprovado)
+        //       receitaConfirmada = soma dos orçamentos APROVADOS + CONVERTIDOS (Receita Real)
         let receitaTotal = 0;
         let receitaConfirmada = 0;
         let somaMargens = 0;
@@ -2092,6 +2094,8 @@ class DataManager {
             const statusAprovacao = calc.statusAprovacao || 'AGUARDANDO_APROVACAO';
             
             // KPIs gerais - APENAS incluir orçamentos APROVADOS
+            // receitaTotal = Pipeline Aprovado (todos os APROVADOS, convertidos ou não)
+            // receitaConfirmada = Receita Real (apenas APROVADOS que foram CONVERTIDOS)
             if (statusAprovacao === 'APROVADO') {
                 receitaTotal += valorFinal;
                 if (convertido) {

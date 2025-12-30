@@ -490,8 +490,8 @@ async function bootstrapDashboard() {
  * Inicializa o dashboard quando a aba for aberta
  * Usa bootstrapDashboard() para garantir conexão antes de renderizar
  */
-function inicializarDashboard() {
-    bootstrapDashboard();
+async function inicializarDashboard() {
+    await bootstrapDashboard();
 }
 
 

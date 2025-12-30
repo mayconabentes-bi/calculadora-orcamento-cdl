@@ -1,6 +1,11 @@
 /**
  * TESTES DO DATA INTEGRITY GATE - SGQ v5.1.0
  * Valida as regras de integridade de dados para governança financeira
+ * 
+ * NOTA: Este teste contém uma reimplementação completa do método atualizarStatusOrcamento
+ * dentro do mock para permitir testes unitários isolados da infraestrutura do Firebase.
+ * Esta abordagem garante que a lógica de negócio seja testada independentemente de
+ * dependências externas, mesmo que resulte em alguma duplicação de código.
  */
 
 describe('Data Integrity Gate - atualizarStatusOrcamento', () => {
