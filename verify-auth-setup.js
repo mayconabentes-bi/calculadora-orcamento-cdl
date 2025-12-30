@@ -2,19 +2,23 @@
 
 /**
  * Verify Authentication Setup Script
+ * Versão 2.0 - Arquitetura Gemini (Zero Trust com Variáveis de Ambiente)
  * 
  * This script helps diagnose authentication issues by:
  * 1. Checking if firebase-admin is installed
- * 2. Checking if serviceAccountKey.json exists
- * 3. If available, verifying the user exists in Firebase
- * 4. Providing instructions for manual setup
+ * 2. Checking if dotenv is installed
+ * 3. Checking if .env file exists and has required variables
+ * 4. Testing Firebase connection with environment variables
+ * 5. Verifying the user exists in Firebase
  */
 
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 
 console.log('╔════════════════════════════════════════════════════════════════╗');
-console.log('║  Authentication Setup Verification Tool                       ║');
+console.log('║  Authentication Setup Verification Tool v2.0                  ║');
+console.log('║  Arquitetura Gemini (Zero Trust)                              ║');
 console.log('╚════════════════════════════════════════════════════════════════╝');
 console.log('');
 
@@ -29,49 +33,108 @@ try {
   console.log('');
 }
 
-// Check if serviceAccountKey.json exists
+// Check if dotenv is installed
 console.log('');
-console.log('2️⃣  Checking for Firebase service account key...');
-const serviceKeyPath = path.join(__dirname, 'serviceAccountKey.json');
-const hasServiceKey = fs.existsSync(serviceKeyPath);
-
-if (hasServiceKey) {
-  console.log('   ✅ serviceAccountKey.json found');
-} else {
-  console.log('   ❌ serviceAccountKey.json NOT found');
-  console.log('');
-  console.log('   To obtain the service account key:');
-  console.log('   1. Go to Firebase Console: https://console.firebase.google.com/');
-  console.log('   2. Select project: axioma-cdl-manaus');
-  console.log('   3. Go to Project Settings > Service Accounts');
-  console.log('   4. Click "Generate new private key"');
-  console.log('   5. Save the file as "serviceAccountKey.json" in the project root');
+console.log('2️⃣  Checking dotenv installation...');
+try {
+  require('dotenv');
+  console.log('   ✅ dotenv is installed');
+} catch (error) {
+  console.log('   ❌ dotenv is NOT installed');
+  console.log('   Run: npm install dotenv');
   console.log('');
 }
 
-// If we have the service key, try to verify the user
-if (hasServiceKey) {
+// Check for .env file
+console.log('');
+console.log('3️⃣  Checking for .env configuration...');
+const envPath = path.join(__dirname, '.env');
+const hasEnvFile = fs.existsSync(envPath);
+
+if (hasEnvFile) {
+  console.log('   ✅ .env file found');
+} else {
+  console.log('   ❌ .env file NOT found');
   console.log('');
-  console.log('3️⃣  Attempting to verify developer user...');
+  console.log('   To create .env file:');
+  console.log('   1. Copy the template: cp .env.example .env');
+  console.log('   2. Edit .env with your Firebase credentials');
+  console.log('   3. Get credentials from: https://console.firebase.google.com/');
+  console.log('      → Project Settings → Service Accounts → Generate Private Key');
+  console.log('');
+}
+
+// Check for required environment variables
+console.log('');
+console.log('4️⃣  Checking environment variables...');
+const requiredVars = [
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_PRIVATE_KEY',
+  'FIREBASE_CLIENT_EMAIL'
+];
+
+let allVarsPresent = true;
+requiredVars.forEach(varName => {
+  if (process.env[varName] && process.env[varName].trim() !== '') {
+    console.log(`   ✅ ${varName} is set`);
+  } else {
+    console.log(`   ❌ ${varName} is NOT set`);
+    allVarsPresent = false;
+  }
+});
+
+// Check for legacy serviceAccountKey.json (should NOT exist)
+console.log('');
+console.log('5️⃣  Checking for legacy credential files...');
+const legacyFiles = [
+  'serviceAccountKey.json',
+  'axioma-cdl-manaus-firebase-adminsdk-fbsvc-586ddd7211.json'
+];
+
+let foundLegacyFiles = false;
+legacyFiles.forEach(filename => {
+  const filePath = path.join(__dirname, filename);
+  if (fs.existsSync(filePath)) {
+    console.log(`   ⚠️  LEGACY FILE FOUND: ${filename}`);
+    console.log(`      DELETE THIS FILE IMMEDIATELY for security!`);
+    foundLegacyFiles = true;
+  }
+});
+
+if (!foundLegacyFiles) {
+  console.log('   ✅ No legacy credential files found (good!)');
+}
+
+// Try to connect to Firebase (if all vars are set)
+if (allVarsPresent && hasEnvFile) {
+  console.log('');
+  console.log('6️⃣  Testing Firebase connection...');
   
   (async () => {
     try {
       const admin = require('firebase-admin');
-      const serviceAccount = require('./serviceAccountKey.json');
       
-      // Initialize Firebase Admin
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+        })
       });
       
+      console.log('   ✅ Successfully connected to Firebase!');
+      console.log(`      Project: ${process.env.FIREBASE_PROJECT_ID}`);
+      console.log(`      Service Account: ${process.env.FIREBASE_CLIENT_EMAIL}`);
+      
+      // Try to verify the developer user
       const auth = admin.auth();
       const db = admin.firestore();
-      
       const developerEmail = 'mayconabentes@gmail.com';
       
+      console.log('');
+      console.log('7️⃣  Verifying developer user...');
       console.log('   📧 Checking for user:', developerEmail);
       
-      // Check if user exists in Authentication
       try {
         const userRecord = await auth.getUserByEmail(developerEmail);
         console.log('   ✅ User exists in Firebase Authentication');
@@ -111,59 +174,78 @@ if (hasServiceKey) {
           console.log('   ⚠️  User does NOT exist in Firebase Authentication');
           console.log('   Run: npm run setup:user');
         } else {
-          throw error;
+          console.log('   ❌ Error checking user:', error.message);
         }
       }
       
+      // Summary
+      console.log('');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('SUMMARY');
+      console.log('═══════════════════════════════════════════════════════════════');
+      
+      if (hasEnvFile && allVarsPresent && !foundLegacyFiles) {
+        console.log('✅ Your authentication setup looks good!');
+        console.log('   You can now run: npm run setup:user');
+      } else {
+        console.log('⚠️  Action required:');
+        if (!hasEnvFile) {
+          console.log('   1. Create .env file: cp .env.example .env');
+        }
+        if (!allVarsPresent) {
+          console.log('   2. Configure Firebase credentials in .env');
+        }
+        if (foundLegacyFiles) {
+          console.log('   3. DELETE legacy credential JSON files!');
+        }
+        console.log('');
+        console.log('📚 For detailed instructions, see: ENVIRONMENT_VARIABLES_GUIDE.md');
+      }
+      
+      console.log('');
       process.exit(0);
+      
     } catch (error) {
-      console.error('   ❌ Error:', error.message);
+      console.log('   ❌ Failed to connect to Firebase');
+      console.log(`      Error: ${error.message}`);
+      console.log('');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('SUMMARY');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('⚠️  Could not connect to Firebase. Please check:');
+      console.log('   1. FIREBASE_PRIVATE_KEY format (must include \\n for line breaks)');
+      console.log('   2. All credentials are correct in .env file');
+      console.log('   3. Service account has proper permissions');
+      console.log('');
+      console.log('📚 For detailed instructions, see: ENVIRONMENT_VARIABLES_GUIDE.md');
+      console.log('');
       process.exit(1);
     }
   })();
 } else {
+  // Summary when env vars not present
   console.log('');
   console.log('═══════════════════════════════════════════════════════════════');
-  console.log('');
-  console.log('📋 MANUAL SETUP INSTRUCTIONS');
-  console.log('');
-  console.log('Since the service account key is not available, you can set up');
-  console.log('the developer user manually via Firebase Console:');
-  console.log('');
-  console.log('Step 1: Create user in Authentication');
-  console.log('────────────────────────────────────');
-  console.log('1. Go to: https://console.firebase.google.com/');
-  console.log('2. Select project: axioma-cdl-manaus');
-  console.log('3. Click "Authentication" in the left menu');
-  console.log('4. Click "Users" tab');
-  console.log('5. Click "Add user" button');
-  console.log('6. Enter:');
-  console.log('   Email: mayconabentes@gmail.com');
-  console.log('   Password: Aprendiz@33');
-  console.log('7. Click "Add user"');
-  console.log('8. ⚠️  COPY THE UID - you will need it!');
-  console.log('');
-  console.log('Step 2: Create document in Firestore');
-  console.log('────────────────────────────────────');
-  console.log('1. Click "Firestore Database" in the left menu');
-  console.log('2. Navigate to or create collection: "usuarios"');
-  console.log('3. Click "Add document"');
-  console.log('4. Document ID: [paste the UID you copied]');
-  console.log('5. Add these fields:');
-  console.log('   • email (string): mayconabentes@gmail.com');
-  console.log('   • nome (string): Maycon Abentes');
-  console.log('   • role (string): admin');
-  console.log('   • status (string): ativo');
-  console.log('   • dataCriacao (string): ' + new Date().toISOString());
-  console.log('6. Click "Save"');
-  console.log('');
-  console.log('Step 3: Test the login');
-  console.log('────────────────────────────────────');
-  console.log('1. Open index.html in your browser');
-  console.log('2. Login with:');
-  console.log('   Email: mayconabentes@gmail.com');
-  console.log('   Password: Aprendiz@33');
-  console.log('3. You should be redirected to dashboard-admin.html');
-  console.log('');
+  console.log('SUMMARY');
   console.log('═══════════════════════════════════════════════════════════════');
+  
+  if (hasEnvFile && allVarsPresent && !foundLegacyFiles) {
+    console.log('✅ Your authentication setup looks good!');
+    console.log('   You can now run: npm run setup:user');
+  } else {
+    console.log('⚠️  Action required:');
+    if (!hasEnvFile) {
+      console.log('   1. Create .env file: cp .env.example .env');
+    }
+    if (!allVarsPresent) {
+      console.log('   2. Configure Firebase credentials in .env');
+    }
+    if (foundLegacyFiles) {
+      console.log('   3. DELETE legacy credential JSON files!');
+    }
+    console.log('');
+    console.log('📚 For detailed instructions, see: ENVIRONMENT_VARIABLES_GUIDE.md');
+  }
+  
+  console.log('');
 }
