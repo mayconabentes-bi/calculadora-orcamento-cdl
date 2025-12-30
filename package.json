@@ -10,7 +10,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:all": "npm run test && npm run test:e2e",
-    "playwright:install": "playwright install"
+    "playwright:install": "playwright install",
+    "setup:user": "node setup-developer-user.js"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
