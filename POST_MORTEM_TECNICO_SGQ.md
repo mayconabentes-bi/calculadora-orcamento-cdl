@@ -256,10 +256,30 @@ exit 0
 
 **Comando de Force Push** (somente após aprovações):
 ```bash
-# Force push de todas as branches
+# PASSO 1: Dry-run para verificar o que será enviado
+git push origin --dry-run --force --all
+
+# PASSO 2: Confirmar repository URL para evitar push no repositório errado
+echo "Repository URL: $(git remote get-url origin)"
+read -p "Confirme se este é o repositório CORRETO (digite URL completa): " repo_confirm
+
+if [ "$repo_confirm" != "$(git remote get-url origin)" ]; then
+    echo "❌ Confirmação falhou. Operação cancelada."
+    exit 1
+fi
+
+# PASSO 3: Confirmação final explícita
+read -p "ATENÇÃO: Force push irá REESCREVER histórico remoto. Digite 'FORCE PUSH' para confirmar: " final_confirm
+
+if [ "$final_confirm" != "FORCE PUSH" ]; then
+    echo "❌ Operação cancelada pelo usuário."
+    exit 1
+fi
+
+# PASSO 4: Executar force push apenas após todas as confirmações
 git push origin --force --all
 
-# Force push de todas as tags
+# PASSO 5: Force push de todas as tags (se necessário)
 git push origin --force --tags
 ```
 
@@ -428,7 +448,7 @@ Template de configuração seguro para distribuição no repositório:
 # Estas credenciais fornecem acesso ADMINISTRATIVO completo ao Firebase
 
 # ID do projeto Firebase (ex: meu-projeto-12345)
-FIREBASE_PROJECT_ID=axioma-cdl-manaus
+FIREBASE_PROJECT_ID=your-project-id-here
 
 # ID da chave privada (hash hexadecimal)
 FIREBASE_PRIVATE_KEY_ID=your-private-key-id-here
@@ -439,7 +459,7 @@ FIREBASE_PRIVATE_KEY_ID=your-private-key-id-here
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
 
 # Email da service account (formato: firebase-adminsdk-xxxxx@projeto.iam.gserviceaccount.com)
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@axioma-cdl-manaus.iam.gserviceaccount.com
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com
 
 # ID do cliente OAuth2
 FIREBASE_CLIENT_ID=your-client-id-here
@@ -450,18 +470,19 @@ FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
 FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
 
 # URL do certificado X509 da service account
-FIREBASE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx%40axioma-cdl-manaus.iam.gserviceaccount.com
+FIREBASE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx%40your-project-id.iam.gserviceaccount.com
 
 # === CREDENCIAIS FIREBASE WEB SDK (PÚBLICO - OK PARA COMMIT) ===
 # Estas credenciais são PÚBLICAS e seguras para uso no frontend
-# Já estão configuradas em assets/js/firebase-config.js
+# Mesmo sendo públicas, substituir pelos valores reais do seu projeto
+# Obtidas em: Firebase Console → Project Settings → General → Your apps
 
-FIREBASE_API_KEY=AIzaSyD-V2GNT5koNgR4r95RGbhIyfKOJd1oUbc
-FIREBASE_AUTH_DOMAIN=axioma-cdl-manaus.firebaseapp.com
-FIREBASE_STORAGE_BUCKET=axioma-cdl-manaus.firebasestorage.app
-FIREBASE_MESSAGING_SENDER_ID=748023320826
-FIREBASE_APP_ID=1:748023320826:web:97cd9ab757f19567fe3943
-FIREBASE_MEASUREMENT_ID=G-0VF64LKRPG
+FIREBASE_API_KEY=your-web-api-key-here
+FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=your-sender-id-here
+FIREBASE_APP_ID=your-app-id-here
+FIREBASE_MEASUREMENT_ID=your-measurement-id-here
 
 # === CONFIGURAÇÃO DE AMBIENTE ===
 NODE_ENV=development
