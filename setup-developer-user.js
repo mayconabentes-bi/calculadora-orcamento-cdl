@@ -1,17 +1,12 @@
 /**
  * Script para criar o usuário inicial do desenvolvedor
- * 
- * ⚠️  AVISO DE SEGURANÇA:
- * Este script usa serviceAccountKey.json (método legado).
- * Para melhor segurança, migre para variáveis de ambiente.
- * Consulte: ENVIRONMENT_VARIABLES_GUIDE.md
+ * Versão 2.0 - Arquitetura Gemini (Zero Trust com Variáveis de Ambiente)
  * 
  * Uso:
- * 1. Instale o Firebase Admin SDK: npm install firebase-admin
- * 2. Baixe a chave de serviço do Firebase Console e salve como serviceAccountKey.json
- * 3. Execute: node setup-developer-user.js
- * 
- * ⚠️  IMPORTANTE: NUNCA commite serviceAccountKey.json no Git!
+ * 1. Instale as dependências: npm install firebase-admin dotenv
+ * 2. Copie .env.example para .env: cp .env.example .env
+ * 3. Configure as credenciais Firebase no arquivo .env
+ * 4. Execute: node setup-developer-user.js
  * 
  * Credenciais criadas:
  * - Email: mayconabentes@gmail.com
@@ -19,33 +14,51 @@
  * - Role: admin
  */
 
+require('dotenv').config();
 const admin = require('firebase-admin');
 
-console.log('⚠️  AVISO DE SEGURANÇA: Este script usa método legado (serviceAccountKey.json)');
-console.log('   Para melhor segurança, migre para variáveis de ambiente.');
-console.log('   Consulte: ENVIRONMENT_VARIABLES_GUIDE.md\n');
+// Validação de variáveis de ambiente obrigatórias
+const requiredEnvVars = [
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_PRIVATE_KEY',
+  'FIREBASE_CLIENT_EMAIL'
+];
 
-// Verificar se o arquivo de chave de serviço existe
-try {
-  const serviceAccount = require('./serviceAccountKey.json');
-  
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+console.log('🔐 Verificando configuração de segurança...\n');
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.error('❌ Erro: Variáveis de ambiente obrigatórias não configuradas:');
+  missingVars.forEach(varName => {
+    console.error(`   - ${varName}`);
   });
+  console.error('\n📝 Para configurar:');
+  console.error('   1. Copie .env.example para .env: cp .env.example .env');
+  console.error('   2. Edite .env com suas credenciais reais');
+  console.error('   3. Execute este script novamente');
+  console.error('\n📚 Consulte: ENVIRONMENT_VARIABLES_GUIDE.md');
+  process.exit(1);
+}
+
+// Inicializar Firebase Admin com credenciais de ambiente
+try {
+  const credential = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+  };
+
+  admin.initializeApp({
+    credential: admin.credential.cert(credential)
+  });
+
+  console.log('✅ Firebase Admin inicializado com sucesso via variáveis de ambiente');
+  console.log(`   Project: ${process.env.FIREBASE_PROJECT_ID}`);
+  console.log(`   Service Account: ${process.env.FIREBASE_CLIENT_EMAIL}\n`);
 } catch (error) {
-  console.error('❌ Erro: Arquivo serviceAccountKey.json não encontrado');
-  console.error('');
-  console.error('Para usar este script, você precisa:');
-  console.error('1. Acessar o Firebase Console');
-  console.error('2. Ir em Project Settings > Service Accounts');
-  console.error('3. Clicar em "Generate new private key"');
-  console.error('4. Salvar o arquivo como "serviceAccountKey.json" na raiz do projeto');
-  console.error('');
-  console.error('⚠️  IMPORTANTE: NUNCA commite serviceAccountKey.json no Git!');
-  console.error('   O arquivo já está no .gitignore para proteção.');
-  console.error('');
-  console.error('Alternativamente, crie o usuário manualmente seguindo as instruções em:');
-  console.error('setup-initial-user.md');
+  console.error('❌ Erro ao inicializar Firebase Admin:', error.message);
+  console.error('\n💡 Verifique se as credenciais no arquivo .env estão corretas.');
+  console.error('   Especialmente o formato da FIREBASE_PRIVATE_KEY (deve incluir \\n)');
   process.exit(1);
 }
 
@@ -62,7 +75,7 @@ const developerData = {
 };
 
 async function createDeveloperUser() {
-  console.log('🔧 Iniciando criação do usuário desenvolvedor...');
+  console.log('👤 Iniciando criação do usuário desenvolvedor...');
   console.log('');
   
   try {
@@ -77,6 +90,17 @@ async function createDeveloperUser() {
       
       if (userDoc.exists) {
         console.log('⚠️  Usuário já existe no Firestore');
+        console.log('   Atualizando dados no Firestore...');
+        
+        await db.collection('usuarios').doc(existingUser.uid).set({
+          email: developerData.email,
+          nome: developerData.nome,
+          role: developerData.role,
+          status: developerData.status,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        
+        console.log('✅ Dados do usuário atualizados no Firestore');
         console.log('');
         console.log('Credenciais de acesso:');
         console.log('  E-mail:', developerData.email);
@@ -93,7 +117,7 @@ async function createDeveloperUser() {
           nome: developerData.nome,
           role: developerData.role,
           status: developerData.status,
-          dataCriacao: new Date().toISOString()
+          createdAt: new Date().toISOString()
         });
         
         console.log('✅ Documento criado no Firestore');
@@ -116,7 +140,8 @@ async function createDeveloperUser() {
     const userRecord = await auth.createUser({
       email: developerData.email,
       password: developerData.password,
-      emailVerified: false,
+      emailVerified: true,
+      displayName: developerData.nome,
       disabled: false
     });
     
@@ -130,7 +155,7 @@ async function createDeveloperUser() {
       nome: developerData.nome,
       role: developerData.role,
       status: developerData.status,
-      dataCriacao: new Date().toISOString()
+      createdAt: new Date().toISOString()
     });
     
     console.log('✅ Documento criado no Firestore');
