@@ -417,17 +417,83 @@ let dashboardController = null;
 const SENHA_SUPERINTENDENCIA = 'CDL2025';
 
 /**
+ * Bootstrap do Dashboard - ASYNC BOOTSTRAP v5.1.0
+ * 
+ * Aguarda a confirmação de conexão do DataManager/Firebase antes de
+ * disparar a primeira renderização. Garante que os dados estejam
+ * disponíveis antes de renderizar os KPIs.
+ * 
+ * Exibe um spinner de carregamento enquanto a conexão é estabelecida.
+ */
+async function bootstrapDashboard() {
+    const spinnerContainer = document.getElementById('dashboard-loading-spinner');
+    const dashboardContent = document.getElementById('dashboard-content');
+    
+    try {
+        // Exibir spinner de carregamento
+        if (spinnerContainer) {
+            spinnerContainer.style.display = 'flex';
+        }
+        if (dashboardContent) {
+            dashboardContent.style.display = 'none';
+        }
+        
+        // Verificar conexão com Firebase/DataManager
+        console.log('Aguardando conexão com DataManager/Firebase...');
+        
+        // Pequena pausa para garantir que o Firebase tenha tempo de inicializar
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Tentar obter dados para confirmar conexão
+        await dataManager.obterDadosAnaliticosAsync();
+        
+        console.log('Conexão confirmada. Inicializando dashboard...');
+        
+        // Ocultar spinner e exibir conteúdo
+        if (spinnerContainer) {
+            spinnerContainer.style.display = 'none';
+        }
+        if (dashboardContent) {
+            dashboardContent.style.display = 'block';
+        }
+        
+        // Inicializar dashboard normalmente
+        if (!dashboardController) {
+            dashboardController = new DashboardController();
+        }
+        await dashboardController.inicializar();
+        
+        // Configurar event listeners para área restrita
+        configurarAreaRestrita();
+        
+    } catch (error) {
+        console.error('Erro ao inicializar dashboard:', error);
+        
+        // Ocultar spinner mesmo em caso de erro
+        if (spinnerContainer) {
+            spinnerContainer.style.display = 'none';
+        }
+        if (dashboardContent) {
+            dashboardContent.style.display = 'block';
+        }
+        
+        // Tentar inicializar mesmo assim (fallback para localStorage)
+        if (!dashboardController) {
+            dashboardController = new DashboardController();
+        }
+        await dashboardController.inicializar();
+        configurarAreaRestrita();
+    }
+}
+
+/**
  * Inicializa o dashboard quando a aba for aberta
+ * Usa bootstrapDashboard() para garantir conexão antes de renderizar
  */
 function inicializarDashboard() {
-    if (!dashboardController) {
-        dashboardController = new DashboardController();
-    }
-    dashboardController.inicializar();
-    
-    // Configurar event listeners para área restrita
-    configurarAreaRestrita();
+    bootstrapDashboard();
 }
+
 
 /**
  * Atualiza o dashboard (chamado quando há novos dados)
@@ -633,32 +699,42 @@ async function aprovarOrcamento(id) {
 
 /**
  * Reprova um orçamento (solicita justificativa) - Assíncrono
+ * DATA INTEGRITY GATE: Exige justificativa com mínimo de 10 caracteres
  * @param {string|number} id - ID do orçamento
  */
 async function reprovarOrcamento(id) {
-    const justificativa = prompt('Para REPROVAR este orçamento, informe a justificativa (obrigatória):');
+    const justificativa = prompt('Para REPROVAR este orçamento, informe a justificativa (mínimo 10 caracteres):');
     
     if (justificativa === null) {
         // Usuário cancelou
         return;
     }
     
-    if (!justificativa || justificativa.trim() === '') {
-        mostrarNotificacao('Justificativa é obrigatória para reprovar um orçamento!');
+    const justificativaTrimmed = justificativa.trim();
+    
+    // Validação no frontend antes de enviar
+    if (!justificativaTrimmed || justificativaTrimmed.length < 10) {
+        mostrarNotificacao('Justificativa é obrigatória e deve ter no mínimo 10 caracteres!');
         return;
     }
     
-    const sucesso = await dataManager.atualizarStatusOrcamento(id, 'REPROVADO', justificativa.trim());
-    
-    if (sucesso) {
-        mostrarNotificacao('Orçamento REPROVADO. Justificativa registrada.');
-        await carregarTabelaAprovacoes();
+    try {
+        const sucesso = await dataManager.atualizarStatusOrcamento(id, 'REPROVADO', justificativaTrimmed);
         
-        // Atualizar dashboard de KPIs
-        if (dashboardController) {
-            await dashboardController.atualizar();
+        if (sucesso) {
+            mostrarNotificacao('Orçamento REPROVADO. Justificativa registrada.');
+            await carregarTabelaAprovacoes();
+            
+            // Atualizar dashboard de KPIs
+            if (dashboardController) {
+                await dashboardController.atualizar();
+            }
+        } else {
+            mostrarNotificacao('Erro ao reprovar orçamento');
         }
-    } else {
-        mostrarNotificacao('Erro ao reprovar orçamento');
+    } catch (error) {
+        // Capturar erro de validação do DATA INTEGRITY GATE
+        console.error('Erro ao reprovar orçamento:', error);
+        mostrarNotificacao(error.message || 'Erro ao reprovar orçamento');
     }
 }
