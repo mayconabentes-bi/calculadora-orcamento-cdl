@@ -68,7 +68,7 @@ O Dashboard Executivo é uma funcionalidade de Business Intelligence que transfo
 - Identifica qual unidade tem melhor margem de contribuição
 - Compara performance entre unidades
 
-### 2. Doughnut Chart - Share of Revenue por Espaço
+### 2. Doughnut Chart - Participação na Receita por Espaço
 
 **Objetivo**: Visualizar distribuição de receita entre espaços
 
