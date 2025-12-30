@@ -1587,7 +1587,7 @@ class DataManager {
      * Atualiza o status de aprovação de um orçamento (Híbrido)
      * Atualiza no Firebase primeiro, depois no localStorage como fallback
      * @param {string|number} id - ID do orçamento (Firebase string ou localStorage number)
-     * @param {string} status - Novo status (APROVADO, REJEITADO, AGUARDANDO_APROVACAO)
+     * @param {string} status - Novo status (APROVADO, REPROVADO, AGUARDANDO_APROVACAO)
      * @param {string} justificativa - Justificativa da decisão
      * @returns {Promise<boolean>} True se atualizado com sucesso
      */
