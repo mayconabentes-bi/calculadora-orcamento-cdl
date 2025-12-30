@@ -1588,7 +1588,7 @@ class DataManager {
      * Atualiza no Firebase primeiro, depois no localStorage como fallback
      * @param {string|number} id - ID do orçamento (Firebase string ou localStorage number)
      * @param {string} status - Novo status (APROVADO, REPROVADO, AGUARDANDO_APROVACAO)
-     * @param {string} justificativa - Justificativa da decisão
+     * @param {string} justificativa - Justificativa da decisão (obrigatória se REPROVADO)
      * @returns {Promise<boolean>} True se atualizado com sucesso
      */
     async atualizarStatusOrcamento(id, status, justificativa = '') {
