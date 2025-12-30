@@ -3,17 +3,16 @@
    Sistema de autenticação com Firebase Authentication e Firestore
    ================================================================= */
 
-// Imports do Firebase Authentication e Firestore
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+// Imports das funções do Firebase Authentication
 import { 
-    getAuth, 
     signInWithEmailAndPassword, 
     signOut, 
     onAuthStateChanged,
     createUserWithEmailAndPassword 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// Imports das funções do Firestore
 import { 
-    getFirestore, 
     doc, 
     getDoc, 
     setDoc, 
@@ -22,21 +21,8 @@ import {
     updateDoc 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Configuração do Firebase (mesma do firebase-config.js)
-const firebaseConfig = {
-    apiKey: "AIzaSyD-V2GNT5koNgR4r95RGbhIyfKOJd1oUbc",
-    authDomain: "axioma-cdl-manaus.firebaseapp.com",
-    projectId: "axioma-cdl-manaus",
-    storageBucket: "axioma-cdl-manaus.firebasestorage.app",
-    messagingSenderId: "748023320826",
-    appId: "1:748023320826:web:97cd9ab757f19567fe3943",
-    measurementId: "G-0VF64LKRPG"
-};
-
-// Inicializar Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Importar instâncias já inicializadas do firebase-config.js
+import { auth, db } from './firebase-config.js';
 
 /**
  * Classe AuthManager

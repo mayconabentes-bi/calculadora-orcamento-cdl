@@ -35,6 +35,10 @@ build/
 .env
 .env.local
 
+# Firebase credentials
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
 # Test artifacts
 coverage/
 .nyc_output/
