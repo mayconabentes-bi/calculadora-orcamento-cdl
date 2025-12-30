@@ -32,26 +32,27 @@ class DashboardController {
     }
     
     /**
-     * Inicializa o dashboard
+     * Inicializa o dashboard (Assíncrono)
      */
-    inicializar() {
-        this.renderizarKPIs();
-        this.renderizarGraficos();
+    async inicializar() {
+        await this.renderizarKPIs();
+        await this.renderizarGraficos();
     }
     
     /**
-     * Atualiza todos os componentes do dashboard
+     * Atualiza todos os componentes do dashboard (Assíncrono)
      */
-    atualizar() {
-        this.renderizarKPIs();
-        this.atualizarGraficos();
+    async atualizar() {
+        await this.renderizarKPIs();
+        await this.atualizarGraficos();
     }
     
     /**
-     * Renderiza os Scorecards (KPIs numéricos)
+     * Renderiza os Scorecards (KPIs numéricos) - Assíncrono
      */
-    renderizarKPIs() {
-        const dados = dataManager.obterDadosAnaliticos();
+    async renderizarKPIs() {
+        // Obter dados de forma assíncrona (Firebase com fallback para localStorage)
+        const dados = await dataManager.obterDadosAnaliticosAsync();
         const kpis = dados.kpis;
         
         // Receita Total Potencial (Pipeline)
@@ -87,19 +88,19 @@ class DashboardController {
     }
     
     /**
-     * Renderiza todos os gráficos
+     * Renderiza todos os gráficos (Assíncrono)
      */
-    renderizarGraficos() {
-        this.renderizarBarChart();
-        this.renderizarDoughnutChart();
-        this.renderizarLineChart();
+    async renderizarGraficos() {
+        await this.renderizarBarChart();
+        await this.renderizarDoughnutChart();
+        await this.renderizarLineChart();
     }
     
     /**
-     * Atualiza todos os gráficos (sem recriar)
+     * Atualiza todos os gráficos (sem recriar) - Assíncrono
      */
-    atualizarGraficos() {
-        const dados = dataManager.obterDadosAnaliticos();
+    async atualizarGraficos() {
+        const dados = await dataManager.obterDadosAnaliticosAsync();
         
         // Atualizar Bar Chart
         if (this.charts.barChart) {
@@ -141,10 +142,10 @@ class DashboardController {
     }
     
     /**
-     * Renderiza o Bar Chart (Receita vs. Custos Variáveis por Unidade)
+     * Renderiza o Bar Chart (Receita vs. Custos Variáveis por Unidade) - Assíncrono
      */
-    renderizarBarChart() {
-        const dados = dataManager.obterDadosAnaliticos();
+    async renderizarBarChart() {
+        const dados = await dataManager.obterDadosAnaliticosAsync();
         const canvas = document.getElementById('chart-bar');
         
         if (!canvas) {
@@ -228,10 +229,10 @@ class DashboardController {
     }
     
     /**
-     * Renderiza o Doughnut Chart (Share of Revenue por Espaço)
+     * Renderiza o Doughnut Chart (Share of Revenue por Espaço) - Assíncrono
      */
-    renderizarDoughnutChart() {
-        const dados = dataManager.obterDadosAnaliticos();
+    async renderizarDoughnutChart() {
+        const dados = await dataManager.obterDadosAnaliticosAsync();
         const canvas = document.getElementById('chart-doughnut');
         
         if (!canvas) {
@@ -304,10 +305,10 @@ class DashboardController {
     }
     
     /**
-     * Renderiza o Line Chart (Evolução da Margem Líquida)
+     * Renderiza o Line Chart (Evolução da Margem Líquida) - Assíncrono
      */
-    renderizarLineChart() {
-        const dados = dataManager.obterDadosAnaliticos();
+    async renderizarLineChart() {
+        const dados = await dataManager.obterDadosAnaliticosAsync();
         const canvas = document.getElementById('chart-line');
         
         if (!canvas) {
@@ -465,9 +466,9 @@ function configurarAreaRestrita() {
 }
 
 /**
- * Verifica a senha e autoriza acesso à área restrita
+ * Verifica a senha e autoriza acesso à área restrita (Assíncrono)
  */
-function verificarAcessoSuperintendencia() {
+async function verificarAcessoSuperintendencia() {
     const senhaInput = document.getElementById('senha-superintendencia');
     const senha = senhaInput.value;
 
@@ -476,8 +477,8 @@ function verificarAcessoSuperintendencia() {
         document.getElementById('superintendencia-login').style.display = 'none';
         document.getElementById('superintendencia-aprovacoes').style.display = 'block';
         
-        // Carregar tabela de aprovações pendentes
-        carregarTabelaAprovacoes();
+        // Carregar tabela de aprovações pendentes (aguardar dados)
+        await carregarTabelaAprovacoes();
         
         // Limpar senha
         senhaInput.value = '';
@@ -503,17 +504,39 @@ function sairAreaSuperintendencia() {
 }
 
 /**
- * Carrega a tabela de orçamentos pendentes de aprovação
+ * Carrega a tabela de orçamentos pendentes de aprovação (Assíncrono)
  */
-function carregarTabelaAprovacoes() {
+async function carregarTabelaAprovacoes() {
     const tbody = document.getElementById('aprovacoes-body');
     const semPendentes = document.getElementById('sem-pendentes');
     const contador = document.getElementById('contador-pendentes');
     
     if (!tbody) return;
 
-    // Obter orçamentos aguardando aprovação
-    const orcamentosPendentes = dataManager.obterOrcamentosPorStatus('AGUARDANDO_APROVACAO');
+    // Mostrar estado de carregamento
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="loading-spinner">
+                        <line x1="12" y1="2" x2="12" y2="6"></line>
+                        <line x1="12" y1="18" x2="12" y2="22"></line>
+                        <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                        <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                        <line x1="2" y1="12" x2="6" y2="12"></line>
+                        <line x1="18" y1="12" x2="22" y2="12"></line>
+                        <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                        <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                    </svg>
+                    <span style="font-size: 1.1em; font-weight: 500;">Carregando dados do Firebase...</span>
+                </div>
+            </td>
+        </tr>
+    `;
+    semPendentes.style.display = 'none';
+
+    // Obter orçamentos aguardando aprovação do Firebase
+    const orcamentosPendentes = await dataManager.obterOrcamentosPendentes();
     
     // Atualizar contador
     if (contador) {
@@ -587,20 +610,20 @@ function carregarTabelaAprovacoes() {
 }
 
 /**
- * Aprova um orçamento
- * @param {number} id - ID do orçamento
+ * Aprova um orçamento (Assíncrono)
+ * @param {string|number} id - ID do orçamento
  */
-function aprovarOrcamento(id) {
+async function aprovarOrcamento(id) {
     if (confirm('Confirma a APROVAÇÃO deste orçamento?')) {
-        const sucesso = dataManager.atualizarStatusOrcamento(id, 'APROVADO', null, 'Superintendência');
+        const sucesso = await dataManager.atualizarStatusOrcamento(id, 'APROVADO', null);
         
         if (sucesso) {
             mostrarNotificacao('Orçamento APROVADO com sucesso!');
-            carregarTabelaAprovacoes();
+            await carregarTabelaAprovacoes();
             
             // Atualizar dashboard de KPIs
             if (dashboardController) {
-                dashboardController.atualizar();
+                await dashboardController.atualizar();
             }
         } else {
             mostrarNotificacao('Erro ao aprovar orçamento');
@@ -609,10 +632,10 @@ function aprovarOrcamento(id) {
 }
 
 /**
- * Reprova um orçamento (solicita justificativa)
- * @param {number} id - ID do orçamento
+ * Reprova um orçamento (solicita justificativa) - Assíncrono
+ * @param {string|number} id - ID do orçamento
  */
-function reprovarOrcamento(id) {
+async function reprovarOrcamento(id) {
     const justificativa = prompt('Para REPROVAR este orçamento, informe a justificativa (obrigatória):');
     
     if (justificativa === null) {
@@ -625,15 +648,15 @@ function reprovarOrcamento(id) {
         return;
     }
     
-    const sucesso = dataManager.atualizarStatusOrcamento(id, 'REPROVADO', justificativa.trim(), 'Superintendência');
+    const sucesso = await dataManager.atualizarStatusOrcamento(id, 'REPROVADO', justificativa.trim());
     
     if (sucesso) {
         mostrarNotificacao('Orçamento REPROVADO. Justificativa registrada.');
-        carregarTabelaAprovacoes();
+        await carregarTabelaAprovacoes();
         
         // Atualizar dashboard de KPIs
         if (dashboardController) {
-            dashboardController.atualizar();
+            await dashboardController.atualizar();
         }
     } else {
         mostrarNotificacao('Erro ao reprovar orçamento');
