@@ -69,21 +69,27 @@ console.log('[SGQ-SECURITY] ✅ Validação concluída: Todas as variáveis pres
  * Security Model: Zero Trust - Nenhuma credencial em arquivo físico
  */
 try {
-  // Construção do objeto de credenciais a partir de variáveis de ambiente
-  const serviceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-  };
+  // Verificar se o Firebase Admin já foi inicializado (prevenção de duplicação)
+  if (admin.apps.length === 0) {
+    // Construção do objeto de credenciais a partir de variáveis de ambiente
+    const serviceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+    };
 
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
 
-  console.log('[SGQ-SECURITY] ✅ Firebase Admin SDK inicializado');
-  console.log(`[SGQ-SECURITY] Project ID: ${process.env.FIREBASE_PROJECT_ID}`);
-  console.log(`[SGQ-SECURITY] Service Account: ${process.env.FIREBASE_CLIENT_EMAIL}`);
-  console.log('[SGQ-SECURITY] Método: Environment Variables (Zero Trust)\n');
+    console.log('[SGQ-SECURITY] ✅ Firebase Admin SDK inicializado');
+    console.log(`[SGQ-SECURITY] Project ID: ${process.env.FIREBASE_PROJECT_ID}`);
+    console.log(`[SGQ-SECURITY] Service Account: ${process.env.FIREBASE_CLIENT_EMAIL}`);
+    console.log('[SGQ-SECURITY] Método: Environment Variables (Zero Trust)\n');
+  } else {
+    console.log('[SGQ-SECURITY] ℹ️  Firebase Admin SDK já inicializado (reutilizando instância)');
+    console.log(`[SGQ-SECURITY] Project ID: ${process.env.FIREBASE_PROJECT_ID}\n`);
+  }
 } catch (error) {
   console.error('[SGQ-SECURITY] ❌ FALHA CRÍTICA: Erro na inicialização do Firebase Admin');
   console.error(`[SGQ-SECURITY] Erro: ${error.message}`);
