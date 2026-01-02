@@ -43,6 +43,7 @@ function mostrarNotificacao(mensagem, duracao = 3000) {
 
 /**
  * Reinicia o timer de inatividade
+ * Monitora abandono em TODO o formulário (não apenas Step 1)
  */
 function reiniciarTimerInatividade() {
     console.log('[SGQ-SECURITY] Timer de inatividade reiniciado');
@@ -52,9 +53,9 @@ function reiniciarTimerInatividade() {
         clearTimeout(inactivityTimer);
     }
     
-    // Criar novo timer apenas se estiver no Step 1 e houver dados
+    // Criar novo timer se houver dados incompletos
     const leadTemp = obterLeadTemporario();
-    if (currentStep === 1 && leadTemp && leadTemp.status === 'LEAD_INCOMPLETO') {
+    if (leadTemp && leadTemp.status === 'LEAD_INCOMPLETO') {
         inactivityTimer = setTimeout(() => {
             console.log('[SGQ-SECURITY] Timeout de inatividade atingido - marcando lead como abandonado');
             marcarLeadComoAbandonado();
@@ -64,8 +65,9 @@ function reiniciarTimerInatividade() {
 
 /**
  * Marca o lead temporário como abandonado
+ * Garante que todos os dados capturados (incluindo finalidade e associado) sejam salvos
  */
-function marcarLeadComoAbandonado() {
+async function marcarLeadComoAbandonado() {
     const leadTemp = obterLeadTemporario();
     
     if (leadTemp && leadTemp.status === 'LEAD_INCOMPLETO') {
@@ -73,13 +75,33 @@ function marcarLeadComoAbandonado() {
         leadTemp.dataAbandono = new Date().toISOString();
         leadTemp.ultimo_campo_focado = lastFocusedField;
         
+        // Capturar dados do formulário que podem ter sido preenchidos mas não salvos ainda
+        // Incluir finalidade e associado se disponíveis
+        const finalidadeEvento = document.getElementById('finalidadeEvento');
+        const associadoCDL = document.getElementById('associadoCDL');
+        
+        if (finalidadeEvento && finalidadeEvento.value.trim()) {
+            leadTemp.finalidadeEvento = finalidadeEvento.value.trim();
+        }
+        
+        if (associadoCDL) {
+            leadTemp.associadoCDL = associadoCDL.checked;
+        }
+        
         localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
         console.log('[SGQ-SECURITY] Lead marcado como LEAD_ABANDONADO:', leadTemp.id);
-        
-        // Salvar no dataManager para persistência
-        dataManager.salvarLead(leadTemp).catch(error => {
-            console.error('[SGQ-SECURITY] Erro ao salvar lead abandonado:', error);
+        console.log('[SGQ-SECURITY] Dados capturados no abandono:', {
+            finalidadeEvento: leadTemp.finalidadeEvento || 'não informado',
+            associadoCDL: leadTemp.associadoCDL || false,
+            ultimo_campo_focado: leadTemp.ultimo_campo_focado
         });
+        
+        // Salvar no dataManager para persistência (assíncrono, não bloqueia)
+        try {
+            await dataManager.salvarLead(leadTemp);
+        } catch (error) {
+            console.error('[SGQ-SECURITY] Erro ao salvar lead abandonado:', error);
+        }
     }
 }
 
@@ -116,6 +138,29 @@ function setupShadowCapture() {
             input.addEventListener('input', verificarCamposObrigatoriosStep1);
         }
     });
+    
+    // Adicionar listeners para finalidadeEvento e associadoCDL (campos de enriquecimento)
+    const finalidadeEvento = document.getElementById('finalidadeEvento');
+    if (finalidadeEvento) {
+        finalidadeEvento.addEventListener('change', function() {
+            const valor = this.value.trim();
+            if (valor) {
+                salvarLeadShadow('finalidadeEvento', valor);
+                console.log('[SGQ-SECURITY] Finalidade do evento capturada:', valor);
+            }
+            reiniciarTimerInatividade();
+        });
+    }
+    
+    const associadoCDL = document.getElementById('associadoCDL');
+    if (associadoCDL) {
+        associadoCDL.addEventListener('change', function() {
+            const valor = this.checked;
+            salvarLeadShadow('associadoCDL', valor);
+            console.log('[SGQ-SECURITY] Associado CDL capturado:', valor);
+            reiniciarTimerInatividade();
+        });
+    }
     
     // Iniciar timer de inatividade
     reiniciarTimerInatividade();
@@ -200,10 +245,12 @@ function verificarCamposObrigatoriosStep1() {
 
 /**
  * Salva o lead temporário (Shadow Capture)
+ * Após salvar no localStorage, tenta sincronizar com Firebase via dataManager.salvarLead
+ * se o email estiver presente (garantindo visibilidade imediata para o comercial)
  * @param {string} campo - Nome do campo
  * @param {string} valor - Valor do campo
  */
-function salvarLeadShadow(campo, valor) {
+async function salvarLeadShadow(campo, valor) {
     // Obter lead temporário existente ou criar novo
     let leadTemp = obterLeadTemporario();
     
@@ -225,6 +272,24 @@ function salvarLeadShadow(campo, valor) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
     
     console.log('[SGQ-SECURITY] Shadow Capture: Campo salvo -', campo);
+    
+    // Se o email estiver presente, tentar sincronizar com Firebase de forma assíncrona
+    // Isso garante visibilidade imediata para o comercial
+    if (leadTemp.email && leadTemp.email.trim() !== '') {
+        try {
+            console.log('[SGQ-SECURITY] Email presente - sincronizando lead com Firebase');
+            const resultado = await dataManager.salvarLead(leadTemp);
+            if (resultado && resultado.firebaseId) {
+                // Atualizar firebaseId no lead temporário para próximas atualizações (UPSERT)
+                leadTemp.firebaseId = resultado.firebaseId;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
+                console.log('[SGQ-SECURITY] Lead sincronizado com Firebase ID:', resultado.firebaseId);
+            }
+        } catch (error) {
+            console.warn('[SGQ-SECURITY] Erro ao sincronizar lead com Firebase:', error);
+            // Não bloqueia - lead já está salvo no localStorage
+        }
+    }
 }
 
 /**
@@ -581,9 +646,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Detectar fechamento da página para marcar lead como abandonado
     window.addEventListener('beforeunload', function() {
         const leadTemp = obterLeadTemporario();
-        if (leadTemp && leadTemp.status === 'LEAD_INCOMPLETO' && currentStep === 1) {
+        if (leadTemp && leadTemp.status === 'LEAD_INCOMPLETO') {
             console.log('[SGQ-SECURITY] Página sendo fechada - marcando lead como abandonado');
-            marcarLeadComoAbandonado();
+            // Salvar de forma síncrona no localStorage apenas
+            const finalidadeEvento = document.getElementById('finalidadeEvento');
+            const associadoCDL = document.getElementById('associadoCDL');
+            
+            leadTemp.status = 'LEAD_ABANDONADO';
+            leadTemp.dataAbandono = new Date().toISOString();
+            leadTemp.ultimo_campo_focado = lastFocusedField;
+            
+            if (finalidadeEvento && finalidadeEvento.value.trim()) {
+                leadTemp.finalidadeEvento = finalidadeEvento.value.trim();
+            }
+            
+            if (associadoCDL) {
+                leadTemp.associadoCDL = associadoCDL.checked;
+            }
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
+            console.log('[SGQ-SECURITY] Lead salvo localmente como abandonado');
+            // Nota: Sincronização com Firebase será feita quando o lead for recarregado ou via timer de inatividade
         }
     });
 });
