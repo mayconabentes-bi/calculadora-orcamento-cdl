@@ -898,6 +898,10 @@ function configurarEventListeners() {
 
 // ========== IMPORTAÇÃO DE LEADS ==========
 
+// Constantes para importação de leads
+const DURACAO_TIPO_PADRAO = 'dias';
+const DELAY_CALCULO_AUTO_MS = 500;
+
 /**
  * Abre o modal para importar leads (async para buscar leads do Firebase)
  * [SGQ-SECURITY] Sincronização com Firebase
@@ -1050,7 +1054,7 @@ function importarLeadSelecionado(leadId) {
             console.log('[SGQ-SECURITY] Duração do contrato preenchida:', lead.duracaoContrato, 'dias');
         }
         if (duracaoTipoSelect) {
-            duracaoTipoSelect.value = 'dias'; // Sempre em dias
+            duracaoTipoSelect.value = DURACAO_TIPO_PADRAO; // Sempre em dias
         }
     }
     
@@ -1136,7 +1140,7 @@ function importarLeadSelecionado(leadId) {
         calcularOrcamento();
         
         mostrarNotificacao(`[SGQ-SECURITY] Lead "${lead.nome}" importado e calculado automaticamente!`, 5000);
-    }, 500);
+    }, DELAY_CALCULO_AUTO_MS);
 }
 
 // ========== TRAVA DE FIM DE SEMANA ==========

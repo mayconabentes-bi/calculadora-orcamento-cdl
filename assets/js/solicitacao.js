@@ -723,7 +723,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Coletar duração do contrato e dias da semana
             const duracaoContrato = document.getElementById('duracaoContrato')?.value || 30;
             const diasSemanaCheckboxes = document.querySelectorAll('[id^="dia-"]:checked');
-            const diasSemanaSelecionados = Array.from(diasSemanaCheckboxes).map(cb => parseInt(cb.value));
+            const diasSemanaSelecionados = [...diasSemanaCheckboxes].map(cb => parseInt(cb.value));
 
             // Coletar todos os dados do formulário
             // Obter lead temporário para preservar firebaseId (UPSERT)
