@@ -23,5 +23,5 @@ const analytics = getAnalytics(app);
 // Exportar instâncias e métodos do Firestore para o DataManager
 export { app, db, auth, collection, addDoc, getDocs, updateDoc, setDoc, doc, query, where, getDoc, analytics };
 
-// [SGQ-SECURITY] Firebase Exports carregados com sucesso: setDoc habilitado
-console.log('[SGQ-SECURITY] Firebase Exports carregados com sucesso: setDoc habilitado');
+// [SGQ-SECURITY] Firebase Bridge atualizada: setDoc/getDoc habilitados
+console.log('[SGQ-SECURITY] Firebase Bridge atualizada: setDoc/getDoc habilitados');
