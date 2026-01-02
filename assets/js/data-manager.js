@@ -113,6 +113,7 @@ class DataManager {
                 } catch (error) {
                     totalErros++;
                     console.error(`[SGQ-SECURITY] Erro ao sincronizar registro ${calculo.id}:`, error.message);
+                    console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                 }
             }
 
@@ -135,6 +136,7 @@ class DataManager {
                     } catch (error) {
                         totalErros++;
                         console.error(`[SGQ-SECURITY] Erro ao sincronizar lead ${lead.id}:`, error.message);
+                        console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                     }
                 }
             }
@@ -154,6 +156,7 @@ class DataManager {
             };
         } catch (error) {
             console.error('[SGQ-SECURITY] Erro na sincronização de dados pendentes:', error);
+            console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
             return { success: false, message: error.message };
         }
     }
@@ -1350,6 +1353,7 @@ class DataManager {
             return orcamentos;
         } catch (error) {
             console.error('Erro ao obter orçamentos pendentes:', error);
+            console.error('Timestamp:', new Date().toISOString());
             return [];
         }
     }
@@ -1436,6 +1440,7 @@ class DataManager {
             };
         } catch (error) {
             console.error('Erro ao adicionar cálculo ao Firestore:', error);
+            console.error('Timestamp:', new Date().toISOString());
             // Fallback para localStorage
             return this.adicionarCalculoHistorico(calculo);
         }
@@ -1586,6 +1591,7 @@ class DataManager {
             };
         } catch (error) {
             console.error('Erro ao obter dados analíticos do Firestore:', error);
+            console.error('Timestamp:', new Date().toISOString());
             // Fallback para localStorage
             return this.obterDadosAnaliticos();
         }
@@ -1902,6 +1908,7 @@ class DataManager {
                 return true;
             } catch (error) {
                 console.error('[SGQ-SECURITY] Erro ao atualizar status no Firebase:', error);
+                console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                 // Continua para tentar atualizar no localStorage
             }
         }
