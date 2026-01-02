@@ -12,7 +12,8 @@
     "test:all": "npm run test && npm run test:e2e",
     "playwright:install": "playwright install",
     "setup:user": "node setup-developer-user.js",
-    "verify:auth": "node verify-auth-setup.js"
+    "verify:auth": "node verify-auth-setup.js",
+    "verify:security": "node verify-sgq-security.js"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

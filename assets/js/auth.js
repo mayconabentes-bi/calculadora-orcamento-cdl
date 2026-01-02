@@ -36,6 +36,7 @@ class AuthManager {
 
     /**
      * Realizar login com email e senha
+     * SGQ-SECURITY: Inclui logs de auditoria detalhados
      * @param {string} email 
      * @param {string} password 
      * @returns {Promise<object>} Dados do usuário
@@ -63,12 +64,23 @@ class AuthManager {
             this.currentUser = user;
             this.userMetadata = userData;
             
+            // SGQ-SECURITY: Log de sucesso de login
+            console.log('[SGQ-SECURITY] Login bem-sucedido');
+            console.log('[SGQ-SECURITY] Email:', email);
+            console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+            
             return {
                 success: true,
                 user: user,
                 metadata: userData
             };
         } catch (error) {
+            // SGQ-SECURITY: Log detalhado de falha no login
+            console.error('[SGQ-SECURITY] Falha no login');
+            console.error('[SGQ-SECURITY] Email tentado:', email);
+            console.error('[SGQ-SECURITY] Erro:', error.code || error.message);
+            console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+            
             console.error('Erro no login:', error);
             throw error;
         }

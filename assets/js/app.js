@@ -332,6 +332,7 @@ function fecharBannerError() {
 
 /**
  * Configura o sistema de navegação por abas
+ * SGQ-SECURITY: Inclui gatekeeper RBAC para recursos administrativos
  */
 function configurarNavegacaoAbas() {
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -340,6 +341,19 @@ function configurarNavegacaoAbas() {
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
             const targetTab = this.dataset.tab;
+            
+            // SGQ-SECURITY: Gatekeeper RBAC para recursos administrativos
+            if (targetTab === 'config' || targetTab === 'dashboard') {
+                // Verificar se authManager está disponível e se usuário é admin
+                if (typeof authManager !== 'undefined' && authManager && !authManager.isAdmin()) {
+                    // Acesso negado - manter aba atual
+                    console.log('[SGQ-SECURITY] Acesso negado a recurso administrativo');
+                    console.log('[SGQ-SECURITY] Tab solicitada:', targetTab);
+                    console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+                    mostrarNotificacao('⚠️ Acesso negado: Recurso administrativo');
+                    return; // Bloqueia a mudança de aba
+                }
+            }
             
             // Remove active de todos os botões e conteúdos
             tabButtons.forEach(btn => btn.classList.remove('active'));

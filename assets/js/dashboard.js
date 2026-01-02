@@ -410,10 +410,41 @@ class DashboardController {
 // Instância global do dashboard
 let dashboardController = null;
 
-// Senha da Superintendência (em produção, deve ser gerenciada de forma mais segura)
+// ========== SENHA DA SUPERINTENDÊNCIA - RECOMENDAÇÕES SGQ-SECURITY ==========
 // NOTA: Esta é uma implementação de protótipo. Em produção, a autenticação deve ser
 // feita no backend com hash bcrypt, JWT tokens, e sistema de sessão adequado.
 // A senha atual é mantida no código para fins de demonstração conforme especificação.
+//
+// ** RECOMENDAÇÕES DE SEGURANÇA SGQ-SECURITY v5.1.0 **
+//
+// 1. MIGRAÇÃO PARA FIREBASE SECURITY RULES
+//    - Criar coleção protegida 'credenciais_executivas' no Firestore
+//    - Implementar validação via Firebase Security Rules:
+//      rules_version = '2';
+//      service cloud.firestore {
+//        match /databases/{database}/documents {
+//          match /credenciais_executivas/{document} {
+//            allow read, write: if request.auth != null && 
+//                                  request.auth.token.role == 'superintendente';
+//          }
+//        }
+//      }
+//
+// 2. HASH DE SENHA
+//    - Armazenar hash bcrypt ao invés de senha em texto plano
+//    - Utilizar Firebase Functions para validação server-side
+//
+// 3. ROTAÇÃO DE CREDENCIAIS
+//    - Implementar política de expiração de senhas (90 dias)
+//    - Adicionar histórico de senhas para evitar reutilização
+//
+// 4. AUDITORIA E MONITORAMENTO
+//    - Todos os acessos já são logados com [SGQ-SECURITY]
+//    - Implementar alertas para múltiplas tentativas falhas
+//
+// 5. MULTI-FACTOR AUTHENTICATION (MFA)
+//    - Adicionar segunda camada de autenticação via SMS ou Authenticator
+//
 const SENHA_SUPERINTENDENCIA = 'CDL2025';
 
 /**
@@ -533,6 +564,7 @@ function configurarAreaRestrita() {
 
 /**
  * Verifica a senha e autoriza acesso à área restrita (Assíncrono)
+ * SGQ-SECURITY: Inclui logs de auditoria para tentativas de acesso
  */
 async function verificarAcessoSuperintendencia() {
     const senhaInput = document.getElementById('senha-superintendencia');
@@ -549,9 +581,17 @@ async function verificarAcessoSuperintendencia() {
         // Limpar senha
         senhaInput.value = '';
         
+        // SGQ-SECURITY: Log de acesso autorizado
+        console.log('[SGQ-SECURITY] Acesso à Área Restrita autorizado');
+        console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+        
         mostrarNotificacao('Acesso autorizado à Área Restrita');
     } else {
         // Acesso negado
+        // SGQ-SECURITY: Log detalhado de tentativa de acesso negada
+        console.log('[SGQ-SECURITY] Tentativa de acesso à Área Restrita com senha executiva incorreta');
+        console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+        
         mostrarNotificacao('Senha incorreta! Acesso negado.', 3000);
         senhaInput.value = '';
         senhaInput.focus();
