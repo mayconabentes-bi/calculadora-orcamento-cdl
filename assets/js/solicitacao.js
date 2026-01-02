@@ -150,15 +150,6 @@ function setupShadowCapture() {
             }
             reiniciarTimerInatividade();
         });
-        
-        finalidadeEvento.addEventListener('blur', function() {
-            const valor = this.value.trim();
-            if (valor) {
-                salvarLeadShadow('finalidadeEvento', valor);
-                console.log('[SGQ-SECURITY] Finalidade do evento capturada (blur):', valor);
-            }
-            reiniciarTimerInatividade();
-        });
     }
     
     const associadoCDL = document.getElementById('associadoCDL');
