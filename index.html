@@ -382,7 +382,9 @@
                 
                 let errorMessage = 'Erro ao realizar login. Tente novamente.';
                 
-                if (error.code === 'auth/user-not-found') {
+                if (error.code === 'auth/invalid-credential') {
+                    errorMessage = 'Credenciais inválidas. Verifique seu e-mail e senha.';
+                } else if (error.code === 'auth/user-not-found') {
                     errorMessage = 'Usuário não encontrado.';
                 } else if (error.code === 'auth/wrong-password') {
                     errorMessage = 'Senha incorreta.';
