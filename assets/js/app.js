@@ -2082,14 +2082,40 @@ function esconderLoading() {
 }
 
 /**
- * Wrapper para exportarPDFCliente com loading
+ * Wrapper para exportarPDFCliente com loading e atualização de status
  */
 async function exportarPDFClienteComLoading() {
     mostrarLoading();
     // Pequeno delay para o overlay aparecer antes do processamento pesado
     await new Promise(resolve => setTimeout(resolve, 100));
     try {
-        exportarPDFCliente();
+        await exportarPDFCliente();
+        
+        // Após sucesso do download, atualizar status para ENVIADO_AO_CLIENTE
+        if (ultimoCalculoRealizado) {
+            const historico = dataManager.obterHistoricoCalculos();
+            if (historico.length > 0) {
+                // O último cálculo é sempre o primeiro do array (unshift)
+                const ultimoId = historico[0].id;
+                const statusAtual = historico[0].statusAprovacao || 'AGUARDANDO_APROVACAO';
+                
+                // Apenas atualizar se estiver em APROVADO_PARA_ENVIO
+                if (statusAtual === 'APROVADO_PARA_ENVIO') {
+                    try {
+                        await dataManager.atualizarStatusOrcamento(ultimoId, 'ENVIADO_AO_CLIENTE');
+                        console.log('[SGQ-SECURITY] Orçamento enviado ao cliente - Status atualizado para ENVIADO_AO_CLIENTE');
+                        mostrarNotificacao('PDF enviado e status atualizado!');
+                        
+                        // Atualizar dashboard se estiver inicializado
+                        if (dashboardController) {
+                            atualizarDashboard();
+                        }
+                    } catch (error) {
+                        console.error('[SGQ-SECURITY] Erro ao atualizar status após envio:', error);
+                    }
+                }
+            }
+        }
     } finally {
         esconderLoading();
     }

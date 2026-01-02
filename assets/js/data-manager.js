@@ -540,6 +540,78 @@ class DataManager {
     }
 
     /**
+     * Promove um lead para cliente no CRM
+     * Verifica se dados já existem na coleção 'clientes' antes de criar
+     * Padrão SGQ-SECURITY: Log completo de transição de estado
+     * 
+     * @param {number} leadId - ID do lead a ser promovido
+     * @returns {Object|null} Cliente criado ou existente, ou null se falhar
+     */
+    async promoverLeadParaCliente(leadId) {
+        const lead = this.obterLeadPorId(leadId);
+        
+        if (!lead) {
+            console.error('[SGQ-SECURITY] Falha ao promover lead: Lead não encontrado:', leadId);
+            return null;
+        }
+
+        // Validar dados mínimos necessários
+        if (!lead.nome || (!lead.email && !lead.telefone)) {
+            console.error('[SGQ-SECURITY] Falha ao promover lead: Dados insuficientes (nome, email ou telefone)');
+            return null;
+        }
+
+        if (!this.dados.clientes) {
+            this.dados.clientes = [];
+        }
+
+        // Verificar se cliente já existe (por email ou telefone)
+        const clienteExistente = this.dados.clientes.find(c => 
+            (lead.email && c.email && c.email.toLowerCase() === lead.email.toLowerCase()) ||
+            (lead.telefone && c.telefone && c.telefone === lead.telefone)
+        );
+
+        if (clienteExistente) {
+            console.log('[SGQ-SECURITY] Cliente já existe no CRM. ID:', clienteExistente.id);
+            // Atualizar dados se necessário
+            clienteExistente.dataUltimaInteracao = new Date().toISOString();
+            clienteExistente.leadOrigem = clienteExistente.leadOrigem || leadId;
+            this.salvarDados();
+            return clienteExistente;
+        }
+
+        // Criar novo cliente
+        const novoCliente = {
+            id: Date.now(),
+            nome: lead.nome,
+            email: lead.email || '',
+            telefone: lead.telefone || '',
+            cpfCnpj: '',
+            endereco: '',
+            observacoes: lead.observacoes || '',
+            dataCadastro: new Date().toISOString(),
+            dataUltimaInteracao: new Date().toISOString(),
+            leadOrigem: leadId,
+            status: 'ativo',
+            // Histórico de eventos do cliente
+            historicoEventos: lead.dataEvento ? [{
+                dataEvento: lead.dataEvento,
+                espaco: lead.espaco,
+                espacoId: lead.espacoId
+            }] : []
+        };
+
+        this.dados.clientes.push(novoCliente);
+        this.salvarDados();
+        
+        console.log('[SGQ-SECURITY] TRANSIÇÃO DE ESTADO: Lead promovido para Cliente CRM');
+        console.log('[SGQ-SECURITY] Lead ID:', leadId, '-> Cliente ID:', novoCliente.id);
+        console.log('[SGQ-SECURITY] Cliente:', novoCliente.nome);
+
+        return novoCliente;
+    }
+
+    /**
      * Obtém um lead por ID
      * @param {number} id - ID do lead
      * @returns {Object|null} Lead encontrado ou null
@@ -552,7 +624,9 @@ class DataManager {
     }
 
     /**
-     * Atualiza o status de um lead
+     * Atualiza o status de um lead com logging SGQ-SECURITY
+     * Status válidos: LEAD_NOVO, EM_TRATAMENTO, QUALIFICADO, DESQUALIFICADO
+     * 
      * @param {number} id - ID do lead
      * @param {string} novoStatus - Novo status
      * @returns {boolean} True se atualizado com sucesso
@@ -560,8 +634,16 @@ class DataManager {
     atualizarStatusLead(id, novoStatus) {
         const lead = this.obterLeadPorId(id);
         if (lead) {
+            const statusAnterior = lead.status;
             lead.status = novoStatus;
             lead.dataAtualizacao = new Date().toISOString();
+            
+            // Log de transição de estado padrão SGQ-SECURITY
+            console.log('[SGQ-SECURITY] TRANSIÇÃO DE ESTADO - Lead:', id);
+            console.log('[SGQ-SECURITY] Status:', statusAnterior, '->', novoStatus);
+            console.log('[SGQ-SECURITY] Lead:', lead.nome);
+            console.log('[SGQ-SECURITY] Timestamp:', lead.dataAtualizacao);
+            
             this.salvarDados();
             return true;
         }
@@ -1608,37 +1690,54 @@ class DataManager {
      * Atualiza no Firebase primeiro, depois no localStorage como fallback
      * 
      * DATA INTEGRITY GATE - SGQ v5.1.0:
-     * - Para status REPROVADO: justificativa obrigatória com mínimo 10 caracteres
+     * - Para status REPROVADO_REVISAR: justificativa obrigatória com mínimo 10 caracteres
      * - Flag 'convertido' setada como true EXCLUSIVAMENTE para status APROVADO
      * - Garante governança financeira e rastreabilidade de decisões executivas
+     * - Suporta novos status do workflow: EM_TRATAMENTO, APROVADO_PARA_ENVIO, REPROVADO_REVISAR, ENVIADO_AO_CLIENTE
      * 
      * @param {string|number} id - ID do orçamento (Firebase string ou localStorage number)
-     * @param {string} status - Novo status (APROVADO, REPROVADO, AGUARDANDO_APROVACAO)
-     * @param {string} justificativa - Justificativa da decisão (obrigatória se REPROVADO, min 10 caracteres)
+     * @param {string} status - Novo status (AGUARDANDO_APROVACAO, APROVADO, APROVADO_PARA_ENVIO, REPROVADO, REPROVADO_REVISAR, EM_TRATAMENTO, ENVIADO_AO_CLIENTE)
+     * @param {string} justificativa - Justificativa da decisão (obrigatória se REPROVADO/REPROVADO_REVISAR, min 10 caracteres)
      * @returns {Promise<boolean>} True se atualizado com sucesso
      * @throws {Error} Se validações de integridade falharem
      */
     async atualizarStatusOrcamento(id, status, justificativa = '') {
-        // Validar status
-        const statusValidos = ['AGUARDANDO_APROVACAO', 'APROVADO', 'REPROVADO'];
+        // Validar status - incluindo novos status do workflow
+        const statusValidos = [
+            'AGUARDANDO_APROVACAO', 
+            'APROVADO', 
+            'APROVADO_PARA_ENVIO',
+            'REPROVADO', 
+            'REPROVADO_REVISAR',
+            'EM_TRATAMENTO',
+            'ENVIADO_AO_CLIENTE'
+        ];
         if (!statusValidos.includes(status)) {
-            const erro = `Status inválido: ${status}. Deve ser um de: ${statusValidos.join(', ')}`;
+            const erro = `[SGQ-SECURITY] Status inválido: ${status}. Deve ser um de: ${statusValidos.join(', ')}`;
             console.error(erro);
             throw new Error(erro);
         }
 
-        // DATA INTEGRITY GATE: Validação estrita para REPROVADO
+        // DATA INTEGRITY GATE: Validação estrita para REPROVADO e REPROVADO_REVISAR
         // Justificativa é obrigatória e deve ter no mínimo 10 caracteres
-        if (status === 'REPROVADO') {
+        if (status === 'REPROVADO' || status === 'REPROVADO_REVISAR') {
             const justificativaTrimmed = justificativa ? justificativa.trim() : '';
             
             if (!justificativaTrimmed || justificativaTrimmed.length < 10) {
-                const erro = 'DATA INTEGRITY VIOLATION: Status REPROVADO requer justificativa com mínimo de 10 caracteres. ' +
+                const erro = '[SGQ-SECURITY] DATA INTEGRITY VIOLATION: Status ' + status + ' requer justificativa com mínimo de 10 caracteres. ' +
                             'Esta validação garante rastreabilidade e governança de decisões executivas.';
                 console.error(erro);
                 throw new Error(erro);
             }
         }
+
+        // Log de transição de estado (padrão SGQ-SECURITY)
+        console.log('[SGQ-SECURITY] TRANSIÇÃO DE ESTADO - Orçamento:', id);
+        console.log('[SGQ-SECURITY] Novo Status:', status);
+        if (justificativa) {
+            console.log('[SGQ-SECURITY] Justificativa:', justificativa.substring(0, 50) + '...');
+        }
+        console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
 
         // Tentar atualizar no Firebase primeiro
         if (this.firebaseEnabled && typeof id === 'string') {
@@ -1651,7 +1750,7 @@ class DataManager {
                 };
                 
                 // DATA INTEGRITY GATE: Flag 'convertido' setada EXCLUSIVAMENTE para APROVADO
-                if (status === 'APROVADO') {
+                if (status === 'APROVADO' || status === 'APROVADO_PARA_ENVIO') {
                     updateData.convertido = true;
                 } else {
                     // Garantir que convertido é false para outros status (evita inconsistências)
@@ -1660,10 +1759,10 @@ class DataManager {
                 
                 await updateDoc(docRef, updateData);
                 
-                console.log(`Status do orçamento ${id} atualizado no Firebase para ${status}`);
+                console.log('[SGQ-SECURITY] Status do orçamento', id, 'atualizado no Firebase para', status);
                 return true;
             } catch (error) {
-                console.error('Erro ao atualizar status no Firebase:', error);
+                console.error('[SGQ-SECURITY] Erro ao atualizar status no Firebase:', error);
                 // Continua para tentar atualizar no localStorage
             }
         }
@@ -1677,25 +1776,36 @@ class DataManager {
         const registro = this.dados.historicoCalculos.find(calc => calc.id === numericId);
         
         if (registro) {
+            const statusAnterior = registro.statusAprovacao || 'AGUARDANDO_APROVACAO';
             registro.statusAprovacao = status;
             registro.dataAprovacao = new Date().toISOString();
             
             // DATA INTEGRITY GATE: Flag 'convertido' setada EXCLUSIVAMENTE para APROVADO
-            if (status === 'APROVADO') {
+            if (status === 'APROVADO' || status === 'APROVADO_PARA_ENVIO') {
                 registro.convertido = true;
             } else {
                 // Garantir que convertido é false para outros status (evita inconsistências)
                 registro.convertido = false;
             }
             
-            if (status === 'REPROVADO') {
+            if (status === 'REPROVADO' || status === 'REPROVADO_REVISAR') {
                 registro.justificativaRejeicao = justificativa;
+                // Manter histórico de justificativas para análise de causa raiz
+                if (!registro.historicoJustificativas) {
+                    registro.historicoJustificativas = [];
+                }
+                registro.historicoJustificativas.push({
+                    status: status,
+                    justificativa: justificativa,
+                    data: new Date().toISOString()
+                });
             } else {
                 registro.justificativaRejeicao = null;
             }
 
             this.salvarDados();
-            console.log(`Status do orçamento ${numericId} atualizado no localStorage para ${status}`);
+            console.log('[SGQ-SECURITY] Status do orçamento', numericId, 'atualizado no localStorage');
+            console.log('[SGQ-SECURITY] Transição:', statusAnterior, '->', status);
             return true;
         }
 
