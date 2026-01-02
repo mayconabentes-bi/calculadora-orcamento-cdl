@@ -166,13 +166,18 @@ async function createDeveloperUser() {
         console.log('[SGQ-SECURITY] ⚠️  Inconsistência detectada: Auth OK, Firestore ausente');
         console.log('[SGQ-SECURITY] Operação: Sincronização de dados');
         
+        // Usar timestamp de criação do Auth para manter consistência de auditoria
+        // Converter de RFC3339 para ISO string para manter formato consistente
+        const authCreatedAt = new Date(existingUser.metadata.creationTime).toISOString();
+        
         await db.collection('usuarios').doc(existingUser.uid).set({
           email: developerData.email,
           nome: developerData.nome,
           role: developerData.role,
           status: developerData.status,
-          createdAt: new Date().toISOString()
-        });
+          createdAt: authCreatedAt,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
         
         console.log('[SGQ-SECURITY] ✅ Documento criado no Firestore');
         console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -208,13 +213,18 @@ async function createDeveloperUser() {
     
     // Criar documento no Firestore
     console.log('[SGQ-SECURITY] Criando documento no Firestore...');
+    
+    // Usar timestamp único para createdAt e updatedAt para manter consistência
+    const timestamp = new Date().toISOString();
+    
     await db.collection('usuarios').doc(userRecord.uid).set({
       email: developerData.email,
       nome: developerData.nome,
       role: developerData.role,
       status: developerData.status,
-      createdAt: new Date().toISOString()
-    });
+      createdAt: timestamp,
+      updatedAt: timestamp
+    }, { merge: true });
     
     console.log('[SGQ-SECURITY] ✅ Documento criado no Firestore');
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
