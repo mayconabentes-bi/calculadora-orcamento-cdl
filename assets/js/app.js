@@ -832,6 +832,15 @@ function configurarEventListeners() {
         checkbox.addEventListener('change', ocultarBotaoAprovacao);
     });
     
+    // [SGQ-SECURITY] Listeners específicos para checkboxes de dias da semana (fim de semana)
+    const checkboxesDiasSemana = ['dia-seg', 'dia-ter', 'dia-qua', 'dia-qui', 'dia-sex', 'dia-sab', 'dia-dom'];
+    checkboxesDiasSemana.forEach(checkboxId => {
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox) {
+            checkbox.addEventListener('change', verificarTravaFimDeSemana);
+        }
+    });
+    
     // Horários
     document.getElementById('adicionar-horario').addEventListener('click', () => adicionarNovoHorario());
     
@@ -993,7 +1002,7 @@ async function carregarLeadsNoModal() {
 
 /**
  * Importa um lead selecionado e preenche os dados do cliente
- * [SGQ-SECURITY] Autopreenchimento com mapeamento correto de campos
+ * [SGQ-SECURITY] Autopreenchimento com mapeamento correto de campos + Cálculo Automatizado
  * @param {number} leadId - ID do lead a ser importado
  */
 function importarLeadSelecionado(leadId) {
@@ -1005,6 +1014,7 @@ function importarLeadSelecionado(leadId) {
     }
 
     console.log('[SGQ-SECURITY] Importando lead:', lead.id, '-', lead.nome);
+    console.log('[SGQ-SECURITY] Dados do lead:', lead);
 
     // [SGQ-SECURITY] Preencher campos corretos: #cliente-nome, #cliente-contato, #data-evento, #espaco
     document.getElementById('cliente-nome').value = lead.nome || '';
@@ -1031,6 +1041,81 @@ function importarLeadSelecionado(leadId) {
         }
     }
     
+    // [SGQ-SECURITY] NOVOS CAMPOS: Duração do Contrato
+    if (lead.duracaoContrato) {
+        const duracaoInput = document.getElementById('duracao');
+        const duracaoTipoSelect = document.getElementById('duracao-tipo');
+        if (duracaoInput) {
+            duracaoInput.value = lead.duracaoContrato;
+            console.log('[SGQ-SECURITY] Duração do contrato preenchida:', lead.duracaoContrato, 'dias');
+        }
+        if (duracaoTipoSelect) {
+            duracaoTipoSelect.value = 'dias'; // Sempre em dias
+        }
+    }
+    
+    // [SGQ-SECURITY] NOVOS CAMPOS: Dias da Semana
+    if (lead.diasSemanaSelecionados && Array.isArray(lead.diasSemanaSelecionados)) {
+        // Primeiro, desmarcar todos os checkboxes
+        const todosCheckboxes = ['dia-seg', 'dia-ter', 'dia-qua', 'dia-qui', 'dia-sex', 'dia-sab', 'dia-dom'];
+        todosCheckboxes.forEach(id => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        });
+        
+        // Marcar apenas os dias selecionados
+        const mapeamentoDias = {
+            0: 'dia-dom',
+            1: 'dia-seg',
+            2: 'dia-ter',
+            3: 'dia-qua',
+            4: 'dia-qui',
+            5: 'dia-sex',
+            6: 'dia-sab'
+        };
+        
+        lead.diasSemanaSelecionados.forEach(dia => {
+            const checkboxId = mapeamentoDias[dia];
+            if (checkboxId) {
+                const checkbox = document.getElementById(checkboxId);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            }
+        });
+        
+        console.log('[SGQ-SECURITY] Dias da semana marcados:', lead.diasSemanaSelecionados);
+    }
+    
+    // [SGQ-SECURITY] NOVOS CAMPOS: Horários
+    if (lead.horarioInicio) {
+        const horarioInicioContainer = document.getElementById('horarios-container');
+        if (horarioInicioContainer) {
+            // Se houver múltiplos horários, pegar o primeiro input de horário-inicio
+            const primeiroHorarioInicio = horarioInicioContainer.querySelector('input[id^="horario-inicio-"]');
+            if (primeiroHorarioInicio) {
+                primeiroHorarioInicio.value = lead.horarioInicio;
+            }
+        }
+    }
+    
+    if (lead.horarioFim) {
+        const horarioInicioContainer = document.getElementById('horarios-container');
+        if (horarioInicioContainer) {
+            // Se houver múltiplos horários, pegar o primeiro input de horário-fim
+            const primeiroHorarioFim = horarioInicioContainer.querySelector('input[id^="horario-fim-"]');
+            if (primeiroHorarioFim) {
+                primeiroHorarioFim.value = lead.horarioFim;
+            }
+        }
+    }
+    
+    if (lead.horarioInicio || lead.horarioFim) {
+        console.log('[SGQ-SECURITY] Horários preenchidos:', lead.horarioInicio, '-', lead.horarioFim);
+    }
+    
     // [SGQ-SECURITY] Atualizar status do lead para "EM_ATENDIMENTO" com log de transição
     dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
     console.log('[SGQ-SECURITY] Lead', leadId, 'transicionado para EM_ATENDIMENTO');
@@ -1041,7 +1126,17 @@ function importarLeadSelecionado(leadId) {
     // Scroll para o topo da calculadora
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    mostrarNotificacao(`[SGQ-SECURITY] Lead "${lead.nome}" importado com sucesso!`);
+    // [SGQ-SECURITY] DISPARO AUTOMÁTICO DO CÁLCULO
+    // Aguardar um pequeno delay para garantir que todos os campos foram preenchidos
+    setTimeout(() => {
+        console.log('[SGQ-SECURITY] Cálculo automatizado aplicado via importação de lead - ID:', leadId);
+        console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+        
+        // Disparar função de cálculo
+        calcularOrcamento();
+        
+        mostrarNotificacao(`[SGQ-SECURITY] Lead "${lead.nome}" importado e calculado automaticamente!`, 5000);
+    }, 500);
 }
 
 // ========== TRAVA DE FIM DE SEMANA ==========
@@ -1049,17 +1144,36 @@ function importarLeadSelecionado(leadId) {
 /**
  * [SGQ-SECURITY] Trava de Fim de Semana
  * Se o evento for sábado ou domingo, força quantidade mínima de 3 funcionários
+ * TAMBÉM verifica os checkboxes dos dias da semana selecionados
  */
 function verificarTravaFimDeSemana() {
     const dataEventoInput = document.getElementById('data-evento');
-    if (!dataEventoInput || !dataEventoInput.value) return;
     
-    const dataEvento = new Date(dataEventoInput.value + 'T00:00:00');
-    const diaSemana = dataEvento.getDay(); // 0 = Domingo, 6 = Sábado
+    // Verificar se a data do evento é fim de semana
+    let ehFimDeSemanaData = false;
+    if (dataEventoInput && dataEventoInput.value) {
+        const dataEvento = new Date(dataEventoInput.value + 'T00:00:00');
+        const diaSemana = dataEvento.getDay(); // 0 = Domingo, 6 = Sábado
+        ehFimDeSemanaData = (diaSemana === 0 || diaSemana === 6);
+    }
     
-    // Se for sábado (6) ou domingo (0)
-    if (diaSemana === 0 || diaSemana === 6) {
-        console.log('[SGQ-SECURITY] TRAVA DE FIM DE SEMANA ATIVADA - Data:', dataEventoInput.value);
+    // Verificar se algum checkbox de fim de semana está marcado
+    const checkboxSabado = document.getElementById('dia-sab');
+    const checkboxDomingo = document.getElementById('dia-dom');
+    const ehFimDeSemanaCheckbox = (checkboxSabado && checkboxSabado.checked) || 
+                                   (checkboxDomingo && checkboxDomingo.checked);
+    
+    // Aplicar trava se qualquer uma das condições for verdadeira
+    const ehFimDeSemana = ehFimDeSemanaData || ehFimDeSemanaCheckbox;
+    
+    if (ehFimDeSemana) {
+        console.log('[SGQ-SECURITY] TRAVA DE FIM DE SEMANA ATIVADA');
+        if (ehFimDeSemanaData && dataEventoInput) {
+            console.log('[SGQ-SECURITY] - Motivo: Data do evento:', dataEventoInput.value);
+        }
+        if (ehFimDeSemanaCheckbox) {
+            console.log('[SGQ-SECURITY] - Motivo: Dias da semana selecionados incluem sábado/domingo');
+        }
         
         // Força mínimo de 3 funcionários ativos
         const funcionarios = dataManager.obterFuncionarios();
@@ -1086,10 +1200,14 @@ function verificarTravaFimDeSemana() {
         }
         
         // Adicionar atributo data para indicar que é fim de semana
-        dataEventoInput.setAttribute('data-fim-de-semana', 'true');
+        if (dataEventoInput) {
+            dataEventoInput.setAttribute('data-fim-de-semana', 'true');
+        }
     } else {
         // Remover atributo se não for fim de semana
-        dataEventoInput.removeAttribute('data-fim-de-semana');
+        if (dataEventoInput) {
+            dataEventoInput.removeAttribute('data-fim-de-semana');
+        }
     }
 }
 
