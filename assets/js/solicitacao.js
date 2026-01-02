@@ -210,7 +210,8 @@ function setupShadowCapture() {
 
 /**
  * Valida o campo nome usando DataSanitizer
- * Exibe feedback visual se houver viés detectado
+ * Exibe feedback visual se houver viés detectado para fins de auditoria
+ * NÃO bloqueia o avanço do usuário - apenas aviso visual
  * @param {string} nome - Nome a ser validado
  */
 function validarCampoNome(nome) {
@@ -252,10 +253,8 @@ function validarCampoNome(nome) {
         // Inserir após o input
         inputNome.parentNode.insertBefore(erroDiv, inputNome.nextSibling);
         
-        // Desabilitar botão próximo
-        const btnProximo = document.getElementById('btn-proximo');
-        btnProximo.disabled = true;
-        btnProximo.style.opacity = '0.6';
+        // NÃO desabilitar botão - apenas aviso visual para auditoria
+        // Usuário pode continuar mesmo com alerta de viés ativo
         
         return false;
     }
@@ -265,18 +264,16 @@ function validarCampoNome(nome) {
 
 /**
  * Verifica se todos os campos obrigatórios do Step 1 estão preenchidos
- * E se não há erros de validação
+ * Gatekeeper de presença: apenas verifica se nome, email e telefone estão preenchidos
+ * Não depende de erros de formatação ou viés
  */
 function verificarCamposObrigatoriosStep1() {
     const nome = document.getElementById('nome').value.trim();
     const email = document.getElementById('email').value.trim();
     const telefone = document.getElementById('telefone').value.trim();
     const btnProximo = document.getElementById('btn-proximo');
-    
-    // Verificar se há erro de viés no nome
-    const temErroVies = document.getElementById('nome-erro-vies') !== null;
 
-    if (nome && email && telefone && !temErroVies) {
+    if (nome && email && telefone) {
         btnProximo.disabled = false;
         btnProximo.style.opacity = '1';
     } else {
@@ -540,13 +537,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Validar nome com DataSanitizer
-        if (!validarCampoNome(nome)) {
-            alert('Por favor, corrija o campo Nome antes de continuar.');
-            return;
-        }
-        
-        // Sincronização imediata com Firebase ao clicar no botão
         // Obter lead temporário ou criar novo
         let leadTemp = obterLeadTemporario();
         if (!leadTemp) {
@@ -569,23 +559,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Salvar no localStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
         
-        // Sincronizar com Firebase de forma assíncrona
-        try {
-            console.log('[SGQ-SECURITY] Sincronizando lead com Firebase - Status: LEAD_EM_PREENCHIMENTO');
-            const resultado = await dataManager.salvarLead(leadTemp);
+        // Sincronizar com Firebase em BACKGROUND (não-bloqueante)
+        console.log('[SGQ-SECURITY] Sincronização iniciada em background; transição imediata para Step 2');
+        dataManager.salvarLead(leadTemp).then(resultado => {
             if (resultado && resultado.firebaseId) {
-                // Armazenar firebaseId para próximas atualizações (UPSERT)
-                currentLeadId = resultado.id;
+                // Atualizar firebaseId no lead temporário para próximas atualizações (UPSERT)
                 leadTemp.firebaseId = resultado.firebaseId;
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
                 console.log('[SGQ-SECURITY] Lead sincronizado com Firebase ID:', resultado.firebaseId);
             }
-        } catch (error) {
+        }).catch(error => {
             console.warn('[SGQ-SECURITY] Erro ao sincronizar lead com Firebase:', error);
             // Não bloqueia - lead já está salvo no localStorage
-        }
+        });
         
-        // Ir para Step 2
+        // Ir para Step 2 IMEDIATAMENTE (sem aguardar Firebase)
         irParaStep(2);
     });
 
