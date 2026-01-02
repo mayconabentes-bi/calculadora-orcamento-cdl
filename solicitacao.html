@@ -358,12 +358,72 @@
                         </small>
                     </div>
 
+                    <!-- Duração do Contrato -->
+                    <div class="form-group">
+                        <label for="duracaoContrato">Duração do Contrato (em dias): <span style="color: #dc2626;">*</span></label>
+                        <input type="number" id="duracaoContrato" class="form-control" placeholder="Ex: 30" min="1" value="30" required>
+                        <small style="color: #6b7280; font-size: 0.85em; display: block; margin-top: 5px;">
+                            Informe por quantos dias você precisará do espaço
+                        </small>
+                    </div>
+
+                    <!-- Dias da Semana -->
+                    <div class="form-group">
+                        <label>Dias da Semana: <span style="color: #dc2626;">*</span></label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 8px;">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-domingo" value="0">
+                                <label for="dia-domingo">Domingo</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-segunda" value="1" checked>
+                                <label for="dia-segunda">Segunda</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-terca" value="2">
+                                <label for="dia-terca">Terça</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-quarta" value="3">
+                                <label for="dia-quarta">Quarta</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-quinta" value="4">
+                                <label for="dia-quinta">Quinta</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-sexta" value="5">
+                                <label for="dia-sexta">Sexta</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dia-sabado" value="6">
+                                <label for="dia-sabado">Sábado</label>
+                            </div>
+                        </div>
+                        <small style="color: #6b7280; font-size: 0.85em; display: block; margin-top: 5px;">
+                            Selecione os dias da semana em que o espaço será utilizado
+                        </small>
+                        <div id="weekend-dias-warning" class="weekend-warning" style="margin-top: 10px;">
+                            <strong style="color: #d97706; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                Dias de Fim de Semana Selecionados
+                            </strong>
+                            <p style="margin: 0; font-size: 0.9em; color: #6b7280;">
+                                Você selecionou sábado e/ou domingo. Para eventos em fins de semana, o suporte de <strong>3 funcionários</strong> é obrigatório por normas de segurança.
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Horários -->
                     <div class="form-group">
                         <label>Horários de Uso: <span style="color: #dc2626;">*</span></label>
                         <div class="input-group" style="margin-bottom: 10px;">
-                            <input type="time" id="horario-inicio" class="form-control" placeholder="Início" required>
-                            <input type="time" id="horario-fim" class="form-control" placeholder="Fim" required>
+                            <input type="time" id="horario-inicio" class="form-control" placeholder="Início" value="08:00" required>
+                            <input type="time" id="horario-fim" class="form-control" placeholder="Fim" value="17:00" required>
                         </div>
                         <small style="color: #6b7280; font-size: 0.85em; display: block; margin-top: 5px;">
                             Informe o período aproximado de uso do espaço

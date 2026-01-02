@@ -191,8 +191,22 @@ class BudgetEngine {
         const valorMargem = subtotalSemMargem * margem;
         const subtotalComMargem = subtotalSemMargem + valorMargem;
         
+        // [SGQ-SECURITY] Inteligência de Margem: Desconto de Volume Automático
+        // Aplicar desconto progressivo baseado na duração do contrato (em dias)
+        let descontoVolume = 0;
+        if (duracaoEmDias > 7) {
+            descontoVolume = 0.10; // 10% de desconto para contratos > 7 dias
+            console.log('[SGQ-SECURITY] Desconto de volume aplicado: 10% (contrato > 7 dias)');
+        } else if (duracaoEmDias > 3) {
+            descontoVolume = 0.05; // 5% de desconto para contratos > 3 dias
+            console.log('[SGQ-SECURITY] Desconto de volume aplicado: 5% (contrato > 3 dias)');
+        }
+        
+        // Combinar desconto de volume com desconto manual (o maior prevalece)
+        const descontoFinal = Math.max(desconto, descontoVolume);
+        
         // Aplicar desconto
-        const valorDesconto = subtotalComMargem * desconto;
+        const valorDesconto = subtotalComMargem * descontoFinal;
         const valorFinal = subtotalComMargem - valorDesconto;
         
         // Calcular valor por hora - proteger contra divisão por zero
@@ -212,6 +226,7 @@ class BudgetEngine {
             horasHE50: horasHE50 ?? 0,
             horasHE100: horasHE100 ?? 0,
             diasTotais: diasTotais ?? 0,
+            duracaoEmDias: duracaoEmDias ?? 0,
             custoOperacionalBase: custoOperacionalBase ?? 0,
             custoMaoObraNormal: custoMaoObraNormal ?? 0,
             custoMaoObraHE50: custoMaoObraHE50 ?? 0,
@@ -224,12 +239,14 @@ class BudgetEngine {
             subtotalSemMargem: subtotalSemMargem ?? 0,
             valorMargem: valorMargem ?? 0,
             subtotalComMargem: subtotalComMargem ?? 0,
+            descontoVolume: descontoVolume ?? 0,
+            descontoVolumePercent: (descontoVolume ?? 0) * 100,
             valorDesconto: valorDesconto ?? 0,
             valorFinal: valorFinal ?? 0,
             valorPorHora: valorPorHora ?? 0,
             economia: economia ?? 0,
             margemPercent: (margem ?? 0) * 100,
-            descontoPercent: (desconto ?? 0) * 100,
+            descontoPercent: (descontoFinal ?? 0) * 100,
             quantidadeFuncionarios: (funcionariosAtivos ?? []).length,
             totalCustosFuncionarios: totalCustosFuncionarios ?? 0,
             detalhamentoFuncionarios: detalhamentoFuncionarios ?? []

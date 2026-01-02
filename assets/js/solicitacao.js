@@ -502,6 +502,73 @@ function verificarFinalDeSemana() {
 }
 
 /**
+ * Configura listener para duração do contrato
+ */
+function setupDuracaoContratoListener() {
+    const duracaoInput = document.getElementById('duracaoContrato');
+    if (duracaoInput) {
+        duracaoInput.addEventListener('change', async function() {
+            const valor = this.value;
+            if (valor) {
+                await salvarLeadShadow('duracaoContrato', parseInt(valor));
+                console.log('[SGQ-SECURITY] Duração do contrato capturada:', valor, 'dias');
+            }
+            reiniciarTimerInatividade();
+        });
+    }
+}
+
+/**
+ * Configura listeners para dias da semana e verifica fim de semana
+ */
+function setupDiasSemanListener() {
+    const diasCheckboxes = document.querySelectorAll('[id^="dia-"]');
+    const weekendDiasWarning = document.getElementById('weekend-dias-warning');
+    const quantidadeFuncionarios = document.getElementById('quantidadeFuncionarios');
+    
+    if (!diasCheckboxes || diasCheckboxes.length === 0) return;
+    
+    function verificarDiasFimDeSemana() {
+        const diasSelecionados = Array.from(diasCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => parseInt(cb.value));
+        
+        // Verificar se sábado (6) ou domingo (0) estão selecionados
+        const temFimDeSemana = diasSelecionados.includes(0) || diasSelecionados.includes(6);
+        
+        if (temFimDeSemana) {
+            console.log('[SGQ-SECURITY] Fim de semana selecionado - aplicando restrição mínima de 3 funcionários');
+            quantidadeFuncionarios.value = Math.max(3, parseInt(quantidadeFuncionarios.value) || 3);
+            quantidadeFuncionarios.min = 3;
+            quantidadeFuncionarios.classList.add('weekend-restriction');
+            if (weekendDiasWarning) {
+                weekendDiasWarning.classList.add('show');
+            }
+        } else {
+            console.log('[SGQ-SECURITY] Apenas dias úteis selecionados - removendo restrição');
+            quantidadeFuncionarios.min = 1;
+            quantidadeFuncionarios.classList.remove('weekend-restriction');
+            if (weekendDiasWarning) {
+                weekendDiasWarning.classList.remove('show');
+            }
+        }
+        
+        // Salvar dias selecionados via shadow capture
+        salvarLeadShadow('diasSemanaSelecionados', diasSelecionados);
+    }
+    
+    diasCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            verificarDiasFimDeSemana();
+            reiniciarTimerInatividade();
+        });
+    });
+    
+    // Verificação inicial
+    verificarDiasFimDeSemana();
+}
+
+/**
  * Inicializar ao carregar a página
  */
 document.addEventListener('DOMContentLoaded', function() {
@@ -512,6 +579,10 @@ document.addEventListener('DOMContentLoaded', function() {
     carregarExtras();
     verificarFinalDeSemana();
     verificarCamposObrigatoriosStep1();
+    
+    // Adicionar listeners para novos campos
+    setupDuracaoContratoListener();
+    setupDiasSemanListener();
     
     // Verificar se há lead temporário e restaurar
     const leadTemp = obterLeadTemporario();
@@ -649,6 +720,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const finalidadeEvento = document.getElementById('finalidadeEvento')?.value || '';
             const associadoCDL = document.getElementById('associadoCDL')?.checked || false;
 
+            // Coletar duração do contrato e dias da semana
+            const duracaoContrato = document.getElementById('duracaoContrato')?.value || 30;
+            const diasSemanaCheckboxes = document.querySelectorAll('[id^="dia-"]:checked');
+            const diasSemanaSelecionados = [...diasSemanaCheckboxes].map(cb => parseInt(cb.value));
+
             // Coletar todos os dados do formulário
             // Obter lead temporário para preservar firebaseId (UPSERT)
             let leadTemp = obterLeadTemporario();
@@ -663,6 +739,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 dataEvento: document.getElementById('dataEvento').value,
                 espaco: espacoNome,
                 espacoId: espacoId ? parseInt(espacoId) : null,
+                duracaoContrato: parseInt(duracaoContrato),
+                diasSemanaSelecionados: diasSemanaSelecionados,
                 horarioInicio: document.getElementById('horario-inicio').value,
                 horarioFim: document.getElementById('horario-fim').value,
                 quantidadePessoas: document.getElementById('quantidadePessoas').value,
