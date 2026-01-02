@@ -39,6 +39,9 @@ class DataManager {
         
         // Flag para indicar se Firebase está disponível
         this.firebaseEnabled = this.verificarFirebaseDisponivel();
+        
+        // SGQ-SECURITY: Resiliência de Persistência - Listener de reconexão
+        this.configurarListenerOnline();
     }
 
     /**
@@ -51,6 +54,107 @@ class DataManager {
         } catch (error) {
             console.warn('Firebase não disponível, usando LocalStorage:', error);
             return false;
+        }
+    }
+
+    /**
+     * SGQ-SECURITY: Configura listener para detectar reconexão online
+     * Dispara sincronização automática de dados pendentes
+     */
+    configurarListenerOnline() {
+        window.addEventListener('online', () => {
+            console.log('[SGQ-SECURITY] Conexão online detectada');
+            console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+            console.log('[SGQ-SECURITY] Iniciando sincronização de dados pendentes...');
+            this.sincronizarDadosPendentes();
+        });
+        
+        // Também adicionar listener para offline
+        window.addEventListener('offline', () => {
+            console.log('[SGQ-SECURITY] Modo offline detectado');
+            console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+            console.log('[SGQ-SECURITY] Dados serão salvos localmente até reconexão');
+        });
+    }
+
+    /**
+     * SGQ-SECURITY: Sincroniza dados pendentes com Firebase
+     * Percorre histórico local e reenvia registros sem firebaseId
+     * @returns {Promise<object>} Resultado da sincronização
+     */
+    async sincronizarDadosPendentes() {
+        if (!this.firebaseEnabled) {
+            console.log('[SGQ-SECURITY] Firebase não disponível, sync cancelado');
+            return { success: false, message: 'Firebase não disponível' };
+        }
+
+        let totalSincronizados = 0;
+        let totalErros = 0;
+
+        try {
+            // Sincronizar histórico de cálculos sem firebaseId
+            const historico = this.obterHistoricoCalculos();
+            const historicoSemFirebase = historico.filter(calc => !calc.firebaseId);
+
+            console.log(`[SGQ-SECURITY] ${historicoSemFirebase.length} registro(s) pendente(s) de sincronização`);
+
+            for (const calculo of historicoSemFirebase) {
+                try {
+                    const docRef = await addDoc(collection(db, this.COLLECTIONS.ORCAMENTOS), calculo);
+                    
+                    // Atualizar registro local com firebaseId
+                    const index = this.dados.historicoCalculos.findIndex(c => c.id === calculo.id);
+                    if (index !== -1) {
+                        this.dados.historicoCalculos[index].firebaseId = docRef.id;
+                    }
+                    
+                    totalSincronizados++;
+                    console.log(`[SGQ-SECURITY] Registro ${calculo.id} sincronizado com Firebase:`, docRef.id);
+                } catch (error) {
+                    totalErros++;
+                    console.error(`[SGQ-SECURITY] Erro ao sincronizar registro ${calculo.id}:`, error.message);
+                }
+            }
+
+            // Sincronizar leads sem firebaseId
+            if (this.dados.leads) {
+                const leadsSemFirebase = this.dados.leads.filter(lead => !lead.firebaseId);
+                
+                for (const lead of leadsSemFirebase) {
+                    try {
+                        const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), lead);
+                        
+                        // Atualizar registro local com firebaseId
+                        const index = this.dados.leads.findIndex(l => l.id === lead.id);
+                        if (index !== -1) {
+                            this.dados.leads[index].firebaseId = docRef.id;
+                        }
+                        
+                        totalSincronizados++;
+                        console.log(`[SGQ-SECURITY] Lead ${lead.id} sincronizado com Firebase:`, docRef.id);
+                    } catch (error) {
+                        totalErros++;
+                        console.error(`[SGQ-SECURITY] Erro ao sincronizar lead ${lead.id}:`, error.message);
+                    }
+                }
+            }
+
+            // Salvar alterações locais
+            if (totalSincronizados > 0) {
+                this.salvarDados();
+            }
+
+            console.log(`[SGQ-SECURITY] Sincronização concluída: ${totalSincronizados} sucesso, ${totalErros} erro(s)`);
+            console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+
+            return {
+                success: true,
+                sincronizados: totalSincronizados,
+                erros: totalErros
+            };
+        } catch (error) {
+            console.error('[SGQ-SECURITY] Erro na sincronização de dados pendentes:', error);
+            return { success: false, message: error.message };
         }
     }
 
