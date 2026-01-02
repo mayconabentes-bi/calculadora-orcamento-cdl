@@ -4,40 +4,38 @@
  */
 
 describe('Multiple Schedules Management', () => {
+    // Helper function to convert time to minutes
+    const timeToMinutes = (time) => {
+        const [hora, minuto] = time.split(':').map(Number);
+        return hora * 60 + minuto;
+    };
+    
+    // Helper function to validate schedule (same logic as in solicitacao.js)
+    const isScheduleValid = (schedule) => {
+        const minutosInicio = timeToMinutes(schedule.inicio);
+        const minutosFim = timeToMinutes(schedule.fim);
+        return minutosFim > minutosInicio;
+    };
+    
     describe('Schedule Validation', () => {
         test('should validate that end time is after start time', () => {
             const validSchedule = { inicio: '08:00', fim: '17:00' };
-            const invalidSchedule = { inicio: '17:00', fim: '08:00' };
             
-            // Valid schedule: end > start
-            const [horaInicio, minutoInicio] = validSchedule.inicio.split(':').map(Number);
-            const [horaFim, minutoFim] = validSchedule.fim.split(':').map(Number);
-            const minutosInicio = horaInicio * 60 + minutoInicio;
-            const minutosFim = horaFim * 60 + minutoFim;
-            
-            expect(minutosFim).toBeGreaterThan(minutosInicio);
+            expect(isScheduleValid(validSchedule)).toBe(true);
         });
         
         test('should reject schedule where end time equals start time', () => {
             const schedule = { inicio: '08:00', fim: '08:00' };
             
-            const [horaInicio, minutoInicio] = schedule.inicio.split(':').map(Number);
-            const [horaFim, minutoFim] = schedule.fim.split(':').map(Number);
-            const minutosInicio = horaInicio * 60 + minutoInicio;
-            const minutosFim = horaFim * 60 + minutoFim;
-            
-            expect(minutosInicio).toBeGreaterThanOrEqual(minutosFim);
+            // Schedule is invalid when end equals start
+            expect(isScheduleValid(schedule)).toBe(false);
         });
         
         test('should reject schedule where end time is before start time', () => {
             const schedule = { inicio: '17:00', fim: '08:00' };
             
-            const [horaInicio, minutoInicio] = schedule.inicio.split(':').map(Number);
-            const [horaFim, minutoFim] = schedule.fim.split(':').map(Number);
-            const minutosInicio = horaInicio * 60 + minutoInicio;
-            const minutosFim = horaFim * 60 + minutoFim;
-            
-            expect(minutosInicio).toBeGreaterThan(minutosFim);
+            // Schedule is invalid when end is before start
+            expect(isScheduleValid(schedule)).toBe(false);
         });
     });
     

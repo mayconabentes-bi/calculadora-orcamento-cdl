@@ -81,6 +81,13 @@ test.describe('Multiple Schedules Management UI', () => {
         
         await page.waitForLoadState('domcontentloaded');
         
+        // Set up dialog handler BEFORE triggering the action
+        let dialogMessage = '';
+        page.on('dialog', async dialog => {
+            dialogMessage = dialog.message();
+            await dialog.accept();
+        });
+        
         // Fill Step 1
         await page.fill('#nome', 'Test Client');
         await page.fill('#email', 'test@example.com');
@@ -109,11 +116,11 @@ test.describe('Multiple Schedules Management UI', () => {
         const submitButton = await page.locator('button[type="submit"]');
         await submitButton.click();
         
-        // Wait for alert dialog
-        page.on('dialog', async dialog => {
-            expect(dialog.message()).toContain('horários de fim devem ser maiores');
-            await dialog.accept();
-        });
+        // Wait for dialog to appear
+        await page.waitForTimeout(1000);
+        
+        // Verify the validation message was shown
+        expect(dialogMessage).toContain('horários de fim devem ser maiores');
         
         // Take screenshot of validation error
         await page.screenshot({ 
