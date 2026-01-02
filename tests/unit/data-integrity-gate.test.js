@@ -26,20 +26,28 @@ describe('Data Integrity Gate - atualizarStatusOrcamento', () => {
             },
             salvarDados: jest.fn(),
             atualizarStatusOrcamento: async function(id, status, justificativa = '') {
-                // Validar status
-                const statusValidos = ['AGUARDANDO_APROVACAO', 'APROVADO', 'REPROVADO'];
+                // Validar status - incluindo novos status do workflow
+                const statusValidos = [
+                    'AGUARDANDO_APROVACAO', 
+                    'APROVADO', 
+                    'APROVADO_PARA_ENVIO',
+                    'REPROVADO', 
+                    'REPROVADO_REVISAR',
+                    'EM_TRATAMENTO',
+                    'ENVIADO_AO_CLIENTE'
+                ];
                 if (!statusValidos.includes(status)) {
-                    const erro = `Status inválido: ${status}. Deve ser um de: ${statusValidos.join(', ')}`;
+                    const erro = `[SGQ-SECURITY] Status inválido: ${status}. Deve ser um de: ${statusValidos.join(', ')}`;
                     console.error(erro);
                     throw new Error(erro);
                 }
 
-                // DATA INTEGRITY GATE: Validação estrita para REPROVADO
-                if (status === 'REPROVADO') {
+                // DATA INTEGRITY GATE: Validação estrita para REPROVADO e REPROVADO_REVISAR
+                if (status === 'REPROVADO' || status === 'REPROVADO_REVISAR') {
                     const justificativaTrimmed = justificativa ? justificativa.trim() : '';
                     
                     if (!justificativaTrimmed || justificativaTrimmed.length < 10) {
-                        const erro = 'DATA INTEGRITY VIOLATION: Status REPROVADO requer justificativa com mínimo de 10 caracteres. ' +
+                        const erro = '[SGQ-SECURITY] DATA INTEGRITY VIOLATION: Status ' + status + ' requer justificativa com mínimo de 10 caracteres. ' +
                                     'Esta validação garante rastreabilidade e governança de decisões executivas.';
                         console.error(erro);
                         throw new Error(erro);
@@ -55,13 +63,13 @@ describe('Data Integrity Gate - atualizarStatusOrcamento', () => {
                     registro.dataAprovacao = new Date().toISOString();
                     
                     // DATA INTEGRITY GATE: Flag 'convertido' setada EXCLUSIVAMENTE para APROVADO
-                    if (status === 'APROVADO') {
+                    if (status === 'APROVADO' || status === 'APROVADO_PARA_ENVIO') {
                         registro.convertido = true;
                     } else {
                         registro.convertido = false;
                     }
                     
-                    if (status === 'REPROVADO') {
+                    if (status === 'REPROVADO' || status === 'REPROVADO_REVISAR') {
                         registro.justificativaRejeicao = justificativa;
                     } else {
                         registro.justificativaRejeicao = null;
