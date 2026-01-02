@@ -61,8 +61,272 @@ function inicializarAplicacao() {
     // Dashboard de Oportunidades de Renovação (CRM Proativo)
     exibirOportunidadesRenovacao();
     
+    // Carregar Centro de Operações Comerciais
+    carregarCentroOperacoesComerciais();
+    
     mostrarNotificacao('Sistema carregado com sucesso!');
 }
+
+// ========== CENTRO DE OPERAÇÕES COMERCIAIS (SGQ-SECURITY) ==========
+
+/**
+ * Carrega e atualiza o Centro de Operações Comerciais
+ * Exibe leads novos e orçamentos com retorno executivo
+ */
+function carregarCentroOperacoesComerciais() {
+    carregarSolicitacoesWeb();
+    carregarRetornoExecutivo();
+}
+
+/**
+ * Carrega solicitações web (LEAD_NOVO)
+ */
+function carregarSolicitacoesWeb() {
+    const leadsNovos = dataManager.obterLeads('LEAD_NOVO');
+    const badge = document.getElementById('badge-leads-novos');
+    const lista = document.getElementById('lista-leads-novos');
+    
+    if (!badge || !lista) return;
+    
+    badge.textContent = leadsNovos.length;
+    
+    if (leadsNovos.length === 0) {
+        lista.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">Nenhuma solicitação pendente</p>';
+        return;
+    }
+    
+    lista.innerHTML = '';
+    
+    leadsNovos.forEach(lead => {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding: 12px; margin-bottom: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;';
+        
+        const dataCriacao = new Date(lead.dataCriacao).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                <div>
+                    <strong style="color: #065f46; font-size: 0.95em;">${lead.nome}</strong>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-top: 2px;">${lead.telefone || lead.email || 'Sem contato'}</div>
+                    <div style="font-size: 0.8em; color: #9ca3af; margin-top: 2px;">📅 ${dataCriacao}</div>
+                </div>
+                <button class="btn-primary btn-success" onclick="tratarLeadAgora(${lead.id})" style="padding: 6px 12px; font-size: 0.85em; white-space: nowrap;">
+                    Tratar Agora
+                </button>
+            </div>
+            ${lead.observacoes ? `<div style="font-size: 0.85em; color: #4b5563; margin-top: 8px; padding-top: 8px; border-top: 1px solid #d1d5db;">${lead.observacoes.substring(0, 100)}${lead.observacoes.length > 100 ? '...' : ''}</div>` : ''}
+        `;
+        
+        lista.appendChild(div);
+    });
+}
+
+/**
+ * Carrega retorno executivo (APROVADO_PARA_ENVIO e REPROVADO_REVISAR)
+ */
+function carregarRetornoExecutivo() {
+    const aprovadosParaEnvio = dataManager.obterOrcamentosPorStatus('APROVADO_PARA_ENVIO');
+    const reprovadosRevisar = dataManager.obterOrcamentosPorStatus('REPROVADO_REVISAR');
+    
+    const badge = document.getElementById('badge-retorno-executivo');
+    const lista = document.getElementById('lista-retorno-executivo');
+    
+    if (!badge || !lista) return;
+    
+    const total = aprovadosParaEnvio.length + reprovadosRevisar.length;
+    badge.textContent = total;
+    
+    if (total === 0) {
+        lista.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">Nenhum retorno pendente</p>';
+        return;
+    }
+    
+    lista.innerHTML = '';
+    
+    // Exibir aprovados para envio
+    aprovadosParaEnvio.forEach(orc => {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding: 12px; margin-bottom: 10px; background: #dcfce7; border: 1px solid #86efac; border-radius: 6px;';
+        
+        const dataAprovacao = new Date(orc.dataAprovacao || orc.data).toLocaleDateString('pt-BR');
+        
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                <div style="flex: 1;">
+                    <span style="display: inline-block; padding: 2px 8px; background: #10b981; color: white; border-radius: 4px; font-size: 0.75em; font-weight: bold; margin-bottom: 6px;">APROVADO</span>
+                    <div style="font-size: 0.9em; color: #065f46;"><strong>${orc.cliente || 'Cliente não informado'}</strong></div>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-top: 2px;">${orc.sala.unidade} - ${orc.sala.nome}</div>
+                    <div style="font-size: 0.85em; color: #059669; margin-top: 2px; font-weight: 600;">R$ ${CoreUtils.formatarMoeda(orc.valorFinal)}</div>
+                    <div style="font-size: 0.8em; color: #9ca3af; margin-top: 2px;">✅ Aprovado em ${dataAprovacao}</div>
+                </div>
+                <button class="btn-primary btn-success" onclick="gerarEEnviarPDF(${orc.id})" style="padding: 6px 12px; font-size: 0.85em; white-space: nowrap;">
+                    Gerar e Enviar PDF
+                </button>
+            </div>
+        `;
+        
+        lista.appendChild(div);
+    });
+    
+    // Exibir reprovados para revisar
+    reprovadosRevisar.forEach(orc => {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding: 12px; margin-bottom: 10px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px;';
+        
+        const dataRejeicao = new Date(orc.dataAprovacao || orc.data).toLocaleDateString('pt-BR');
+        
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                <div style="flex: 1;">
+                    <span style="display: inline-block; padding: 2px 8px; background: #f59e0b; color: white; border-radius: 4px; font-size: 0.75em; font-weight: bold; margin-bottom: 6px;">REVISAR</span>
+                    <div style="font-size: 0.9em; color: #92400e;"><strong>${orc.cliente || 'Cliente não informado'}</strong></div>
+                    <div style="font-size: 0.85em; color: #6b7280; margin-top: 2px;">${orc.sala.unidade} - ${orc.sala.nome}</div>
+                    <div style="font-size: 0.85em; color: #d97706; margin-top: 2px; font-weight: 600;">R$ ${CoreUtils.formatarMoeda(orc.valorFinal)}</div>
+                    <div style="font-size: 0.8em; color: #9ca3af; margin-top: 2px;">⚠️ Reprovado em ${dataRejeicao}</div>
+                    ${orc.justificativaRejeicao ? `<div style="font-size: 0.8em; color: #d97706; margin-top: 6px; padding: 6px; background: #fffbeb; border-radius: 4px;"><strong>Justificativa:</strong> ${orc.justificativaRejeicao}</div>` : ''}
+                </div>
+                <button class="btn-primary" onclick="ajustarOrcamento(${orc.id})" style="padding: 6px 12px; font-size: 0.85em; white-space: nowrap; background: #f59e0b; border-color: #f59e0b;">
+                    Ajustar
+                </button>
+            </div>
+        `;
+        
+        lista.appendChild(div);
+    });
+}
+
+/**
+ * Trata um lead - importa dados e muda status para EM_TRATAMENTO
+ */
+function tratarLeadAgora(leadId) {
+    const lead = dataManager.obterLeadPorId(leadId);
+    
+    if (!lead) {
+        mostrarNotificacao('Lead não encontrado!');
+        return;
+    }
+    
+    // Preencher campos do cliente
+    document.getElementById('cliente-nome').value = lead.nome || '';
+    document.getElementById('cliente-contato').value = lead.telefone || lead.email || '';
+    
+    if (lead.dataEvento) {
+        document.getElementById('data-evento').value = lead.dataEvento;
+    }
+    
+    // Atualizar status para EM_TRATAMENTO
+    dataManager.atualizarStatusLead(leadId, 'EM_TRATAMENTO');
+    
+    // Scroll para o formulário
+    document.getElementById('cliente-nome').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Recarregar centro de operações
+    carregarCentroOperacoesComerciais();
+    
+    mostrarNotificacao(`Lead "${lead.nome}" em tratamento!`);
+}
+
+/**
+ * Gera e envia PDF para cliente (APROVADO_PARA_ENVIO -> ENVIADO_AO_CLIENTE)
+ */
+async function gerarEEnviarPDF(orcamentoId) {
+    const historico = dataManager.obterHistoricoCalculos();
+    const orcamento = historico.find(calc => calc.id === orcamentoId);
+    
+    if (!orcamento) {
+        alert('Orçamento não encontrado!');
+        return;
+    }
+    
+    // Carregar dados do orçamento no ultimoCalculoRealizado
+    ultimoCalculoRealizado = orcamento;
+    
+    // Gerar PDF
+    await exportarPDFClienteComLoading();
+    
+    // Status já é atualizado automaticamente em exportarPDFClienteComLoading
+    
+    // Recarregar centro de operações
+    setTimeout(() => {
+        carregarCentroOperacoesComerciais();
+    }, 500);
+}
+
+/**
+ * Ajustar orçamento reprovado - carrega dados e exibe justificativa
+ */
+function ajustarOrcamento(orcamentoId) {
+    const historico = dataManager.obterHistoricoCalculos();
+    const orcamento = historico.find(calc => calc.id === orcamentoId);
+    
+    if (!orcamento) {
+        alert('Orçamento não encontrado!');
+        return;
+    }
+    
+    // Exibir banner de erro com justificativa
+    const bannerError = document.createElement('div');
+    bannerError.id = 'banner-error';
+    bannerError.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 9999; max-width: 800px; width: 90%; padding: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+    
+    bannerError.innerHTML = `
+        <div style="display: flex; align-items: start; gap: 15px;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div style="flex: 1;">
+                <h3 style="margin: 0 0 10px 0; color: #92400e; font-size: 1.1em;">Orçamento Reprovado - Necessita Ajuste</h3>
+                <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 0.95em;">Cliente: <strong>${orcamento.cliente || 'Não informado'}</strong></p>
+                <div style="padding: 12px; background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 4px;">
+                    <strong style="color: #92400e;">Justificativa da Superintendência:</strong>
+                    <p style="margin: 8px 0 0 0; color: #6b7280;">${orcamento.justificativaRejeicao || 'Nenhuma justificativa fornecida'}</p>
+                </div>
+            </div>
+            <button onclick="fecharBannerError()" style="background: none; border: none; cursor: pointer; padding: 4px; flex-shrink: 0;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    // Remover banner anterior se existir
+    const bannerAnterior = document.getElementById('banner-error');
+    if (bannerAnterior) {
+        bannerAnterior.remove();
+    }
+    
+    document.body.appendChild(bannerError);
+    
+    // Carregar dados do orçamento nos campos
+    // TODO: Implementar carregamento completo dos dados do orçamento
+    
+    // Scroll para o topo
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    mostrarNotificacao('Carregue os dados do orçamento e faça os ajustes necessários');
+}
+
+/**
+ * Fecha o banner de erro
+ */
+function fecharBannerError() {
+    const banner = document.getElementById('banner-error');
+    if (banner) {
+        banner.remove();
+    }
+}
+
+// ========== FIM CENTRO DE OPERAÇÕES COMERCIAIS ==========
+
 
 // ========== NAVEGAÇÃO POR ABAS ==========
 
@@ -86,7 +350,9 @@ function configurarNavegacaoAbas() {
             document.getElementById(targetTab).classList.add('active');
             
             // Atualiza tabelas se necessário
-            if (targetTab === 'spaces') {
+            if (targetTab === 'calculator') {
+                carregarCentroOperacoesComerciais();
+            } else if (targetTab === 'spaces') {
                 carregarTabelaEspacos();
             } else if (targetTab === 'costs') {
                 carregarTabelaCustos();
@@ -2082,14 +2348,40 @@ function esconderLoading() {
 }
 
 /**
- * Wrapper para exportarPDFCliente com loading
+ * Wrapper para exportarPDFCliente com loading e atualização de status
  */
 async function exportarPDFClienteComLoading() {
     mostrarLoading();
     // Pequeno delay para o overlay aparecer antes do processamento pesado
     await new Promise(resolve => setTimeout(resolve, 100));
     try {
-        exportarPDFCliente();
+        await exportarPDFCliente();
+        
+        // Após sucesso do download, atualizar status para ENVIADO_AO_CLIENTE
+        if (ultimoCalculoRealizado) {
+            const historico = dataManager.obterHistoricoCalculos();
+            if (historico.length > 0) {
+                // O último cálculo é sempre o primeiro do array (unshift)
+                const ultimoId = historico[0].id;
+                const statusAtual = historico[0].statusAprovacao || 'AGUARDANDO_APROVACAO';
+                
+                // Apenas atualizar se estiver em APROVADO_PARA_ENVIO
+                if (statusAtual === 'APROVADO_PARA_ENVIO') {
+                    try {
+                        await dataManager.atualizarStatusOrcamento(ultimoId, 'ENVIADO_AO_CLIENTE');
+                        console.log('[SGQ-SECURITY] Orçamento enviado ao cliente - Status atualizado para ENVIADO_AO_CLIENTE');
+                        mostrarNotificacao('PDF enviado e status atualizado!');
+                        
+                        // Atualizar dashboard se estiver inicializado
+                        if (dashboardController) {
+                            atualizarDashboard();
+                        }
+                    } catch (error) {
+                        console.error('[SGQ-SECURITY] Erro ao atualizar status após envio:', error);
+                    }
+                }
+            }
+        }
     } finally {
         esconderLoading();
     }
