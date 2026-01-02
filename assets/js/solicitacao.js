@@ -210,12 +210,13 @@ function setupShadowCapture() {
 
 /**
  * Valida o campo nome usando DataSanitizer
- * Exibe feedback visual se houver viés detectado para fins de auditoria
+ * Modo INFORMATIVO: Exibe feedback visual se houver viés detectado para fins de auditoria
  * NÃO bloqueia o avanço do usuário - apenas aviso visual
+ * SGQ-SECURITY: Neutralidade Técnica - Sistema permite avanço independente de viés detectado
  * @param {string} nome - Nome a ser validado
  */
 function validarCampoNome(nome) {
-    console.log('[SGQ-SECURITY] Validando campo nome com DataSanitizer');
+    console.log('[SGQ-SECURITY] Validando campo nome com DataSanitizer (modo informativo)');
     
     const inputNome = document.getElementById('nome');
     
@@ -232,12 +233,12 @@ function validarCampoNome(nome) {
     const resultadoVies = DataSanitizer.detectarVies(nome);
     
     if (resultadoVies.temVies) {
-        console.log('[SGQ-SECURITY] Viés detectado no nome:', resultadoVies.motivos);
+        console.log('[SGQ-SECURITY] Viés detectado no nome (informativo):', resultadoVies.motivos);
         
-        // Adicionar classe de erro
+        // Adicionar classe de erro para feedback visual
         inputNome.classList.add('input-erro-vies');
         
-        // Criar mensagem de erro
+        // Criar mensagem de aviso informativo
         erroDiv = document.createElement('div');
         erroDiv.id = 'nome-erro-vies';
         erroDiv.className = 'erro-validacao';
@@ -247,25 +248,26 @@ function validarCampoNome(nome) {
                 <line x1="12" y1="8" x2="12" y2="12"/>
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span>Por favor, use linguagem neutra e profissional: ${resultadoVies.motivos.join('; ')}</span>
+            <span>Aviso: Use linguagem neutra e profissional: ${resultadoVies.motivos.join('; ')}</span>
         `;
         
         // Inserir após o input
         inputNome.parentNode.insertBefore(erroDiv, inputNome.nextSibling);
         
-        // NÃO desabilitar botão - apenas aviso visual para auditoria
-        // Usuário pode continuar mesmo com alerta de viés ativo
-        
-        return false;
+        // SGQ-SECURITY: NÃO bloqueia avanço - usuário pode continuar
+        // Log para auditoria apenas
+        console.log('[SGQ-SECURITY] Usuário pode prosseguir apesar do aviso de viés');
     }
     
-    return true;
+    return true; // Sempre retorna true para não bloquear
 }
 
 /**
  * Verifica se todos os campos obrigatórios do Step 1 estão preenchidos
- * Gatekeeper de presença: apenas verifica se nome, email e telefone estão preenchidos
- * Não depende de erros de formatação ou viés
+ * SGQ-SECURITY: Gatekeeper de presença pura
+ * - Habilita botão se nome, email e telefone possuem texto
+ * - NÃO depende de erros de formatação ou viés
+ * - Neutralidade Técnica: Ignora avisos de viés para habilitação do botão
  */
 function verificarCamposObrigatoriosStep1() {
     const nome = document.getElementById('nome').value.trim();
@@ -273,9 +275,12 @@ function verificarCamposObrigatoriosStep1() {
     const telefone = document.getElementById('telefone').value.trim();
     const btnProximo = document.getElementById('btn-proximo');
 
+    // SGQ-SECURITY: Habilitação baseada APENAS em presença de texto
+    // Ignora completamente avisos de viés ou formatação
     if (nome && email && telefone) {
         btnProximo.disabled = false;
         btnProximo.style.opacity = '1';
+        console.log('[SGQ-SECURITY] Botão Próximo habilitado - campos obrigatórios preenchidos');
     } else {
         btnProximo.disabled = true;
         btnProximo.style.opacity = '0.6';
@@ -524,8 +529,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Botão "Próximo" - Ir para Step 2
-    document.getElementById('btn-proximo').addEventListener('click', async function() {
-        console.log('[SGQ-SECURITY] Navegando para Step 2');
+    // SGQ-SECURITY: Navegação Fluida - Salvamento em background, transição imediata
+    document.getElementById('btn-proximo').addEventListener('click', function() {
+        console.log('[SGQ-SECURITY] Navegando para Step 2 - fluxo desbloqueado');
         
         // Validar campos do Step 1
         const nome = document.getElementById('nome').value.trim();
@@ -556,11 +562,16 @@ document.addEventListener('DOMContentLoaded', function() {
         leadTemp.telefone = telefone;
         leadTemp.dataUltimaAtualizacao = new Date().toISOString();
         
-        // Salvar no localStorage
+        // Log de transição de estado
+        console.log('[SGQ-SECURITY] TRANSIÇÃO DE ESTADO: LEAD_INCOMPLETO -> LEAD_EM_PREENCHIMENTO');
+        console.log('[SGQ-SECURITY] Lead ID:', leadTemp.id);
+        console.log('[SGQ-SECURITY] Timestamp:', leadTemp.dataUltimaAtualizacao);
+        
+        // Salvar no localStorage (síncrono)
         localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
         
-        // Sincronizar com Firebase em BACKGROUND (não-bloqueante)
-        console.log('[SGQ-SECURITY] Sincronização iniciada em background; transição imediata para Step 2');
+        // SGQ-SECURITY: Sincronização Firebase em BACKGROUND (não bloqueia UI)
+        console.log('[SGQ-SECURITY] Sincronização Firebase iniciada em background');
         dataManager.salvarLead(leadTemp).then(resultado => {
             if (resultado && resultado.firebaseId) {
                 // Atualizar firebaseId no lead temporário para próximas atualizações (UPSERT)
@@ -573,7 +584,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Não bloqueia - lead já está salvo no localStorage
         });
         
-        // Ir para Step 2 IMEDIATAMENTE (sem aguardar Firebase)
+        // SGQ-SECURITY: Ir para Step 2 IMEDIATAMENTE (sem aguardar Firebase)
+        console.log('[SGQ-SECURITY] Transição imediata para Step 2');
         irParaStep(2);
     });
 
@@ -638,6 +650,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const associadoCDL = document.getElementById('associadoCDL')?.checked || false;
 
             // Coletar todos os dados do formulário
+            // Obter lead temporário para preservar firebaseId (UPSERT)
+            let leadTemp = obterLeadTemporario();
+            
             const lead = {
                 id: currentLeadId || Date.now(),
                 status: 'LEAD_NOVO',
@@ -654,12 +669,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 quantidadeFuncionarios: document.getElementById('quantidadeFuncionarios').value,
                 extrasDesejados: extrasSelecionados,
                 observacoes: document.getElementById('observacoes').value.trim(),
-                // Novos campos
+                // SGQ-SECURITY: Campos estratégicos capturados via Shadow Capture
                 finalidadeEvento: finalidadeEvento,
-                associadoCDL: associadoCDL
+                associadoCDL: associadoCDL,
+                // Preservar firebaseId para UPSERT
+                firebaseId: leadTemp?.firebaseId || null
             };
             
-            console.log('[SGQ-SECURITY] Dados do lead preparados para envio:', lead);
+            // SGQ-SECURITY: Log de transição de estado com rastreabilidade completa
+            console.log('[SGQ-SECURITY] TRANSIÇÃO DE ESTADO: LEAD_EM_PREENCHIMENTO -> LEAD_NOVO');
+            console.log('[SGQ-SECURITY] Lead ID:', lead.id);
+            console.log('[SGQ-SECURITY] Firebase ID:', lead.firebaseId || 'novo registro');
+            console.log('[SGQ-SECURITY] Timestamp:', lead.dataCriacao);
+            console.log('[SGQ-SECURITY] Dados do lead preparados para envio:', {
+                nome: lead.nome,
+                email: lead.email,
+                telefone: lead.telefone,
+                finalidadeEvento: lead.finalidadeEvento || 'não informado',
+                associadoCDL: lead.associadoCDL,
+                espaco: lead.espaco || 'não especificado'
+            });
             
             // AGUARDAR salvamento completo (localStorage + Firebase)
             const resultado = await dataManager.salvarLead(lead);
