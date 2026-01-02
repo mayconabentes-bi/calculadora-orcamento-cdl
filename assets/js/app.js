@@ -777,6 +777,34 @@ function configurarEventListeners() {
     document.getElementById('margem').addEventListener('input', atualizarRangeValue);
     document.getElementById('desconto').addEventListener('input', atualizarRangeValue);
     
+    // [SGQ-SECURITY] Listener para Trava de Fim de Semana
+    const dataEventoInput = document.getElementById('data-evento');
+    if (dataEventoInput) {
+        dataEventoInput.addEventListener('change', verificarTravaFimDeSemana);
+        dataEventoInput.addEventListener('input', verificarTravaFimDeSemana);
+        // [SGQ-SECURITY] Esconder botão de aprovação quando dados mudam
+        dataEventoInput.addEventListener('change', ocultarBotaoAprovacao);
+    }
+    
+    // [SGQ-SECURITY] Listeners para ocultar botão de aprovação quando dados mudam
+    const camposCalculadora = [
+        'cliente-nome', 'cliente-contato', 'espaco', 'duracao', 'duracao-tipo',
+        'margem', 'desconto'
+    ];
+    
+    camposCalculadora.forEach(campoId => {
+        const campo = document.getElementById(campoId);
+        if (campo) {
+            campo.addEventListener('change', ocultarBotaoAprovacao);
+            campo.addEventListener('input', ocultarBotaoAprovacao);
+        }
+    });
+    
+    // Listeners para checkboxes de dias da semana e extras
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', ocultarBotaoAprovacao);
+    });
+    
     // Horários
     document.getElementById('adicionar-horario').addEventListener('click', () => adicionarNovoHorario());
     
@@ -835,13 +863,14 @@ function configurarEventListeners() {
 // ========== IMPORTAÇÃO DE LEADS ==========
 
 /**
- * Abre o modal para importar leads
+ * Abre o modal para importar leads (async para buscar leads do Firebase)
+ * [SGQ-SECURITY] Sincronização com Firebase
  */
-function abrirModalImportarLead() {
+async function abrirModalImportarLead() {
     const modal = document.getElementById('modal-importar-lead');
     if (modal) {
         modal.style.display = 'flex';
-        carregarLeadsNoModal();
+        await carregarLeadsNoModal();
     }
 }
 
@@ -856,16 +885,17 @@ function fecharModalImportarLead() {
 }
 
 /**
- * Carrega os leads disponíveis no modal
+ * Carrega os leads disponíveis no modal (async para buscar do Firebase)
+ * [SGQ-SECURITY] Busca leads diretamente do Firebase usando dataManager.obterLeads(status: 'LEAD_NOVO')
  */
-function carregarLeadsNoModal() {
+async function carregarLeadsNoModal() {
     const tbody = document.getElementById('modal-leads-body');
     const semLeads = document.getElementById('modal-sem-leads');
     const contador = document.getElementById('contador-leads');
     
     if (!tbody) return;
 
-    // Obter leads com status LEAD_NOVO
+    // [SGQ-SECURITY] Obter leads com status LEAD_NOVO diretamente do Firebase
     const leads = dataManager.obterLeads('LEAD_NOVO');
     
     // Atualizar contador
@@ -887,36 +917,39 @@ function carregarLeadsNoModal() {
 
     semLeads.style.display = 'none';
 
-    // Renderizar linhas da tabela
+    // Renderizar linhas da tabela com campos: Data da Solicitação, Cliente e Espaço
     tbody.innerHTML = '';
     
     leads.forEach(lead => {
         const tr = document.createElement('tr');
         
-        // Formatar data
-        const data = new Date(lead.dataCriacao).toLocaleDateString('pt-BR');
+        // Formatar data da solicitação
+        const dataSolicitacao = new Date(lead.dataCriacao).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
         
-        // Formatar tipo de evento
-        const tiposEvento = {
-            'reuniao': 'Reunião',
-            'treinamento': 'Treinamento',
-            'palestra': 'Palestra',
-            'conferencia': 'Conferência',
-            'evento-corporativo': 'Evento Corporativo',
-            'formatura': 'Formatura',
-            'outro': 'Outro'
-        };
-        const tipoEvento = tiposEvento[lead.tipoEvento] || lead.tipoEvento || 'Não informado';
+        // Nome do cliente
+        const cliente = lead.nome || 'Não informado';
         
-        // Contato (telefone ou email)
-        const contato = lead.telefone || lead.email || 'Não informado';
+        // Espaço solicitado (pode vir como espaco ou espacoId)
+        let espacoTexto = 'Não especificado';
+        if (lead.espacoId) {
+            const sala = dataManager.obterSalaPorId(lead.espacoId);
+            if (sala) {
+                espacoTexto = `${sala.unidade} - ${sala.nome}`;
+            }
+        } else if (lead.espaco) {
+            espacoTexto = lead.espaco;
+        }
         
         tr.innerHTML = `
-            <td style="white-space: nowrap;">${data}</td>
-            <td><strong>${lead.nome}</strong></td>
-            <td>${contato}</td>
-            <td>${tipoEvento}</td>
-            <td style="text-align: center;">${lead.quantidadePessoas || '-'}</td>
+            <td style="white-space: nowrap;">${dataSolicitacao}</td>
+            <td><strong>${cliente}</strong></td>
+            <td>${espacoTexto}</td>
             <td style="white-space: nowrap;">
                 <button class="btn-primary btn-success" onclick="importarLeadSelecionado(${lead.id})" style="padding: 6px 12px; font-size: 0.85em;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -933,17 +966,20 @@ function carregarLeadsNoModal() {
 
 /**
  * Importa um lead selecionado e preenche os dados do cliente
+ * [SGQ-SECURITY] Autopreenchimento com mapeamento correto de campos
  * @param {number} leadId - ID do lead a ser importado
  */
 function importarLeadSelecionado(leadId) {
     const lead = dataManager.obterLeadPorId(leadId);
     
     if (!lead) {
-        mostrarNotificacao('Lead não encontrado!');
+        mostrarNotificacao('[SGQ-SECURITY] Lead não encontrado!');
         return;
     }
 
-    // Preencher campos do cliente
+    console.log('[SGQ-SECURITY] Importando lead:', lead.id, '-', lead.nome);
+
+    // [SGQ-SECURITY] Preencher campos corretos: #cliente-nome, #cliente-contato, #data-evento, #espaco
     document.getElementById('cliente-nome').value = lead.nome || '';
     
     // Priorizar telefone, mas pode usar email se telefone não estiver disponível
@@ -953,10 +989,24 @@ function importarLeadSelecionado(leadId) {
     // Preencher data do evento se disponível
     if (lead.dataEvento) {
         document.getElementById('data-evento').value = lead.dataEvento;
+        
+        // [SGQ-SECURITY] Verificar se é fim de semana e aplicar trava
+        verificarTravaFimDeSemana();
     }
     
-    // Atualizar status do lead para "EM_ATENDIMENTO"
+    // Preencher seletor de espaço se disponível
+    if (lead.espacoId) {
+        const espacoSelect = document.getElementById('espaco');
+        if (espacoSelect) {
+            espacoSelect.value = lead.espacoId;
+            // Disparar evento change para atualizar informações da sala
+            espacoSelect.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    // [SGQ-SECURITY] Atualizar status do lead para "EM_ATENDIMENTO" com log de transição
     dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
+    console.log('[SGQ-SECURITY] Lead', leadId, 'transicionado para EM_ATENDIMENTO');
     
     // Fechar modal
     fecharModalImportarLead();
@@ -964,23 +1014,75 @@ function importarLeadSelecionado(leadId) {
     // Scroll para o topo da calculadora
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    mostrarNotificacao(`Lead "${lead.nome}" importado com sucesso!`);
+    mostrarNotificacao(`[SGQ-SECURITY] Lead "${lead.nome}" importado com sucesso!`);
+}
+
+// ========== TRAVA DE FIM DE SEMANA ==========
+
+/**
+ * [SGQ-SECURITY] Trava de Fim de Semana
+ * Se o evento for sábado ou domingo, força quantidade mínima de 3 funcionários
+ */
+function verificarTravaFimDeSemana() {
+    const dataEventoInput = document.getElementById('data-evento');
+    if (!dataEventoInput || !dataEventoInput.value) return;
+    
+    const dataEvento = new Date(dataEventoInput.value + 'T00:00:00');
+    const diaSemana = dataEvento.getDay(); // 0 = Domingo, 6 = Sábado
+    
+    // Se for sábado (6) ou domingo (0)
+    if (diaSemana === 0 || diaSemana === 6) {
+        console.log('[SGQ-SECURITY] TRAVA DE FIM DE SEMANA ATIVADA - Data:', dataEventoInput.value);
+        
+        // Força mínimo de 3 funcionários ativos
+        const funcionarios = dataManager.obterFuncionarios();
+        let funcionariosAtivos = funcionarios.filter(f => f.ativo).length;
+        
+        if (funcionariosAtivos < 3) {
+            // Ativar funcionários até atingir 3
+            let count = 0;
+            for (let func of funcionarios) {
+                if (count >= 3) break;
+                if (!func.ativo) {
+                    dataManager.definirFuncionarioAtivo(func.id, true);
+                    console.log('[SGQ-SECURITY] Funcionário', func.nome, 'ativado automaticamente (fim de semana)');
+                }
+                count++;
+            }
+            
+            // Recarregar lista de funcionários na interface
+            if (typeof carregarListaFuncionarios === 'function') {
+                carregarListaFuncionarios();
+            }
+            
+            mostrarNotificacao('[SGQ-SECURITY] Evento de fim de semana: Mínimo de 3 funcionários obrigatório', 5000);
+        }
+        
+        // Adicionar atributo data para indicar que é fim de semana
+        dataEventoInput.setAttribute('data-fim-de-semana', 'true');
+    } else {
+        // Remover atributo se não for fim de semana
+        dataEventoInput.removeAttribute('data-fim-de-semana');
+    }
 }
 
 // ========== WORKFLOW DE APROVAÇÃO ==========
 
 /**
- * Envia o orçamento atual para aprovação executiva
+ * [SGQ-SECURITY] Envia a proposta atual para aprovação executiva
+ * Implementa workflow colaborativo com transições de estado rastreadas
  */
-async function enviarParaAprovacao() {
+async function enviarPropostaParaAprovacao() {
     if (!ultimoCalculoRealizado) {
-        alert('Por favor, calcule um orçamento primeiro!');
+        alert('[SGQ-SECURITY] Por favor, calcule um orçamento primeiro!');
         return;
     }
     
-    if (!confirm('Deseja enviar este orçamento para aprovação da Superintendência?')) {
+    if (!confirm('[SGQ-SECURITY] Deseja enviar esta proposta para aprovação da Superintendência?')) {
         return;
     }
+    
+    console.log('[SGQ-SECURITY] Iniciando envio de proposta para aprovação');
     
     // Obter referência ao botão
     const btnEnviar = document.getElementById('btn-enviar-aprovacao');
@@ -1003,36 +1105,92 @@ async function enviarParaAprovacao() {
     `;
     
     try {
-        // Obter ID do último cálculo do histórico
-        const historico = dataManager.obterHistoricoCalculos();
-        if (historico.length === 0) {
-            throw new Error('Nenhum orçamento encontrado no histórico');
-        }
+        // [SGQ-SECURITY] Coletar estado atual do cálculo
+        const estadoAtual = {
+            ...ultimoCalculoRealizado,
+            statusAprovacao: 'AGUARDANDO_APROVACAO',
+            dataEnvio: new Date().toISOString()
+        };
         
-        // O último cálculo é sempre o primeiro do array (unshift)
-        const ultimoId = historico[0].id;
+        console.log('[SGQ-SECURITY] Estado do cálculo coletado:', {
+            cliente: estadoAtual.clienteNome,
+            valor: estadoAtual.resultado.valorFinal,
+            status: estadoAtual.statusAprovacao
+        });
         
-        // Enviar para aprovação
-        const sucesso = await dataManager.enviarParaAprovacao(ultimoId);
+        // [SGQ-SECURITY] Chamar dataManager.adicionarCalculoHistoricoFirestore com status AGUARDANDO_APROVACAO
+        const resultado = await dataManager.adicionarCalculoHistoricoFirestore(estadoAtual);
         
-        if (sucesso) {
-            mostrarNotificacao('Orçamento enviado para aprovação da Superintendência!');
+        if (resultado) {
+            console.log('[SGQ-SECURITY] TRANSIÇÃO DE ESTADO: CALCULADO -> AGUARDANDO_APROVACAO');
+            console.log('[SGQ-SECURITY] Proposta ID:', resultado.id);
             
-            // Ocultar botão após envio
+            // [SGQ-SECURITY] Limpar calculadora após sucesso
+            limparCalculadora();
+            
+            // [SGQ-SECURITY] Ocultar botão de aprovação
             document.getElementById('btn-aprovacao-container').style.display = 'none';
             
-            // Atualizar histórico
-            carregarTabelaHistorico();
+            // [SGQ-SECURITY] Mostrar notificação de sucesso
+            mostrarNotificacao('[SGQ-SECURITY] Proposta enviada à Superintendência', 5000);
+            
+            // Atualizar histórico se disponível
+            if (typeof carregarTabelaHistorico === 'function') {
+                carregarTabelaHistorico();
+            }
         } else {
-            throw new Error('Falha ao enviar orçamento para aprovação');
+            throw new Error('Falha ao enviar proposta para aprovação');
         }
     } catch (error) {
-        console.error('Erro ao enviar para aprovação:', error);
-        alert('Erro ao enviar orçamento para aprovação. Por favor, tente novamente.');
+        console.error('[SGQ-SECURITY] Erro ao enviar para aprovação:', error);
+        alert('[SGQ-SECURITY] Erro ao enviar proposta para aprovação. Por favor, tente novamente.');
     } finally {
         // Restaurar botão
         btnEnviar.disabled = false;
         btnEnviar.innerHTML = originalButtonContent;
+    }
+}
+
+/**
+ * [SGQ-SECURITY] Limpa os campos da calculadora
+ */
+function limparCalculadora() {
+    // Limpar campos do cliente
+    document.getElementById('cliente-nome').value = '';
+    document.getElementById('cliente-contato').value = '';
+    
+    // Limpar data do evento
+    const dataEventoInput = document.getElementById('data-evento');
+    if (dataEventoInput) {
+        dataEventoInput.value = '';
+        dataEventoInput.removeAttribute('data-fim-de-semana');
+    }
+    
+    // Resetar seletor de espaço
+    const espacoSelect = document.getElementById('espaco');
+    if (espacoSelect) {
+        espacoSelect.value = '';
+        espacoSelect.dispatchEvent(new Event('change'));
+    }
+    
+    // Limpar último cálculo realizado
+    ultimoCalculoRealizado = null;
+    
+    console.log('[SGQ-SECURITY] Calculadora limpa após envio de proposta');
+}
+
+// Manter referência da função antiga para compatibilidade
+const enviarParaAprovacao = enviarPropostaParaAprovacao;
+
+/**
+ * [SGQ-SECURITY] Oculta o botão de aprovação quando dados da calculadora mudam
+ * Exige novo cálculo antes de permitir envio para aprovação
+ */
+function ocultarBotaoAprovacao() {
+    const btnAprovacaoContainer = document.getElementById('btn-aprovacao-container');
+    if (btnAprovacaoContainer && btnAprovacaoContainer.style.display !== 'none') {
+        btnAprovacaoContainer.style.display = 'none';
+        console.log('[SGQ-SECURITY] Botão de aprovação ocultado - dados alterados, novo cálculo necessário');
     }
 }
 
