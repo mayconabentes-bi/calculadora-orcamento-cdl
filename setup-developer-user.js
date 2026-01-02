@@ -171,8 +171,8 @@ async function createDeveloperUser() {
           nome: developerData.nome,
           role: developerData.role,
           status: developerData.status,
-          createdAt: new Date().toISOString()
-        });
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
         
         console.log('[SGQ-SECURITY] ✅ Documento criado no Firestore');
         console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -213,8 +213,9 @@ async function createDeveloperUser() {
       nome: developerData.nome,
       role: developerData.role,
       status: developerData.status,
-      createdAt: new Date().toISOString()
-    });
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
     
     console.log('[SGQ-SECURITY] ✅ Documento criado no Firestore');
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
