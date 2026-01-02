@@ -22,6 +22,155 @@ let lastFocusedField = null;
 // Constantes de timeout
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos
 
+// Gestão de Horários Múltiplos
+let horariosSolicitacaoCount = 0;
+let horariosSolicitados = [];
+
+// ========== GESTÃO DE HORÁRIOS MÚLTIPLOS ==========
+
+/**
+ * Inicializa o gerenciamento de horários múltiplos na solicitação
+ * Cria o primeiro horário com valores padrão (08:00 às 17:00)
+ */
+function inicializarHorariosSolicitacao() {
+    horariosSolicitados = [];
+    horariosSolicitacaoCount = 0;
+    adicionarHorarioSolicitacao('08:00', '17:00');
+}
+
+/**
+ * Adiciona um novo horário à solicitação
+ * @param {string} inicio - Horário de início (formato HH:mm)
+ * @param {string} fim - Horário de fim (formato HH:mm)
+ */
+function adicionarHorarioSolicitacao(inicio = '08:00', fim = '17:00') {
+    const id = horariosSolicitacaoCount++;
+    horariosSolicitados.push({ id, inicio, fim });
+    renderizarHorariosSolicitacao();
+    
+    console.log('[SGQ-SECURITY] Horário adicionado à solicitação:', { id, inicio, fim });
+}
+
+/**
+ * Remove um horário da solicitação
+ * @param {number} id - ID do horário a ser removido
+ */
+function removerHorarioSolicitacao(id) {
+    horariosSolicitados = horariosSolicitados.filter(h => h.id !== id);
+    renderizarHorariosSolicitacao();
+    
+    // Garantir pelo menos um horário
+    if (horariosSolicitados.length === 0) {
+        adicionarHorarioSolicitacao();
+    }
+    
+    console.log('[SGQ-SECURITY] Horário removido da solicitação:', id);
+    console.log('[SGQ-SECURITY] Horários restantes:', horariosSolicitados.length);
+}
+
+/**
+ * Atualiza um horário da solicitação
+ * @param {number} id - ID do horário
+ * @param {string} campo - Campo a ser atualizado ('inicio' ou 'fim')
+ * @param {string} valor - Novo valor do campo
+ */
+function atualizarHorarioSolicitacao(id, campo, valor) {
+    const horario = horariosSolicitados.find(h => h.id === id);
+    if (horario) {
+        horario[campo] = valor;
+        
+        // Salvar no shadow capture
+        salvarLeadShadow('horariosSolicitados', horariosSolicitados);
+        
+        console.log('[SGQ-SECURITY] Horário atualizado:', { id, campo, valor });
+    }
+}
+
+/**
+ * Valida todos os horários da solicitação
+ * Verifica se fim > início para cada horário
+ * @returns {boolean} true se todos válidos, false caso contrário
+ */
+function validarHorariosSolicitacao() {
+    for (const horario of horariosSolicitados) {
+        const [horaInicio, minutoInicio] = horario.inicio.split(':').map(Number);
+        const [horaFim, minutoFim] = horario.fim.split(':').map(Number);
+        
+        const minutosInicio = horaInicio * 60 + minutoInicio;
+        const minutosFim = horaFim * 60 + minutoFim;
+        
+        if (minutosInicio >= minutosFim) {
+            console.error('[SGQ-SECURITY] Validação falhou: Horário de fim deve ser maior que início', horario);
+            return false;
+        }
+    }
+    
+    console.log('[SGQ-SECURITY] Todos os horários são válidos');
+    return true;
+}
+
+/**
+ * Renderiza a lista de horários na interface
+ * Cria inputs dinâmicos para cada horário com botões de remoção
+ */
+function renderizarHorariosSolicitacao() {
+    const container = document.getElementById('horarios-solicitacao-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    horariosSolicitados.forEach((horario, index) => {
+        const div = document.createElement('div');
+        div.className = 'horario-solicitacao-item';
+        div.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center;';
+        
+        div.innerHTML = `
+            <div style="flex: 1; display: flex; gap: 10px; align-items: center;">
+                <label style="min-width: 60px; font-size: 0.9em; color: #374151; font-weight: 500;">Horário ${index + 1}:</label>
+                <input type="time" 
+                       id="horario-solicitacao-inicio-${horario.id}" 
+                       class="form-control" 
+                       value="${horario.inicio}"
+                       style="flex: 1;"
+                       onchange="atualizarHorarioSolicitacao(${horario.id}, 'inicio', this.value)">
+                <span style="color: #6b7280; font-weight: 500;">às</span>
+                <input type="time" 
+                       id="horario-solicitacao-fim-${horario.id}" 
+                       class="form-control" 
+                       value="${horario.fim}"
+                       style="flex: 1;"
+                       onchange="atualizarHorarioSolicitacao(${horario.id}, 'fim', this.value)">
+            </div>
+            ${horariosSolicitados.length > 1 ? `
+                <button type="button" 
+                        class="btn-primary" 
+                        onclick="removerHorarioSolicitacao(${horario.id})"
+                        style="padding: 8px 12px; background: #dc2626; border-color: #dc2626; min-width: auto;"
+                        title="Remover horário">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        <line x1="10" y1="11" x2="10" y2="17"/>
+                        <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                </button>
+            ` : ''}
+        `;
+        
+        container.appendChild(div);
+    });
+    
+    console.log('[SGQ-SECURITY] Sincronizando múltiplos horários solicitados:', horariosSolicitados.length);
+}
+
+// Tornar funções globais para uso em atributos onclick
+window.adicionarHorarioSolicitacao = adicionarHorarioSolicitacao;
+window.removerHorarioSolicitacao = removerHorarioSolicitacao;
+window.atualizarHorarioSolicitacao = atualizarHorarioSolicitacao;
+
+// ========== FIM GESTÃO DE HORÁRIOS MÚLTIPLOS ==========
+
 /**
  * Função para exibir notificação
  * @param {string} mensagem - Mensagem a ser exibida
@@ -574,6 +723,9 @@ function setupDiasSemanListener() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[SGQ-SECURITY] Inicializando módulo de solicitação de orçamento');
     
+    // Inicializar gestão de horários múltiplos
+    inicializarHorariosSolicitacao();
+    
     setupShadowCapture();
     carregarEspacos();
     carregarExtras();
@@ -584,6 +736,15 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDuracaoContratoListener();
     setupDiasSemanListener();
     
+    // Adicionar listener para botão de adicionar horário
+    const btnAdicionarHorario = document.getElementById('adicionar-horario-solicitacao');
+    if (btnAdicionarHorario) {
+        btnAdicionarHorario.addEventListener('click', function() {
+            adicionarHorarioSolicitacao();
+            mostrarNotificacao('Novo horário adicionado');
+        });
+    }
+    
     // Verificar se há lead temporário e restaurar
     const leadTemp = obterLeadTemporario();
     if (leadTemp) {
@@ -592,6 +753,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (leadTemp.telefone) document.getElementById('telefone').value = leadTemp.telefone;
         if (leadTemp.email) document.getElementById('email').value = leadTemp.email;
         currentLeadId = leadTemp.id;
+        
+        // Restaurar horários se existirem
+        if (leadTemp.horariosSolicitados && Array.isArray(leadTemp.horariosSolicitados) && leadTemp.horariosSolicitados.length > 0) {
+            horariosSolicitados = [];
+            horariosSolicitacaoCount = 0;
+            leadTemp.horariosSolicitados.forEach(h => {
+                adicionarHorarioSolicitacao(h.inicio, h.fim);
+            });
+            console.log('[SGQ-SECURITY] Horários restaurados:', leadTemp.horariosSolicitados.length);
+        }
         
         // Verificar se deve habilitar o botão "Próximo"
         verificarCamposObrigatoriosStep1();
@@ -700,6 +871,17 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         try {
+            // [SGQ-SECURITY] Validar horários antes de enviar
+            if (!validarHorariosSolicitacao()) {
+                alert('⚠️ Erro de Validação:\n\nOs horários de fim devem ser maiores que os horários de início.\n\nPor favor, corrija os horários e tente novamente.');
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonContent;
+                console.error('[SGQ-SECURITY] Validação falhou: Horários inválidos detectados');
+                return;
+            }
+            
+            console.log('[SGQ-SECURITY] Sincronizando múltiplos horários solicitados:', horariosSolicitados.length);
+            
             // Coletar extras selecionados
             const extrasCheckboxes = document.querySelectorAll('#extras-checkboxes input[type="checkbox"]:checked');
             const extrasSelecionados = Array.from(extrasCheckboxes).map(cb => {
@@ -741,8 +923,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 espacoId: espacoId ? parseInt(espacoId) : null,
                 duracaoContrato: parseInt(duracaoContrato),
                 diasSemanaSelecionados: diasSemanaSelecionados,
-                horarioInicio: document.getElementById('horario-inicio').value,
-                horarioFim: document.getElementById('horario-fim').value,
+                // [SGQ-SECURITY] Múltiplos horários solicitados
+                horariosSolicitados: horariosSolicitados.map(h => ({ inicio: h.inicio, fim: h.fim })),
+                // Manter compatibilidade com sistema antigo (primeiro horário)
+                horarioInicio: horariosSolicitados.length > 0 ? horariosSolicitados[0].inicio : '08:00',
+                horarioFim: horariosSolicitados.length > 0 ? horariosSolicitados[0].fim : '17:00',
                 quantidadePessoas: document.getElementById('quantidadePessoas').value,
                 quantidadeFuncionarios: document.getElementById('quantidadeFuncionarios').value,
                 extrasDesejados: extrasSelecionados,

@@ -1093,31 +1093,37 @@ function importarLeadSelecionado(leadId) {
         console.log('[SGQ-SECURITY] Dias da semana marcados:', lead.diasSemanaSelecionados);
     }
     
-    // [SGQ-SECURITY] NOVOS CAMPOS: Horários
-    if (lead.horarioInicio) {
-        const horarioInicioContainer = document.getElementById('horarios-container');
-        if (horarioInicioContainer) {
-            // Se houver múltiplos horários, pegar o primeiro input de horário-inicio
-            const primeiroHorarioInicio = horarioInicioContainer.querySelector('input[id^="horario-inicio-"]');
-            if (primeiroHorarioInicio) {
-                primeiroHorarioInicio.value = lead.horarioInicio;
-            }
-        }
-    }
-    
-    if (lead.horarioFim) {
-        const horarioInicioContainer = document.getElementById('horarios-container');
-        if (horarioInicioContainer) {
-            // Se houver múltiplos horários, pegar o primeiro input de horário-fim
-            const primeiroHorarioFim = horarioInicioContainer.querySelector('input[id^="horario-fim-"]');
-            if (primeiroHorarioFim) {
-                primeiroHorarioFim.value = lead.horarioFim;
-            }
-        }
-    }
-    
-    if (lead.horarioInicio || lead.horarioFim) {
-        console.log('[SGQ-SECURITY] Horários preenchidos:', lead.horarioInicio, '-', lead.horarioFim);
+    // [SGQ-SECURITY] NOVOS CAMPOS: Horários - Suporte a múltiplos horários
+    if (lead.horariosSolicitados && Array.isArray(lead.horariosSolicitados) && lead.horariosSolicitados.length > 0) {
+        // Limpar horários atuais da calculadora administrativa
+        console.log('[SGQ-SECURITY] Limpando horários atuais da calculadora');
+        horarios = [];
+        horariosCount = 0;
+        
+        // Iterar sobre o array horariosSolicitados do lead
+        console.log('[SGQ-SECURITY] Sincronizando múltiplos horários solicitados:', lead.horariosSolicitados.length);
+        
+        lead.horariosSolicitados.forEach((horario, index) => {
+            // Chamar a função existente adicionarNovoHorario(inicio, fim) para cada item do lead
+            adicionarNovoHorario(horario.inicio, horario.fim);
+            console.log(`[SGQ-SECURITY] Horário ${index + 1} importado:`, horario.inicio, '-', horario.fim);
+        });
+        
+        console.log('[SGQ-SECURITY] Total de horários importados:', lead.horariosSolicitados.length);
+    } else if (lead.horarioInicio || lead.horarioFim) {
+        // Fallback para formato antigo (único horário)
+        console.log('[SGQ-SECURITY] Usando formato de horário legado (único horário)');
+        
+        // Limpar horários atuais
+        horarios = [];
+        horariosCount = 0;
+        
+        // Adicionar o horário único
+        const inicio = lead.horarioInicio || '08:00';
+        const fim = lead.horarioFim || '17:00';
+        adicionarNovoHorario(inicio, fim);
+        
+        console.log('[SGQ-SECURITY] Horário único importado:', inicio, '-', fim);
     }
     
     // [SGQ-SECURITY] Atualizar status do lead para "EM_ATENDIMENTO" com log de transição
