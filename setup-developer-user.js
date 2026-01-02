@@ -167,7 +167,8 @@ async function createDeveloperUser() {
         console.log('[SGQ-SECURITY] Operação: Sincronização de dados');
         
         // Usar timestamp de criação do Auth para manter consistência de auditoria
-        const authCreatedAt = existingUser.metadata.creationTime;
+        // Converter de RFC3339 para ISO string para manter formato consistente
+        const authCreatedAt = new Date(existingUser.metadata.creationTime).toISOString();
         
         await db.collection('usuarios').doc(existingUser.uid).set({
           email: developerData.email,
