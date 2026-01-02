@@ -1,6 +1,6 @@
 // assets/js/firebase-config.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, setDoc, doc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -21,4 +21,7 @@ const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
 // Exportar instâncias e métodos do Firestore para o DataManager
-export { app, db, auth, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc, analytics };
+export { app, db, auth, collection, addDoc, getDocs, updateDoc, setDoc, doc, query, where, getDoc, analytics };
+
+// [SGQ-SECURITY] Firebase Exports carregados com sucesso: setDoc habilitado
+console.log('[SGQ-SECURITY] Firebase Exports carregados com sucesso: setDoc habilitado');
