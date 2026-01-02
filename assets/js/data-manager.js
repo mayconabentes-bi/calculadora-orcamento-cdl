@@ -455,12 +455,12 @@ class DataManager {
 
         // Validação de campos obrigatórios
         if (!lead.nome || typeof lead.nome !== 'string' || lead.nome.trim() === '') {
-            console.error('Nome é obrigatório para salvar lead');
+            console.error('[SGQ-SECURITY] Nome é obrigatório para salvar lead');
             return null;
         }
 
         if (!lead.telefone && !lead.email) {
-            console.error('Telefone ou email é obrigatório para salvar lead');
+            console.error('[SGQ-SECURITY] Telefone ou email é obrigatório para salvar lead');
             return null;
         }
 
@@ -472,9 +472,20 @@ class DataManager {
             telefone: lead.telefone ? lead.telefone.trim() : '',
             email: lead.email ? lead.email.trim() : '',
             dataEvento: lead.dataEvento || null,
-            tipoEvento: lead.tipoEvento || '',
+            espaco: lead.espaco || '',
+            espacoId: lead.espacoId || null,
+            horarioInicio: lead.horarioInicio || '',
+            horarioFim: lead.horarioFim || '',
             quantidadePessoas: lead.quantidadePessoas || null,
-            observacoes: lead.observacoes ? lead.observacoes.trim() : ''
+            quantidadeFuncionarios: lead.quantidadeFuncionarios || null,
+            extrasDesejados: lead.extrasDesejados || [],
+            observacoes: lead.observacoes ? lead.observacoes.trim() : '',
+            // Novos campos de enriquecimento
+            finalidadeEvento: lead.finalidadeEvento || '',
+            associadoCDL: lead.associadoCDL || false,
+            // Shadow Capture fields
+            ultimo_campo_focado: lead.ultimo_campo_focado || null,
+            dataAbandono: lead.dataAbandono || null
         };
 
         // PASSO 1: SEMPRE salvar no localStorage primeiro (backup imediato)
@@ -485,7 +496,7 @@ class DataManager {
             this.dados.leads.unshift(novoLead);
         }
         this.salvarDados();
-        console.log('Lead salvo no localStorage:', novoLead.id);
+        console.log('[SGQ-SECURITY] Lead salvo no localStorage:', novoLead.id);
 
         // PASSO 2: Tentar enviar para Firebase (não bloqueia se falhar)
         if (this.firebaseEnabled) {
@@ -496,16 +507,16 @@ class DataManager {
                 };
                 
                 const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), leadData);
-                console.log('Lead sincronizado com Firebase, ID:', docRef.id);
+                console.log('[SGQ-SECURITY] Lead sincronizado com Firebase, ID:', docRef.id);
                 
                 // Opcional: Atualizar o ID local com o ID do Firebase
                 novoLead.firebaseId = docRef.id;
             } catch (error) {
                 // Firebase falhou, mas não quebra a aplicação (já está salvo localmente)
-                console.warn('Aviso: Não foi possível sincronizar com Firebase:', error.message);
+                console.warn('[SGQ-SECURITY] Aviso: Não foi possível sincronizar com Firebase:', error.message);
             }
         } else {
-            console.warn('Firebase não disponível. Lead salvo apenas no localStorage.');
+            console.warn('[SGQ-SECURITY] Firebase não disponível. Lead salvo apenas no localStorage.');
         }
 
         return novoLead;
