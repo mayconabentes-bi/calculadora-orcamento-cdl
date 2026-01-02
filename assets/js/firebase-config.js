@@ -20,8 +20,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
+console.log('[SGQ-SECURITY] Firebase Bridge: setDoc habilitado para UPSERT');
+
 // Exportar instâncias e métodos do Firestore para o DataManager
 export { app, db, auth, collection, addDoc, getDocs, updateDoc, setDoc, doc, query, where, getDoc, analytics };
-
-// [SGQ-SECURITY] Firebase Bridge atualizada: setDoc/getDoc habilitados
-console.log('[SGQ-SECURITY] Firebase Bridge atualizada: setDoc/getDoc habilitados');
