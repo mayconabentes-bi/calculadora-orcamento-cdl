@@ -504,19 +504,23 @@ class DataManager {
         // PASSO 2: Tentar enviar para Firebase (não bloqueia se falhar)
         if (this.firebaseEnabled) {
             try {
-                const leadData = {
-                    ...novoLead,
-                    dataCadastro: new Date().toISOString(),
-                    dataUltimaAtualizacao: new Date().toISOString()
-                };
-                
                 // UPSERT: Se já tem firebaseId, usar setDoc para atualizar
                 if (novoLead.firebaseId) {
                     const docRef = doc(db, this.COLLECTIONS.LEADS, novoLead.firebaseId);
-                    await setDoc(docRef, leadData, { merge: true });
+                    const updateData = {
+                        ...novoLead,
+                        dataUltimaAtualizacao: new Date().toISOString()
+                        // Não atualizar dataCadastro - preservar data original
+                    };
+                    await setDoc(docRef, updateData, { merge: true });
                     console.log('[SGQ-SECURITY] Lead atualizado no Firebase (UPSERT), ID:', novoLead.firebaseId);
                 } else {
                     // Caso contrário, criar novo documento
+                    const leadData = {
+                        ...novoLead,
+                        dataCadastro: new Date().toISOString(),
+                        dataUltimaAtualizacao: new Date().toISOString()
+                    };
                     const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), leadData);
                     novoLead.firebaseId = docRef.id;
                     console.log('[SGQ-SECURITY] Lead criado no Firebase, ID:', docRef.id);

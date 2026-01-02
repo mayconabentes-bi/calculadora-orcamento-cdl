@@ -169,13 +169,6 @@ function setupShadowCapture() {
             console.log('[SGQ-SECURITY] Associado CDL capturado:', valor);
             reiniciarTimerInatividade();
         });
-        
-        associadoCDL.addEventListener('blur', function() {
-            const valor = this.checked;
-            salvarLeadShadow('associadoCDL', valor);
-            console.log('[SGQ-SECURITY] Associado CDL capturado (blur):', valor);
-            reiniciarTimerInatividade();
-        });
     }
     
     // Iniciar timer de inatividade
@@ -664,8 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const leadTemp = obterLeadTemporario();
         if (leadTemp && leadTemp.status === 'LEAD_INCOMPLETO') {
             console.log('[SGQ-SECURITY] Página sendo fechada - marcando lead como abandonado');
-            // Chamar versão síncrona do marcarLeadComoAbandonado
-            // Não podemos usar async/await no beforeunload
+            // Salvar de forma síncrona no localStorage apenas
             const finalidadeEvento = document.getElementById('finalidadeEvento');
             const associadoCDL = document.getElementById('associadoCDL');
             
@@ -683,12 +675,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
             console.log('[SGQ-SECURITY] Lead salvo localmente como abandonado');
-            
-            // Tentar salvar no Firebase de forma síncrona (best effort)
-            // Nota: Requisições async em beforeunload podem ser canceladas pelo navegador
-            dataManager.salvarLead(leadTemp).catch(() => {
-                console.warn('[SGQ-SECURITY] Não foi possível salvar lead abandonado no Firebase durante beforeunload');
-            });
+            // Nota: Sincronização com Firebase será feita quando o lead for recarregado ou via timer de inatividade
         }
     });
 });
