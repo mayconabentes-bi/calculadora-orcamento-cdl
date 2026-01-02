@@ -5,7 +5,7 @@
    ================================================================= */
 
 // Imports do Firebase Firestore
-import { db, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from './firebase-config.js';
+import { db, collection, addDoc, getDocs, updateDoc, setDoc, doc, query, where, getDoc } from './firebase-config.js';
 
 /**
  * Classe DataManager
@@ -445,6 +445,7 @@ class DataManager {
      * Salva um novo lead no sistema (Padrão Offline-First)
      * 1. Salva SEMPRE no localStorage primeiro (backup imediato)
      * 2. Tenta enviar para Firebase (não bloqueia se falhar)
+     * SUPORTE UPSERT: Se o lead já possuir firebaseId, usa setDoc para atualizar
      * @param {Object} lead - Dados do lead
      * @returns {Promise<Object>} Lead salvo
      */
@@ -485,7 +486,9 @@ class DataManager {
             associadoCDL: lead.associadoCDL || false,
             // Shadow Capture fields
             ultimo_campo_focado: lead.ultimo_campo_focado || null,
-            dataAbandono: lead.dataAbandono || null
+            dataAbandono: lead.dataAbandono || null,
+            // Firebase ID para sincronização
+            firebaseId: lead.firebaseId || null
         };
 
         // PASSO 1: SEMPRE salvar no localStorage primeiro (backup imediato)
@@ -503,14 +506,28 @@ class DataManager {
             try {
                 const leadData = {
                     ...novoLead,
-                    dataCadastro: new Date().toISOString()
+                    dataCadastro: new Date().toISOString(),
+                    dataUltimaAtualizacao: new Date().toISOString()
                 };
                 
-                const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), leadData);
-                console.log('[SGQ-SECURITY] Lead sincronizado com Firebase, ID:', docRef.id);
-                
-                // Opcional: Atualizar o ID local com o ID do Firebase
-                novoLead.firebaseId = docRef.id;
+                // UPSERT: Se já tem firebaseId, usar setDoc para atualizar
+                if (novoLead.firebaseId) {
+                    const docRef = doc(db, this.COLLECTIONS.LEADS, novoLead.firebaseId);
+                    await setDoc(docRef, leadData, { merge: true });
+                    console.log('[SGQ-SECURITY] Lead atualizado no Firebase (UPSERT), ID:', novoLead.firebaseId);
+                } else {
+                    // Caso contrário, criar novo documento
+                    const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), leadData);
+                    novoLead.firebaseId = docRef.id;
+                    console.log('[SGQ-SECURITY] Lead criado no Firebase, ID:', docRef.id);
+                    
+                    // Atualizar localStorage com o firebaseId
+                    const localIndex = this.dados.leads.findIndex(l => l.id === novoLead.id);
+                    if (localIndex !== -1) {
+                        this.dados.leads[localIndex].firebaseId = docRef.id;
+                        this.salvarDados();
+                    }
+                }
             } catch (error) {
                 // Firebase falhou, mas não quebra a aplicação (já está salvo localmente)
                 console.warn('[SGQ-SECURITY] Aviso: Não foi possível sincronizar com Firebase:', error.message);
