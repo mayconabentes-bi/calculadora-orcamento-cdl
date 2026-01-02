@@ -546,12 +546,17 @@ class DataManager {
     // ========== MÉTODOS DE GESTÃO DE LEADS ==========
 
     /**
-     * Salva um novo lead no sistema (Padrão Offline-First)
+     * Salva um novo lead no sistema (Padrão Offline-First com UPSERT Real)
      * 1. Salva SEMPRE no localStorage primeiro (backup imediato)
      * 2. Tenta enviar para Firebase (não bloqueia se falhar)
-     * SUPORTE UPSERT: Se o lead já possuir firebaseId, usa setDoc para atualizar
+     * 
+     * SGQ-SECURITY: UPSERT INTELIGENTE
+     * - Se possui firebaseId: Usa setDoc(merge: true) para atualizar registro existente
+     * - Garante que Step 1 cria o registro e Step 2 atualiza o MESMO registro
+     * - firebaseId é armazenado no localStorage após primeiro salvamento bem-sucedido
+     * 
      * @param {Object} lead - Dados do lead
-     * @returns {Promise<Object>} Lead salvo
+     * @returns {Promise<Object>} Lead salvo com firebaseId
      */
     async salvarLead(lead) {
         if (!this.dados.leads) {
@@ -585,13 +590,13 @@ class DataManager {
             quantidadeFuncionarios: lead.quantidadeFuncionarios || null,
             extrasDesejados: lead.extrasDesejados || [],
             observacoes: lead.observacoes ? lead.observacoes.trim() : '',
-            // Novos campos de enriquecimento
+            // SGQ-SECURITY: Campos de enriquecimento capturados via Shadow Capture
             finalidadeEvento: lead.finalidadeEvento || '',
             associadoCDL: lead.associadoCDL || false,
             // Shadow Capture fields
             ultimo_campo_focado: lead.ultimo_campo_focado || null,
             dataAbandono: lead.dataAbandono || null,
-            // Firebase ID para sincronização
+            // Firebase ID para sincronização UPSERT
             firebaseId: lead.firebaseId || null
         };
 
@@ -605,22 +610,28 @@ class DataManager {
         this.salvarDados();
         console.log('[SGQ-SECURITY] Lead salvo no localStorage:', novoLead.id);
 
-        // PASSO 2: Tentar enviar para Firebase (não bloqueia se falhar)
+        // PASSO 2: Tentar enviar para Firebase com lógica UPSERT inteligente
         if (this.firebaseEnabled) {
             try {
-                // UPSERT: Se já tem firebaseId, usar setDoc para atualizar
+                // SGQ-SECURITY: UPSERT REAL - Verificar se possui firebaseId
                 if (novoLead.firebaseId) {
+                    // Já existe no Firebase - ATUALIZAR registro existente
                     const timestamp = new Date().toISOString();
                     const docRef = doc(db, this.COLLECTIONS.LEADS, novoLead.firebaseId);
                     const updateData = {
                         ...novoLead,
                         dataUltimaAtualizacao: timestamp
-                        // Não atualizar dataCadastro - preservar data original
+                        // Preserva dataCadastro original
                     };
                     await setDoc(docRef, updateData, { merge: true });
-                    console.log('[SGQ-SECURITY] Lead atualizado no Firebase (UPSERT), ID:', novoLead.firebaseId);
+                    console.log('[SGQ-SECURITY] Lead ATUALIZADO no Firebase (UPSERT), ID:', novoLead.firebaseId);
+                    console.log('[SGQ-SECURITY] Campos sincronizados:', {
+                        finalidadeEvento: novoLead.finalidadeEvento || 'não informado',
+                        associadoCDL: novoLead.associadoCDL,
+                        status: novoLead.status
+                    });
                 } else {
-                    // Caso contrário, criar novo documento
+                    // Não existe no Firebase - CRIAR novo documento
                     const timestamp = new Date().toISOString();
                     const leadData = {
                         ...novoLead,
@@ -629,13 +640,14 @@ class DataManager {
                     };
                     const docRef = await addDoc(collection(db, this.COLLECTIONS.LEADS), leadData);
                     novoLead.firebaseId = docRef.id;
-                    console.log('[SGQ-SECURITY] Lead criado no Firebase, ID:', docRef.id);
+                    console.log('[SGQ-SECURITY] Lead CRIADO no Firebase, ID:', docRef.id);
                     
-                    // Atualizar localStorage com o firebaseId
+                    // SGQ-SECURITY: Armazenar firebaseId no localStorage para próximos UPSERTs
                     const localIndex = this.dados.leads.findIndex(l => l.id === novoLead.id);
                     if (localIndex !== -1) {
                         this.dados.leads[localIndex].firebaseId = docRef.id;
                         this.salvarDados();
+                        console.log('[SGQ-SECURITY] firebaseId armazenado no localStorage para UPSERT futuro');
                     }
                 }
             } catch (error) {
