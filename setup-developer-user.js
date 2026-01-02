@@ -11,7 +11,7 @@
  * 
  * Credenciais criadas:
  * - Email: mayconabentes@gmail.com
- * - Senha: Aprendiz@33
+ * - Senha: Aprendiz@33 (Alterar após primeiro login)
  * - Role: admin
  */
 
@@ -78,7 +78,10 @@ try {
 const auth = admin.auth();
 const db = admin.firestore();
 
-// Dados do desenvolvedor
+/**
+ * Dados do usuário desenvolvedor
+ * ATENÇÃO: Credenciais temporárias - Alterar após primeiro login
+ */
 const developerData = {
   email: 'mayconabentes@gmail.com',
   password: 'Aprendiz@33',
@@ -87,113 +90,149 @@ const developerData = {
   status: 'ativo'
 };
 
+/**
+ * Função principal: Criação de usuário desenvolvedor
+ * Operações:
+ * 1. Verifica existência do usuário (evita duplicação)
+ * 2. Cria usuário no Firebase Authentication
+ * 3. Cria documento correspondente no Firestore
+ * 4. Auditoria completa de operações
+ */
 async function createDeveloperUser() {
-  console.log('🔧 Iniciando criação do usuário desenvolvedor...');
-  console.log('');
+  console.log('[SGQ-SECURITY] Iniciando criação de usuário desenvolvedor');
+  console.log(`[SGQ-SECURITY] Email: ${developerData.email}`);
+  console.log(`[SGQ-SECURITY] Role: ${developerData.role}\n`);
   
   try {
     // Verificar se o usuário já existe
     try {
       const existingUser = await auth.getUserByEmail(developerData.email);
-      console.log('⚠️  Usuário já existe no Firebase Authentication');
-      console.log('   UID:', existingUser.uid);
+      console.log('[SGQ-SECURITY] ⚠️  Usuário já existe no Firebase Authentication');
+      console.log(`[SGQ-SECURITY] UID: ${existingUser.uid}`);
       
       // Verificar se existe no Firestore
       const userDoc = await db.collection('usuarios').doc(existingUser.uid).get();
       
       if (userDoc.exists) {
-        console.log('⚠️  Usuário já existe no Firestore');
-        console.log('');
-        console.log('Credenciais de acesso:');
-        console.log('  E-mail:', developerData.email);
-        console.log('  Senha:', developerData.password);
-        console.log('  Role:', userDoc.data().role);
-        console.log('  Status:', userDoc.data().status);
-        return;
-      } else {
-        console.log('⚠️  Usuário existe no Authentication mas não no Firestore');
-        console.log('   Criando documento no Firestore...');
+        console.log('[SGQ-SECURITY] ⚠️  Registro encontrado no Firestore');
+        console.log('[SGQ-SECURITY] Operação: Atualização de dados existentes');
         
         await db.collection('usuarios').doc(existingUser.uid).set({
           email: developerData.email,
           nome: developerData.nome,
           role: developerData.role,
           status: developerData.status,
-          dataCriacao: new Date().toISOString()
-        });
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
         
-        console.log('✅ Documento criado no Firestore');
-        console.log('');
+        console.log('[SGQ-SECURITY] ✅ Dados atualizados no Firestore');
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('[SGQ-SECURITY] Status: OPERAÇÃO CONCLUÍDA');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
         console.log('Credenciais de acesso:');
-        console.log('  E-mail:', developerData.email);
-        console.log('  Senha:', developerData.password);
-        console.log('  Role:', developerData.role);
+        console.log(`  E-mail: ${developerData.email}`);
+        console.log(`  Senha: ${developerData.password}`);
+        console.log(`  Role: ${userDoc.data().role}`);
+        console.log(`  Status: ${userDoc.data().status}`);
+        console.log('\n[SGQ-SECURITY] ATENÇÃO: Altere a senha após o primeiro login\n');
+        return;
+      } else {
+        console.log('[SGQ-SECURITY] ⚠️  Inconsistência detectada: Auth OK, Firestore ausente');
+        console.log('[SGQ-SECURITY] Operação: Sincronização de dados');
+        
+        // Usar timestamp de criação do Auth para manter consistência de auditoria
+        // Converter de RFC3339 para ISO string para manter formato consistente
+        const authCreatedAt = new Date(existingUser.metadata.creationTime).toISOString();
+        
+        await db.collection('usuarios').doc(existingUser.uid).set({
+          email: developerData.email,
+          nome: developerData.nome,
+          role: developerData.role,
+          status: developerData.status,
+          createdAt: authCreatedAt,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        
+        console.log('[SGQ-SECURITY] ✅ Documento criado no Firestore');
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('[SGQ-SECURITY] Status: SINCRONIZAÇÃO CONCLUÍDA');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        console.log('Credenciais de acesso:');
+        console.log(`  E-mail: ${developerData.email}`);
+        console.log(`  Senha: ${developerData.password}`);
+        console.log(`  Role: ${developerData.role}`);
+        console.log('\n[SGQ-SECURITY] ATENÇÃO: Altere a senha após o primeiro login\n');
         return;
       }
     } catch (error) {
       if (error.code !== 'auth/user-not-found') {
         throw error;
       }
-      // Usuário não existe, continuar com a criação
+      console.log('[SGQ-SECURITY] Usuário não encontrado. Iniciando criação...');
     }
     
     // Criar usuário no Firebase Authentication
-    console.log('📝 Criando usuário no Firebase Authentication...');
+    console.log('[SGQ-SECURITY] Operação: Criação de novo usuário');
+    console.log('[SGQ-SECURITY] Criando registro no Firebase Authentication...');
     const userRecord = await auth.createUser({
       email: developerData.email,
       password: developerData.password,
       emailVerified: false,
+      displayName: developerData.nome,
       disabled: false
     });
     
-    console.log('✅ Usuário criado no Authentication');
-    console.log('   UID:', userRecord.uid);
+    console.log('[SGQ-SECURITY] ✅ Usuário criado no Authentication');
+    console.log(`[SGQ-SECURITY] UID gerado: ${userRecord.uid}`);
     
     // Criar documento no Firestore
-    console.log('📝 Criando documento no Firestore...');
+    console.log('[SGQ-SECURITY] Criando documento no Firestore...');
+    
+    // Usar timestamp único para createdAt e updatedAt para manter consistência
+    const timestamp = new Date().toISOString();
+    
     await db.collection('usuarios').doc(userRecord.uid).set({
       email: developerData.email,
       nome: developerData.nome,
       role: developerData.role,
       status: developerData.status,
-      dataCriacao: new Date().toISOString()
-    });
+      createdAt: timestamp,
+      updatedAt: timestamp
+    }, { merge: true });
     
-    console.log('✅ Documento criado no Firestore');
-    console.log('');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('✅ Usuário desenvolvedor criado com sucesso!');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('');
+    console.log('[SGQ-SECURITY] ✅ Documento criado no Firestore');
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[SGQ-SECURITY] Status: USUÁRIO CRIADO COM SUCESSO');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     console.log('Credenciais de acesso:');
-    console.log('  E-mail:', developerData.email);
-    console.log('  Senha:', developerData.password);
-    console.log('  Nome:', developerData.nome);
-    console.log('  Role:', developerData.role);
-    console.log('  Status:', developerData.status);
-    console.log('');
-    console.log('Para acessar o sistema:');
+    console.log(`  E-mail: ${developerData.email}`);
+    console.log(`  Senha: ${developerData.password}`);
+    console.log(`  Nome: ${developerData.nome}`);
+    console.log(`  Role: ${developerData.role}`);
+    console.log(`  Status: ${developerData.status}`);
+    console.log('\n[SGQ-SECURITY] ATENÇÃO: Altere a senha após o primeiro login');
+    console.log('\nPara acessar o sistema:');
     console.log('1. Abra index.html no navegador');
     console.log('2. Faça login com as credenciais acima');
-    console.log('3. Você será redirecionado para o dashboard-admin.html');
-    console.log('');
+    console.log('3. Você será redirecionado para o dashboard-admin.html\n');
     
   } catch (error) {
-    console.error('❌ Erro ao criar usuário:', error.message);
+    console.error('[SGQ-SECURITY] ❌ FALHA NA OPERAÇÃO');
+    console.error(`[SGQ-SECURITY] Erro: ${error.message}`);
     
     if (error.code === 'auth/email-already-exists') {
-      console.error('');
-      console.error('O e-mail já está em uso. Tente:');
-      console.error('1. Usar um e-mail diferente');
-      console.error('2. Ou deletar o usuário existente no Firebase Console');
+      console.error('\n[SGQ-SECURITY] Diagnóstico: E-mail já cadastrado no sistema');
+      console.error('[SGQ-SECURITY] Ações sugeridas:');
+      console.error('[SGQ-SECURITY]   1. Usar um e-mail diferente');
+      console.error('[SGQ-SECURITY]   2. Deletar usuário existente no Firebase Console');
     } else if (error.code === 'auth/invalid-password') {
-      console.error('');
-      console.error('A senha deve ter pelo menos 6 caracteres');
+      console.error('\n[SGQ-SECURITY] Diagnóstico: Senha não atende requisitos mínimos');
+      console.error('[SGQ-SECURITY] Requisito: Mínimo 6 caracteres');
     } else if (error.code === 'auth/invalid-email') {
-      console.error('');
-      console.error('O e-mail fornecido é inválido');
+      console.error('\n[SGQ-SECURITY] Diagnóstico: Formato de e-mail inválido');
     }
     
+    console.error('[SGQ-SECURITY] Status: ABORTADO\n');
     process.exit(1);
   }
 }
@@ -201,10 +240,12 @@ async function createDeveloperUser() {
 // Executar a função
 createDeveloperUser()
   .then(() => {
-    console.log('🎉 Processo concluído!');
+    console.log('[SGQ-SECURITY] Operação concluída com sucesso');
+    console.log('[SGQ-SECURITY] Todas as operações executadas corretamente\n');
     process.exit(0);
   })
   .catch((error) => {
-    console.error('❌ Erro fatal:', error);
+    console.error('[SGQ-SECURITY] ❌ Erro fatal no processo:', error.message);
+    console.error('[SGQ-SECURITY] Status: FALHA CRÍTICA\n');
     process.exit(1);
   });

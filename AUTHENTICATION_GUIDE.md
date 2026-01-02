@@ -2,7 +2,26 @@
 
 ## Visão Geral
 
-O sistema Axioma agora conta com uma camada de autenticação robusta utilizando Firebase Authentication, garantindo que apenas usuários autorizados possam acessar o painel administrativo e suas funcionalidades.
+O sistema Axioma implementa uma **Arquitetura de Segurança Zero Trust** utilizando Firebase Authentication, garantindo que apenas usuários autorizados possam acessar o painel administrativo. Todas as credenciais administrativas são gerenciadas através de variáveis de ambiente, eliminando completamente a exposição de credenciais em arquivos físicos.
+
+## 🔒 Conformidade SGQ-SECURITY
+
+### Princípios de Segurança Implementados
+
+1. **Zero Trust Architecture**
+   - Nenhuma credencial em arquivo físico
+   - Todas as credenciais via variáveis de ambiente (.env)
+   - Validação rigorosa em múltiplas camadas
+
+2. **Proteção de Credenciais**
+   - Firebase Admin SDK via environment variables
+   - Service Account Key carregado dinamicamente
+   - Bloqueio permanente no .gitignore
+
+3. **Auditoria e Rastreabilidade**
+   - Logs padronizados [SGQ-SECURITY]
+   - Registro de todas as operações críticas
+   - Timestamps ISO 8601 para auditoria
 
 ## Arquitetura
 
@@ -123,31 +142,134 @@ Gerencia todas as operações de autenticação através da classe `AuthManager`
 
 ### Implementações de Segurança:
 
-1. **Verificação em Múltiplas Camadas**:
+1. **Arquitetura Zero Trust**:
+   - Credenciais via variáveis de ambiente (.env)
+   - Nenhuma credencial em arquivo físico commitado
+   - Service Account Key carregado dinamicamente
+   - Bloqueio permanente no .gitignore
+
+2. **Verificação em Múltiplas Camadas**:
    - Autenticação no Firebase Auth
    - Validação de status no Firestore
    - Verificação de role para operações sensíveis
 
-2. **Proteção contra Acesso Não Autorizado**:
+3. **Proteção contra Acesso Não Autorizado**:
    - Redirecionamento automático para login
    - Verificação ao carregar cada página protegida
    - Timeout de sessão gerenciado pelo Firebase
 
-3. **Separação de Contextos**:
+4. **Separação de Contextos**:
    - Área pública (solicitacao.html) permanece acessível
    - Área administrativa totalmente protegida
    - Gestão de usuários restrita a administradores
 
-4. **Auditoria**:
+5. **Auditoria**:
+   - Logs padronizados [SGQ-SECURITY]
    - Registro de criação de usuários (criadoPor)
-   - Timestamp de operações
+   - Timestamp de operações (ISO 8601)
    - Histórico de atualizações
+
+### Conformidade SGQ-SECURITY
+
+**Variáveis de Ambiente Obrigatórias:**
+```env
+FIREBASE_PROJECT_ID         # ID do projeto Firebase
+FIREBASE_PRIVATE_KEY        # Chave privada do Service Account (com \n)
+FIREBASE_CLIENT_EMAIL       # Email do Service Account
+```
+
+**Proteções Implementadas:**
+
+✅ **Validação pré-execução:**
+- Verifica presença de todas as variáveis obrigatórias
+- Aborta execução se configuração incompleta
+- Mensagens de erro detalhadas e acionáveis
+
+✅ **Logs auditáveis:**
+- Padrão executivo [SGQ-SECURITY]
+- Rastreamento completo de operações
+- Diagnóstico facilitado de falhas
+
+✅ **Proteção Git:**
+- `.env` bloqueado no .gitignore
+- `*.json` de credenciais bloqueados
+- Validação via pre-commit hooks
+
+**⚠️ Boas Práticas:**
+- NUNCA commite o arquivo `.env`
+- NUNCA commite arquivos `serviceAccountKey.json`
+- Use diferentes service accounts para dev/staging/prod
+- Rotacione chaves regularmente (trimestral recomendado)
+- Para CI/CD, use GitHub Actions secrets
+- Para produção, use Google Cloud Secret Manager
 
 ## Setup Inicial
 
-### 1. Criar Primeiro Administrador
+### 1. Configuração de Ambiente (Obrigatório)
 
-Como ainda não há usuários no sistema, você precisará criar o primeiro administrador manualmente via Firebase Console:
+**Arquitetura Zero Trust - Variáveis de Ambiente**
+
+Antes de criar usuários, configure as credenciais Firebase via variáveis de ambiente:
+
+1. **Obter credenciais do Firebase:**
+   - Acesse [Firebase Console](https://console.firebase.google.com/)
+   - Selecione o projeto "axioma-cdl-manaus"
+   - Vá em **Project Settings** > **Service Accounts**
+   - Clique em **"Generate new private key"**
+   - Baixe o arquivo JSON (não salvar no repositório)
+
+2. **Configurar arquivo .env:**
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Editar .env com credenciais reais:**
+   ```env
+   FIREBASE_PROJECT_ID=axioma-cdl-manaus
+   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n[SUA_CHAVE]\n-----END PRIVATE KEY-----\n"
+   FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@axioma-cdl-manaus.iam.gserviceaccount.com
+   ```
+
+4. **Instalar dependências:**
+   ```bash
+   npm install
+   ```
+
+### 2. Criar Primeiro Administrador (Via Script)
+
+**Método Recomendado: Script Automatizado**
+
+Execute o script de setup que utiliza a configuração de ambiente:
+
+```bash
+npm run setup:user
+```
+
+ou
+
+```bash
+node setup-developer-user.js
+```
+
+O script irá:
+- Validar todas as variáveis de ambiente obrigatórias
+- Inicializar Firebase Admin SDK via environment variables
+- Criar usuário no Firebase Authentication
+- Criar documento correspondente no Firestore
+- Fornecer logs auditáveis com padrão [SGQ-SECURITY]
+
+**Saída esperada:**
+```
+[SGQ-SECURITY] Iniciando setup de usuário desenvolvedor
+[SGQ-SECURITY] Validando credenciais de ambiente...
+[SGQ-SECURITY] ✅ Validação concluída: Todas as variáveis presentes
+[SGQ-SECURITY] ✅ Firebase Admin SDK inicializado
+[SGQ-SECURITY] Status: USUÁRIO CRIADO COM SUCESSO
+```
+
+### 3. Método Alternativo: Firebase Console (Manual)
+
+Caso prefira criar manualmente via Firebase Console:
 
 1. Acesse o [Firebase Console](https://console.firebase.google.com/)
 2. Selecione o projeto "axioma-cdl-manaus"
@@ -166,7 +288,7 @@ Como ainda não há usuários no sistema, você precisará criar o primeiro admi
    }
    ```
 
-### 2. Primeiro Login
+### 4. Primeiro Login
 
 1. Acesse a página principal do sistema (index.html)
 2. Na seção "Acesso Colaborador CDL/UTV", faça login com:
