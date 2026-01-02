@@ -171,6 +171,7 @@ async function createDeveloperUser() {
           nome: developerData.nome,
           role: developerData.role,
           status: developerData.status,
+          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }, { merge: true });
         
