@@ -9,7 +9,8 @@
 import { 
     db, auth, 
     collection, addDoc, getDocs, updateDoc, setDoc, getDoc, doc, 
-    query, where, orderBy, limit, Timestamp 
+    query, where, orderBy, limit, Timestamp,
+    onAuthStateChanged
 } from './firebase-config.js';
 
 class DataManager {
@@ -38,7 +39,26 @@ class DataManager {
      */
     async salvarOrcamento(dadosCalculo) {
         try {
-            if (!auth.currentUser) throw new Error('Operação negada: Usuário não autenticado.');
+            // Aguarda autenticação se ainda não estiver pronta
+            if (!auth.currentUser) {
+                console.warn('[SGQ-DATA] Aguardando autenticação do usuário...');
+                // Aguarda até 5 segundos pela autenticação
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Operação negada: Usuário não autenticado.'));
+                    }, 5000);
+                    
+                    const unsubscribe = auth.onAuthStateChanged(user => {
+                        clearTimeout(timeout);
+                        unsubscribe();
+                        if (user) {
+                            resolve(user);
+                        } else {
+                            reject(new Error('Operação negada: Usuário não autenticado.'));
+                        }
+                    });
+                });
+            }
 
             // Adiciona Metadados de Rastreabilidade (SGQ)
             const payload = {
@@ -53,11 +73,6 @@ class DataManager {
 
             const docRef = await addDoc(collection(db, this.collections.ORCAMENTOS), payload);
             console.log(`[SGQ-DATA] Orçamento salvo com sucesso. ID: ${docRef.id}`);
-            
-            // Opcional: Atualizar estatísticas do cliente
-            if (payload.clienteEmail) {
-                await this._atualizarUltimaInteracaoCliente(payload.clienteEmail);
-            }
 
             return docRef.id;
         } catch (error) {
@@ -72,7 +87,26 @@ class DataManager {
      */
     async obterHistoricoOrcamentos(limite = 50) {
         try {
-            if (!auth.currentUser) return [];
+            // Aguarda autenticação se ainda não estiver pronta
+            if (!auth.currentUser) {
+                console.warn('[SGQ-DATA] Aguardando autenticação do usuário...');
+                // Aguarda até 5 segundos pela autenticação
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Acesso negado: Usuário não autenticado.'));
+                    }, 5000);
+                    
+                    const unsubscribe = auth.onAuthStateChanged(user => {
+                        clearTimeout(timeout);
+                        unsubscribe();
+                        if (user) {
+                            resolve(user);
+                        } else {
+                            reject(new Error('Acesso negado: Usuário não autenticado.'));
+                        }
+                    });
+                });
+            }
 
             const q = query(
                 collection(db, this.collections.ORCAMENTOS),
@@ -181,12 +215,8 @@ class DataManager {
     // 4. MÉTODOS PRIVADOS / UTILITÁRIOS
     // =========================================================================
 
-    async _atualizarUltimaInteracaoCliente(email) {
-        // Implementação futura de UPSERT para manter cadastro de clientes atualizado
-        // Busca cliente pelo email, se existir atualiza 'ultimaInteracao', se não, cria.
-        // Por enquanto, apenas logamos.
-        console.log(`[SGQ-CRM] Registrando interação para: ${email}`);
-    }
+    // Placeholder method removed - feature not yet implemented
+    // TODO: Implement _atualizarUltimaInteracaoCliente in future version
 }
 
 // Exportar Instância Singleton
