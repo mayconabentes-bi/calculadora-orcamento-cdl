@@ -13,6 +13,7 @@
     "test:multi-role": "node tests/verification/test-multi-role-access.js",
     "playwright:install": "playwright install",
     "setup:user": "node setup-developer-user.js",
+    "setup:users": "node setup-users-cdl.js",
     "verify:auth": "node verify-auth-setup.js",
     "verify:security": "node verify-sgq-security.js",
     "validate:all": "bash validar-recomendacoes.sh"

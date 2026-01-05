@@ -45,6 +45,7 @@ Para configurar sua credencial de acesso, consulte:
 * **[GUIA_RAPIDO_LOGIN.md](./GUIA_RAPIDO_LOGIN.md)** - Guia rápido de configuração (5 minutos)
 * **[RESOLUCAO_LOGIN.md](./RESOLUCAO_LOGIN.md)** - Documentação completa e troubleshooting
 * **[AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md)** - Guia técnico do sistema de autenticação
+* **[SETUP_USERS_CDL.md](./SETUP_USERS_CDL.md)** - 👥 Registo em massa de utilizadores da equipa CDL
 
 ### ✅ Recomendações Acionáveis - Validação SGQ-SECURITY
 Após configurar as credenciais, valide seu ambiente com o protocolo SGQ-SECURITY:
@@ -59,6 +60,7 @@ npm run validate:all    # Valida todo o ambiente (acesso + role + SGQ)
 **Ferramentas Individuais:**
 ```bash
 npm run setup:user      # Criar/sincronizar usuário desenvolvedor
+npm run setup:users     # Registo em massa de utilizadores CDL
 npm run verify:auth     # Verificar configuração de autenticação
 npm run verify:security # Auditoria SGQ (RBAC + Resiliência)
 ```
