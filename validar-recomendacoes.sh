@@ -131,14 +131,20 @@ if [ "$SKIP_SANITIZATION" = false ]; then
   echo -e "${YELLOW}Removendo arquivos de credenciais Firebase...${NC}"
   removed_count=0
   
+  # Configure nullglob to handle case where no files match
+  shopt -s nullglob
+  
   # Remove arquivos firebase-adminsdk
-  for file in *-firebase-adminsdk-*.json 2>/dev/null || true; do
+  for file in *-firebase-adminsdk-*.json; do
     if [ -f "$file" ]; then
       echo "  Removendo: $file"
       rm -f "$file"
       ((removed_count++))
     fi
   done
+  
+  # Restore nullglob setting
+  shopt -u nullglob
   
   # Remove serviceAccountKey.json
   if [ -f "serviceAccountKey.json" ]; then
@@ -216,7 +222,7 @@ echo "  • Tipo: FIREBASE_PRIVATE_KEY_BASE64"
 echo "  • Rotação: Trimestral"
 echo ""
 echo "Para gerar nova chave Base64:"
-echo "  node convert-private-key-to-base64.js <arquivo-credenciais.json>"
+echo "  node convert-private-key-to-base64.js your-credentials-file.json"
 echo ""
 
 # Resultado Final

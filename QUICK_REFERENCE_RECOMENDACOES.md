@@ -52,10 +52,10 @@ cp .env.example .env
 ### Erro: `Failed to connect to Firebase`
 ```bash
 # Gere Base64 da private key
-node convert-private-key-to-base64.js <arquivo-credenciais.json>
+node convert-private-key-to-base64.js your-credentials-file.json
 
 # Cole o resultado em .env como:
-FIREBASE_PRIVATE_KEY_BASE64="<string-base64>"
+FIREBASE_PRIVATE_KEY_BASE64="your-base64-string-here"
 ```
 
 ### Erro: `User does NOT exist`
@@ -77,14 +77,14 @@ Para detalhes completos, consulte:
 ```bash
 # 1. Gerar nova service account no Firebase Console
 # 2. Gerar Base64
-node convert-private-key-to-base64.js nova-credencial.json
+node convert-private-key-to-base64.js your-new-credentials.json
 
 # 3. Atualizar .env
 # 4. Validar
 npm run verify:auth
 
 # 5. Sanitizar
-rm nova-credencial.json
+rm your-new-credentials.json
 
 # 6. Revogar antiga no Firebase Console
 ```

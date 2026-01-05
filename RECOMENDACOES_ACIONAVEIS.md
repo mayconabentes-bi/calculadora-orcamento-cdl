@@ -29,7 +29,7 @@ npm run verify:auth
 **Troubleshooting**:
 - Se o arquivo `.env` não existir: `cp .env.example .env`
 - Configure as credenciais obtidas do Firebase Console
-- Para gerar Base64: `node convert-private-key-to-base64.js <arquivo-credenciais.json>`
+- Para gerar Base64: `node convert-private-key-to-base64.js your-credentials-file.json`
 
 ---
 
@@ -178,7 +178,7 @@ Verificações Passadas: 24/24 (100%)
 
 1. **Gerar String Base64** (se ainda não gerada):
    ```bash
-   node convert-private-key-to-base64.js <arquivo-credenciais.json>
+   node convert-private-key-to-base64.js your-credentials-file.json
    ```
 
 2. **Copiar a String Base64**:
