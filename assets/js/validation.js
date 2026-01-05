@@ -584,3 +584,10 @@ export {
     arredondarMoeda,
     detectarPerdaPrecisao
 };
+
+// Para compatibilidade com scripts legados (não-módulos) - v5.2.0
+// Mantido para compatibilidade durante transição
+if (typeof window !== 'undefined') {
+    window.CoreUtils = CoreUtils;
+    window.DataSanitizer = DataSanitizer;
+}

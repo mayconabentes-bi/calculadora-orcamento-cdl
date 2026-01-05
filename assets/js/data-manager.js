@@ -2589,5 +2589,11 @@ function mostrarNotificacao(mensagem, duracao = 3000) {
 // Exportar instância global do DataManager (Singleton Pattern)
 const dataManager = new DataManager();
 
+// Para compatibilidade com scripts legados (não-módulos) - v5.2.0
+// Mantido para compatibilidade durante transição
+if (typeof window !== 'undefined') {
+    window.dataManager = dataManager;
+}
+
 // Export ES6 para módulos - Padrão v5.2.0
 export default dataManager;

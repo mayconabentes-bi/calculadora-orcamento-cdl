@@ -444,3 +444,9 @@ class PDFService {
 // ========== ES6 MODULE EXPORT ==========
 // Exportação ES Modules padrão v5.2.0
 export default PDFService;
+
+// Para compatibilidade com scripts legados (não-módulos) - v5.2.0
+// Mantido para compatibilidade durante transição
+if (typeof window !== 'undefined') {
+    window.PDFService = PDFService;
+}
