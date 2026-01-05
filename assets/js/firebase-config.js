@@ -1,82 +1,69 @@
-// assets/js/firebase-config.js
+/* assets/js/firebase-config.js */
 // ================================================================
-// SINGLETON PATTERN - FIREBASE CONFIGURATION
-// Arquitetura Zero Trust - Axioma v5.1.0
-// SGQ-SECURITY: Única inicialização garantida do Firebase
+// INFRASTRUCTURE LAYER - SINGLETON PATTERN
+// Arquitetura Zero Trust - Axioma v5.2.0
+// SGQ-SECURITY: Inicialização Única Garantida
 // ================================================================
 
+// 1. Importações Modulares do Firebase (v10.8.0)
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, setDoc, doc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { 
+    getFirestore, collection, addDoc, getDocs, 
+    updateDoc, setDoc, doc, query, where, getDoc, 
+    orderBy, limit, Timestamp 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { 
+    getAuth, onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-/**
- * Singleton Pattern: FirebaseConfig
- * Garante que Firebase seja inicializado apenas uma vez
- * Previne múltiplas inicializações e conflitos de instância
- */
-class FirebaseConfig {
-  constructor() {
-    if (FirebaseConfig.instance) {
-      console.log('[SGQ-SECURITY] Firebase já inicializado - retornando instância existente');
-      return FirebaseConfig.instance;
-    }
+// 2. Configuração Blindada
+// Nota: Chaves públicas no frontend são padrão, mas o domínio deve estar na allowlist do console
+const firebaseConfig = {
+    apiKey: "AIzaSyD-V2GNT5koNgR4r95RGbhIyfKOJd1oUbc",
+    authDomain: "axioma-cdl-manaus.firebaseapp.com",
+    projectId: "axioma-cdl-manaus",
+    storageBucket: "axioma-cdl-manaus.firebasestorage.app",
+    messagingSenderId: "748023320826",
+    appId: "1:748023320826:web:97cd9ab757f19567fe3943",
+    measurementId: "G-0VF64LKRPG"
+};
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD-V2GNT5koNgR4r95RGbhIyfKOJd1oUbc",
-      authDomain: "axioma-cdl-manaus.firebaseapp.com",
-      projectId: "axioma-cdl-manaus",
-      storageBucket: "axioma-cdl-manaus.firebasestorage.app",
-      messagingSenderId: "748023320826",
-      appId: "1:748023320826:web:97cd9ab757f19567fe3943",
-      measurementId: "G-0VF64LKRPG"
-    };
+// 3. Implementação Singleton (O Coração da Estabilidade)
+let app;
+let db;
+let auth;
+let analytics;
 
-    // Verificar se Firebase já foi inicializado
-    const existingApps = getApps();
-    if (existingApps.length > 0) {
-      console.log('[SGQ-SECURITY] Firebase já inicializado anteriormente - reutilizando');
-      this.app = existingApps[0];
-    } else {
-      console.log('[SGQ-SECURITY] Inicializando Firebase pela primeira vez');
-      this.app = initializeApp(firebaseConfig);
-    }
-
-    this.db = getFirestore(this.app);
-    this.auth = getAuth(this.app);
-    this.analytics = getAnalytics(this.app);
-
-    console.log('[SGQ-SECURITY] Firebase Singleton inicializado');
-    console.log('[SGQ-SECURITY] Firebase Bridge: setDoc habilitado para UPSERT');
-    console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
-
-    // Armazenar instância singleton
-    FirebaseConfig.instance = this;
-  }
-
-  getApp() {
-    return this.app;
-  }
-
-  getDb() {
-    return this.db;
-  }
-
-  getAuth() {
-    return this.auth;
-  }
-
-  getAnalytics() {
-    return this.analytics;
-  }
+// Verifica se já existe uma instância a correr (evita erro de duplicidade)
+if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+    console.log('[SGQ-INFRA] 🚀 Firebase Inicializado (Cold Start)');
+} else {
+    app = getApps()[0];
+    console.log('[SGQ-INFRA] ♻️ Firebase Reutilizado (Warm Start)');
 }
 
-// Criar e exportar instância singleton
-const firebaseInstance = new FirebaseConfig();
-const app = firebaseInstance.getApp();
-const db = firebaseInstance.getDb();
-const auth = firebaseInstance.getAuth();
-const analytics = firebaseInstance.getAnalytics();
+// 4. Inicialização dos Serviços
+try {
+    db = getFirestore(app);
+    auth = getAuth(app);
+    analytics = getAnalytics(app);
+    console.log('[SGQ-INFRA] Serviços Conectados: Auth, Firestore, Analytics');
+} catch (error) {
+    console.error('[SGQ-INFRA] ❌ Erro Crítico na Inicialização dos Serviços:', error);
+}
 
-// Exportar instâncias e métodos do Firestore para o DataManager
-export { app, db, auth, collection, addDoc, getDocs, updateDoc, setDoc, doc, query, where, getDoc, analytics };
+// 5. Exportação Centralizada (Facade Pattern)
+// Exportamos as instâncias e também os métodos utilitários para centralizar a dependência
+export { 
+    // Instâncias
+    app, db, auth, analytics,
+    
+    // Métodos Firestore
+    collection, addDoc, getDocs, updateDoc, setDoc, doc, 
+    query, where, getDoc, orderBy, limit, Timestamp,
+    
+    // Métodos Auth
+    onAuthStateChanged, signOut
+};
