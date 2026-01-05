@@ -118,6 +118,69 @@ check(
     authJs.includes('new Date().toISOString()')
 );
 
+// 4. Verificar Funcionalidade de Troca de Senha
+// Nova seção adicionada após implementação do password change gatekeeper
+section('4. Funcionalidade de Troca de Senha');
+
+check(
+    'Import updatePassword adicionado ao auth.js',
+    authJs.includes('updatePassword')
+);
+
+check(
+    'Verificação de requerTrocaSenha no método login',
+    authJs.includes('userData.requerTrocaSenha') && authJs.includes('forcePasswordChange: true')
+);
+
+check(
+    'Método alterarSenha existe na classe AuthManager',
+    authJs.includes('async alterarSenha(novaSenha)')
+);
+
+check(
+    'alterarSenha atualiza senha no Firebase Auth',
+    authJs.includes('await updatePassword(user, novaSenha)')
+);
+
+check(
+    'alterarSenha limpa flag requerTrocaSenha no Firestore',
+    authJs.includes('requerTrocaSenha: false')
+);
+
+check(
+    'alterarSenha registra logs SGQ-SECURITY',
+    authJs.includes('[SGQ-SECURITY] ✅ Senha alterada com sucesso')
+);
+
+const setupUsersJs = fs.readFileSync(path.join(__dirname, 'setup-users-cdl.js'), 'utf8');
+
+check(
+    'Campo requerTrocaSenha: true adicionado ao setup-users-cdl.js',
+    setupUsersJs.includes('requerTrocaSenha: true')
+);
+
+const indexHtml = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+
+check(
+    'Modal de troca de senha existe no index.html',
+    indexHtml.includes('password-change-modal')
+);
+
+check(
+    'Handler para forcePasswordChange no login',
+    indexHtml.includes('forcePasswordChange') && indexHtml.includes('showPasswordChangeModal')
+);
+
+check(
+    'Validação de requisitos de senha implementada',
+    indexHtml.includes('validatePassword') && indexHtml.includes('hasUpperCase') && indexHtml.includes('hasSpecialChar')
+);
+
+check(
+    'Form handler para alteração de senha',
+    indexHtml.includes('password-change-form') && indexHtml.includes('alterarSenha')
+);
+
 const dashboardJs = fs.readFileSync(path.join(__dirname, 'assets/js/dashboard.js'), 'utf8');
 
 check(
@@ -135,8 +198,8 @@ check(
     dashboardJs.includes('new Date().toISOString()')
 );
 
-// 4. Verificar Segurança de Credenciais
-section('4. Segurança de Credenciais');
+// 5. Verificar Segurança de Credenciais
+section('5. Segurança de Credenciais');
 
 check(
     'Recomendação de migração para Firebase documentada',
@@ -163,8 +226,8 @@ check(
     dashboardJs.includes('rules_version')
 );
 
-// 5. Verificar Documentação
-section('5. Documentação');
+// 6. Verificar Documentação
+section('6. Documentação');
 
 const securityDoc = path.join(__dirname, 'SECURITY_ENHANCEMENTS_SGQ.md');
 check(

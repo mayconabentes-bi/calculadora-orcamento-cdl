@@ -174,6 +174,7 @@ async function cadastrarUsuarios() {
         nome: u.nome,
         role: u.role,
         status: 'ativo',
+        requerTrocaSenha: true, // Força a troca no primeiro login
         updatedAt: new Date().toISOString()
       };
       

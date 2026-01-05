@@ -8,7 +8,8 @@ import {
     signInWithEmailAndPassword, 
     signOut, 
     onAuthStateChanged,
-    createUserWithEmailAndPassword 
+    createUserWithEmailAndPassword,
+    updatePassword 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Imports das funções do Firestore
@@ -79,6 +80,12 @@ class AuthManager {
                 console.error('[SGQ-SECURITY] Role:', userData.role);
                 console.error('[SGQ-SECURITY] Timestamp:', errorTimestamp);
                 throw new Error('Usuário inativo. Entre em contato com o administrador.');
+            }
+            
+            // Passo 4: Verificar se requer troca de senha
+            if (userData.requerTrocaSenha) {
+                console.warn('[SGQ-SECURITY] Troca de senha obrigatória pendente | UID:', user.uid);
+                return { success: true, user, metadata: userData, forcePasswordChange: true };
             }
             
             this.currentUser = user;
@@ -312,6 +319,39 @@ class AuthManager {
             });
         } catch (error) {
             console.error('Erro ao atualizar status do usuário:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Alterar senha do usuário atual
+     * SGQ-SECURITY: Remove flag requerTrocaSenha após alteração bem-sucedida
+     * @param {string} novaSenha - Nova senha do usuário
+     * @returns {Promise<void>}
+     */
+    async alterarSenha(novaSenha) {
+        const user = auth.currentUser;
+        const timestamp = new Date().toISOString();
+        
+        if (!user) {
+            throw new Error('Usuário não autenticado');
+        }
+        
+        try {
+            // Atualizar senha no Firebase Auth
+            await updatePassword(user, novaSenha);
+            
+            // Atualizar flag no Firestore
+            await updateDoc(doc(db, 'usuarios', user.uid), {
+                requerTrocaSenha: false,
+                dataAtualizacao: timestamp
+            });
+            
+            console.log('[SGQ-SECURITY] ✅ Senha alterada com sucesso | UID:', user.uid);
+            console.log('[SGQ-SECURITY] Timestamp:', timestamp);
+        } catch (error) {
+            console.error('[SGQ-SECURITY] ❌ Erro ao alterar senha:', error.message);
+            console.error('[SGQ-SECURITY] Timestamp:', timestamp);
             throw error;
         }
     }
