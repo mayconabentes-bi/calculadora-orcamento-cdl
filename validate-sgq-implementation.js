@@ -23,20 +23,32 @@ let allChecksPassed = true;
 // Check 1: firebase-key-handler.js exists and exports required functions
 console.log('1️⃣  Verificando firebase-key-handler.js...');
 try {
-  const handler = require('./firebase-key-handler.js');
-  const requiredExports = ['getPrivateKey', 'validateEnvironmentVariables', 'getFirebaseCredentials', 'displayConfigurationInfo'];
-  
-  const missingExports = requiredExports.filter(exp => typeof handler[exp] !== 'function');
-  
-  if (missingExports.length === 0) {
-    console.log(`   ✅ Arquivo existe e exporta todas as funções requeridas`);
-    console.log(`   ✅ Exports: ${requiredExports.join(', ')}`);
-  } else {
-    console.log(`   ❌ Exports ausentes: ${missingExports.join(', ')}`);
+  // First check if file exists and has valid syntax
+  const handlerPath = path.join(__dirname, 'firebase-key-handler.js');
+  if (!fs.existsSync(handlerPath)) {
+    console.log('   ❌ Arquivo não encontrado');
     allChecksPassed = false;
+  } else {
+    // Try to require and check exports
+    const handler = require('./firebase-key-handler.js');
+    const requiredExports = ['getPrivateKey', 'validateEnvironmentVariables', 'getFirebaseCredentials', 'displayConfigurationInfo'];
+    
+    const missingExports = requiredExports.filter(exp => typeof handler[exp] !== 'function');
+    
+    if (missingExports.length === 0) {
+      console.log(`   ✅ Arquivo existe e exporta todas as funções requeridas`);
+      console.log(`   ✅ Exports: ${requiredExports.join(', ')}`);
+    } else {
+      console.log(`   ❌ Exports ausentes: ${missingExports.join(', ')}`);
+      allChecksPassed = false;
+    }
   }
 } catch (error) {
-  console.log(`   ❌ Erro ao carregar: ${error.message}`);
+  if (error.code === 'MODULE_NOT_FOUND') {
+    console.log(`   ❌ Erro ao carregar módulo: ${error.message}`);
+  } else {
+    console.log(`   ❌ Erro de sintaxe ou runtime: ${error.message}`);
+  }
   allChecksPassed = false;
 }
 
@@ -46,16 +58,19 @@ const convertScriptPath = path.join(__dirname, 'convert-private-key-to-base64.js
 if (fs.existsSync(convertScriptPath)) {
   console.log('   ✅ Script de conversão existe');
   
-  // Check if it's executable
-  const stats = fs.statSync(convertScriptPath);
-  const isExecutable = (stats.mode & fs.constants.S_IXUSR) !== 0;
+  // Check if it's executable on Unix-like systems
+  // Note: This check is primarily for Unix-like systems
+  if (process.platform !== 'win32') {
+    const stats = fs.statSync(convertScriptPath);
+    const isExecutable = (stats.mode & fs.constants.S_IXUSR) !== 0;
+    console.log(`   ${isExecutable ? '✅' : 'ℹ️'} Executável (Unix): ${isExecutable}`);
+  }
   
   // Read first few lines to check shebang
   const content = fs.readFileSync(convertScriptPath, 'utf-8');
   const hasShebang = content.startsWith('#!/usr/bin/env node');
   
   console.log(`   ${hasShebang ? '✅' : 'ℹ️'} Shebang presente: ${hasShebang}`);
-  console.log(`   ${isExecutable ? '✅' : 'ℹ️'} Executável: ${isExecutable}`);
 } else {
   console.log('   ❌ Script não encontrado');
   allChecksPassed = false;
@@ -179,6 +194,8 @@ try {
   const hasBase64Decoding = handlerContent.includes('Buffer.from') && handlerContent.includes("'base64'");
   const hasLegacyFallback = handlerContent.includes('FIREBASE_PRIVATE_KEY');
   
+  // Note: This is a basic string-based check for validation purposes
+  // For production code analysis, consider using AST parsing
   if (supportsBase64 && hasBase64Decoding && hasLegacyFallback) {
     console.log('   ✅ Suporte a FIREBASE_PRIVATE_KEY_BASE64');
     console.log('   ✅ Decodificação Base64 implementada');

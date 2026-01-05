@@ -110,12 +110,15 @@ npm run setup:user
 
 ### Passo 5: Limpeza (CRÍTICO!)
 ```bash
-# Remover arquivo JSON original
-rm axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json
+# Remover arquivo JSON original COM SEGURANÇA
+# Linux/Mac (recomendado - sobrescreve antes de deletar)
+shred -vfz -n 3 axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json 2>/dev/null || rm -f axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json
 
 # Remover instruções temporárias
-rm BASE64_SETUP_INSTRUCTIONS.txt
+rm -f BASE64_SETUP_INSTRUCTIONS.txt
 ```
+
+**Nota**: `shred` sobrescreve o arquivo 3 vezes antes de deletar para prevenir recuperação.
 
 ---
 
@@ -274,13 +277,17 @@ FIREBASE_PRIVATE_KEY_BASE64="LS0tLS1CRUdJTi..." # RECOMENDADO
 
 ## ⚡ Comandos One-Liner
 
-### Setup completo em 4 comandos
+### Setup completo (com limpeza garantida)
 ```bash
-node convert-private-key-to-base64.js axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json && \
-npm run verify:auth && \
-npm run setup:user && \
-rm axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json
+# Versão segura - deleta arquivo JSON mesmo se comandos anteriores falharem
+(
+  node convert-private-key-to-base64.js axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json && \
+  npm run verify:auth && \
+  npm run setup:user
+) ; shred -vfz -n 3 axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json 2>/dev/null || rm -f axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json
 ```
+
+**⚠️ IMPORTANTE**: Esta versão garante que o arquivo JSON seja deletado mesmo se algum comando anterior falhar.
 
 ### Verificação completa
 ```bash
@@ -289,7 +296,12 @@ npm run verify:auth && npm run setup:user && npm run verify:security
 
 ### Limpeza de segurança
 ```bash
-rm -f *firebase-adminsdk*.json BASE64_SETUP_INSTRUCTIONS.txt
+# Listar arquivos antes de deletar (sempre verifique!)
+ls -la *firebase-adminsdk*.json BASE64_SETUP_INSTRUCTIONS.txt 2>/dev/null
+
+# Deletar arquivos individualmente com segurança
+shred -vfz -n 3 axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json 2>/dev/null || rm -f axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json
+rm -f BASE64_SETUP_INSTRUCTIONS.txt
 ```
 
 ---

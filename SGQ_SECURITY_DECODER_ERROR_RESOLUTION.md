@@ -155,12 +155,15 @@ npm run verify:auth
 **Após validar a conexão com sucesso**:
 
 ```bash
-# Remover arquivo JSON original
-rm axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json
+# Remover arquivo JSON original COM SEGURANÇA
+# Linux/Mac (recomendado - sobrescreve antes de deletar)
+shred -vfz -n 3 axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json 2>/dev/null || rm -f axioma-cdl-manaus-firebase-adminsdk-fbsvc-8e7483fceb.json
 
 # Remover arquivo de instruções temporário
 rm BASE64_SETUP_INSTRUCTIONS.txt
 ```
+
+**⚠️ ATENÇÃO**: `shred` sobrescreve o arquivo 3 vezes antes de deletar, prevenindo recuperação. Se `shred` não estiver disponível, usa `rm` como fallback.
 
 ### Passo 5: Backup Seguro
 Armazene a string Base64 em um gerenciador de senhas corporativo:
