@@ -29,6 +29,39 @@ class DataManager {
     }
 
     // =========================================================================
+    // MÉTODOS PRIVADOS / UTILITÁRIOS
+    // =========================================================================
+
+    /**
+     * Aguarda autenticação do usuário (máximo 5 segundos)
+     * @private
+     * @returns {Promise<User>} Usuário autenticado
+     * @throws {Error} Se timeout ou usuário não autenticado
+     */
+    async _aguardarAutenticacao() {
+        if (auth.currentUser) {
+            return auth.currentUser;
+        }
+
+        console.warn('[SGQ-DATA] Aguardando autenticação do usuário...');
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('Timeout: Usuário não autenticado após 5 segundos.'));
+            }, 5000);
+            
+            const unsubscribe = onAuthStateChanged(auth, user => {
+                clearTimeout(timeout);
+                unsubscribe();
+                if (user) {
+                    resolve(user);
+                } else {
+                    reject(new Error('Operação negada: Usuário não autenticado.'));
+                }
+            });
+        });
+    }
+
+    // =========================================================================
     // 1. GESTÃO DE ORÇAMENTOS (CORE)
     // =========================================================================
 
@@ -40,25 +73,7 @@ class DataManager {
     async salvarOrcamento(dadosCalculo) {
         try {
             // Aguarda autenticação se ainda não estiver pronta
-            if (!auth.currentUser) {
-                console.warn('[SGQ-DATA] Aguardando autenticação do usuário...');
-                // Aguarda até 5 segundos pela autenticação
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        reject(new Error('Operação negada: Usuário não autenticado.'));
-                    }, 5000);
-                    
-                    const unsubscribe = auth.onAuthStateChanged(user => {
-                        clearTimeout(timeout);
-                        unsubscribe();
-                        if (user) {
-                            resolve(user);
-                        } else {
-                            reject(new Error('Operação negada: Usuário não autenticado.'));
-                        }
-                    });
-                });
-            }
+            await this._aguardarAutenticacao();
 
             // Adiciona Metadados de Rastreabilidade (SGQ)
             const payload = {
@@ -88,25 +103,7 @@ class DataManager {
     async obterHistoricoOrcamentos(limite = 50) {
         try {
             // Aguarda autenticação se ainda não estiver pronta
-            if (!auth.currentUser) {
-                console.warn('[SGQ-DATA] Aguardando autenticação do usuário...');
-                // Aguarda até 5 segundos pela autenticação
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        reject(new Error('Acesso negado: Usuário não autenticado.'));
-                    }, 5000);
-                    
-                    const unsubscribe = auth.onAuthStateChanged(user => {
-                        clearTimeout(timeout);
-                        unsubscribe();
-                        if (user) {
-                            resolve(user);
-                        } else {
-                            reject(new Error('Acesso negado: Usuário não autenticado.'));
-                        }
-                    });
-                });
-            }
+            await this._aguardarAutenticacao();
 
             const q = query(
                 collection(db, this.collections.ORCAMENTOS),
@@ -159,6 +156,9 @@ class DataManager {
      */
     async atualizarEspaco(espacoId, dadosAtualizados) {
         try {
+            // Aguarda autenticação antes de atualizar
+            await this._aguardarAutenticacao();
+
             const espacoRef = doc(db, this.collections.ESPACOS, espacoId);
             await updateDoc(espacoRef, {
                 ...dadosAtualizados,
@@ -210,13 +210,6 @@ class DataManager {
             return [];
         }
     }
-
-    // =========================================================================
-    // 4. MÉTODOS PRIVADOS / UTILITÁRIOS
-    // =========================================================================
-
-    // Placeholder method removed - feature not yet implemented
-    // TODO: Implement _atualizarUltimaInteracaoCliente in future version
 }
 
 // Exportar Instância Singleton
