@@ -42,32 +42,56 @@ class AuthManager {
      * @returns {Promise<object>} Dados do usuário
      */
     async login(email, password) {
+        const timestamp = new Date().toISOString();
+        
         try {
+            // Passo 1: Autenticação no Firebase Auth
+            console.log('[SGQ-SECURITY] Iniciando autenticação | Timestamp:', timestamp);
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+            console.log('[SGQ-SECURITY] Autenticação Firebase Auth bem-sucedida | UID:', user.uid);
             
-            // Buscar metadata do usuário no Firestore
+            // Passo 2: Buscar metadata do usuário no Firestore
+            console.log('[SGQ-SECURITY] Verificando metadados no Firestore | UID:', user.uid);
             const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
             
             if (!userDoc.exists()) {
+                await signOut(auth);
+                const errorTimestamp = new Date().toISOString();
+                console.error('[SGQ-SECURITY] FALHA: Usuário autenticado mas ausente no Firestore');
+                console.error('[SGQ-SECURITY] Tipo de erro: Metadados ausentes (Firestore)');
+                console.error('[SGQ-SECURITY] UID:', user.uid);
+                console.error('[SGQ-SECURITY] Email:', email);
+                console.error('[SGQ-SECURITY] Timestamp:', errorTimestamp);
                 throw new Error('Usuário não encontrado no sistema');
             }
             
             const userData = userDoc.data();
+            console.log('[SGQ-SECURITY] Metadados encontrados | Role:', userData.role, '| Status:', userData.status);
             
-            // Verificar se o usuário está ativo
+            // Passo 3: Verificar se o usuário está ativo
             if (userData.status !== 'ativo') {
                 await signOut(auth);
+                const errorTimestamp = new Date().toISOString();
+                console.error('[SGQ-SECURITY] FALHA: Usuário inativo');
+                console.error('[SGQ-SECURITY] Status atual:', userData.status);
+                console.error('[SGQ-SECURITY] Email:', email);
+                console.error('[SGQ-SECURITY] Role:', userData.role);
+                console.error('[SGQ-SECURITY] Timestamp:', errorTimestamp);
                 throw new Error('Usuário inativo. Entre em contato com o administrador.');
             }
             
             this.currentUser = user;
             this.userMetadata = userData;
             
-            // SGQ-SECURITY: Log de sucesso de login
+            // SGQ-SECURITY: Log de sucesso de login com role
+            const successTimestamp = new Date().toISOString();
+            console.log('[SGQ-SECURITY] ✅ Acesso validado para role:', userData.role, '| Timestamp:', successTimestamp);
             console.log('[SGQ-SECURITY] Login bem-sucedido');
             console.log('[SGQ-SECURITY] Email:', email);
-            console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+            console.log('[SGQ-SECURITY] UID:', user.uid);
+            console.log('[SGQ-SECURITY] Role:', userData.role);
+            console.log('[SGQ-SECURITY] Status:', userData.status);
             
             return {
                 success: true,
@@ -76,10 +100,22 @@ class AuthManager {
             };
         } catch (error) {
             // SGQ-SECURITY: Log detalhado de falha no login
-            console.error('[SGQ-SECURITY] Falha no login');
+            const errorTimestamp = new Date().toISOString();
+            
+            // Determinar tipo de erro (Auth vs Firestore)
+            let errorType = 'Credencial (Auth)';
+            if (error.message === 'Usuário não encontrado no sistema') {
+                errorType = 'Metadados ausentes (Firestore)';
+            } else if (error.message === 'Usuário inativo. Entre em contato com o administrador.') {
+                errorType = 'Status inativo (Firestore)';
+            }
+            
+            console.error('[SGQ-SECURITY] ❌ FALHA NO LOGIN');
+            console.error('[SGQ-SECURITY] Tipo de erro:', errorType);
             console.error('[SGQ-SECURITY] Email tentado:', email);
-            console.error('[SGQ-SECURITY] Erro:', error.code || error.message);
-            console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+            console.error('[SGQ-SECURITY] Código do erro:', error.code || 'N/A');
+            console.error('[SGQ-SECURITY] Mensagem:', error.message);
+            console.error('[SGQ-SECURITY] Timestamp:', errorTimestamp);
             
             console.error('Erro no login:', error);
             throw error;
@@ -109,18 +145,25 @@ class AuthManager {
     async verificarAcesso() {
         return new Promise((resolve, reject) => {
             onAuthStateChanged(auth, async (user) => {
+                const timestamp = new Date().toISOString();
+                
                 try {
                     if (!user) {
                         // Usuário não autenticado
+                        console.log('[SGQ-SECURITY] Verificação de acesso: Não autenticado | Timestamp:', timestamp);
                         resolve(false);
                         return;
                     }
 
+                    console.log('[SGQ-SECURITY] Verificando acesso para UID:', user.uid, '| Timestamp:', timestamp);
+                    
                     // Buscar metadata do usuário
                     const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
                     
                     if (!userDoc.exists()) {
                         // Usuário não existe no Firestore
+                        console.error('[SGQ-SECURITY] FALHA: Metadados ausentes (Firestore) | UID:', user.uid);
+                        console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                         await signOut(auth);
                         resolve(false);
                         return;
@@ -130,6 +173,8 @@ class AuthManager {
 
                     // Verificar se está ativo
                     if (userData.status !== 'ativo') {
+                        console.error('[SGQ-SECURITY] FALHA: Status inativo | UID:', user.uid, '| Status:', userData.status);
+                        console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                         await signOut(auth);
                         resolve(false);
                         return;
@@ -138,8 +183,17 @@ class AuthManager {
                     // Usuário autenticado e ativo
                     this.currentUser = user;
                     this.userMetadata = userData;
+                    
+                    const successTimestamp = new Date().toISOString();
+                    console.log('[SGQ-SECURITY] ✅ Acesso validado para role:', userData.role, '| Timestamp:', successTimestamp);
+                    console.log('[SGQ-SECURITY] Email:', user.email);
+                    console.log('[SGQ-SECURITY] UID:', user.uid);
+                    
                     resolve(true);
                 } catch (error) {
+                    console.error('[SGQ-SECURITY] ❌ Erro ao verificar acesso');
+                    console.error('[SGQ-SECURITY] Mensagem:', error.message);
+                    console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                     console.error('Erro ao verificar acesso:', error);
                     reject(error);
                 }
