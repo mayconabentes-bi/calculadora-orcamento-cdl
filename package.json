@@ -14,7 +14,8 @@
     "playwright:install": "playwright install",
     "setup:user": "node setup-developer-user.js",
     "verify:auth": "node verify-auth-setup.js",
-    "verify:security": "node verify-sgq-security.js"
+    "verify:security": "node verify-sgq-security.js",
+    "validate:all": "bash validar-recomendacoes.sh"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
