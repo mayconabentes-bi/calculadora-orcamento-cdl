@@ -141,15 +141,35 @@ O script é **idempotente**, ou seja, pode ser executado múltiplas vezes sem ca
 
 Cada documento na coleção `usuarios` contém:
 
+**Para novos utilizadores criados pelo script:**
 ```javascript
 {
   email: "usuario@cdlmanaus.org.br",
   nome: "Nome Completo",
   role: "admin" | "user",
   status: "ativo",
-  updatedAt: "2026-01-05T17:30:00.000Z"
+  dataCriacao: "2026-01-05T17:30:00.000Z",  // Timestamp de criação
+  criadoPor: "uid_do_proprio_usuario",      // UID (self-created by admin script)
+  updatedAt: "2026-01-05T17:30:00.000Z"     // Timestamp de última atualização
 }
 ```
+
+**Para utilizadores já existentes (apenas atualização):**
+```javascript
+{
+  email: "usuario@cdlmanaus.org.br",
+  nome: "Nome Completo",
+  role: "admin" | "user",
+  status: "ativo",
+  updatedAt: "2026-01-05T17:30:00.000Z"     // Apenas atualizado
+  // dataCriacao e criadoPor mantidos do original
+}
+```
+
+**Campos de Auditoria:**
+- **`dataCriacao`**: Timestamp ISO 8601 de quando o utilizador foi criado
+- **`criadoPor`**: UID do criador (para script admin, usa o próprio UID do utilizador)
+- **`updatedAt`**: Timestamp da última atualização dos metadados
 
 ### Auditoria SGQ-SECURITY
 

@@ -117,6 +117,8 @@ const senhaTemporaria = 'Cdl@Manaus2026';
  * 1. Verifica existência do usuário no Auth (evita duplicação)
  * 2. Cria usuário no Firebase Authentication se não existir
  * 3. Cria/atualiza documento correspondente no Firestore
+ *    - Para novos: inclui dataCriacao e criadoPor (audit trail)
+ *    - Para existentes: apenas atualiza campos sem sobrescrever audit trail
  * 4. Auditoria completa SGQ-SECURITY de todas as operações
  */
 async function cadastrarUsuarios() {
@@ -166,13 +168,22 @@ async function cadastrarUsuarios() {
       const firestoreTimestamp = new Date().toISOString();
       console.log(`[SGQ-SECURITY] ${firestoreTimestamp} - Sincronizando metadados no Firestore...`);
       
-      await db.collection('usuarios').doc(uid).set({
+      // Preparar dados do documento
+      const documentData = {
         email: u.email,
         nome: u.nome,
         role: u.role,
         status: 'ativo',
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      };
+      
+      // Se for criação nova, adicionar campos de auditoria de criação
+      if (userCreated) {
+        documentData.dataCriacao = new Date().toISOString();
+        documentData.criadoPor = uid; // Self-created by admin script
+      }
+      
+      await db.collection('usuarios').doc(uid).set(documentData, { merge: true });
 
       const syncTimestamp = new Date().toISOString();
       console.log(`[SGQ-SECURITY] ${syncTimestamp} - ✅ Metadados sincronizados no Firestore para: ${u.nome}`);
