@@ -1,11 +1,15 @@
 /* =================================================================
-   DATA MANAGER - AXIOMA: INTELIGÊNCIA DE MARGEM v5.1.0
+   DATA MANAGER - AXIOMA: INTELIGÊNCIA DE MARGEM v5.2.0 - Refactored
    Sistema de gerenciamento de dados com persistência em Firebase Firestore
    Com fallback para LocalStorage para compatibilidade
+   Módulo ES6 puro - Padrão ES Modules
    ================================================================= */
 
 // Imports do Firebase Firestore
 import { db, collection, addDoc, getDocs, updateDoc, setDoc, doc, query, where, getDoc } from './firebase-config.js';
+
+// Import do Data Sanitizer
+import { DataSanitizer } from './validation.js';
 
 /**
  * Classe DataManager
@@ -1350,22 +1354,21 @@ class DataManager {
         }
 
         try {
-            // Blindagem automática
+            // Blindagem automática usando DataSanitizer importado
             const clienteNome = calculo.clienteNome || '';
             const clienteContato = calculo.clienteContato || '';
             
             let nomeArmazenado = clienteNome;
             let contatoArmazenado = clienteContato;
             
-            if (typeof DataSanitizer !== 'undefined') {
-                const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
-                nomeArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
-                    ? resultadoSanitizacao.dados.clienteNome 
-                    : '';
-                contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
-                    ? (resultadoSanitizacao.dados.clienteContato || '') 
-                    : '';
-            }
+            // DataSanitizer é importado explicitamente - sempre disponível
+            const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+            nomeArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+                ? resultadoSanitizacao.dados.clienteNome 
+                : '';
+            contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+                ? (resultadoSanitizacao.dados.clienteContato || '') 
+                : '';
 
             // Calcular Lead Time
             let leadTimeDays = null;
@@ -1599,21 +1602,14 @@ class DataManager {
         let nomeArmazenado = clienteNome;
         let contatoArmazenado = clienteContato;
         
-        // Aplicar DataSanitizer se disponível
-        if (typeof DataSanitizer !== 'undefined') {
-            const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
-            nomeArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
-                ? resultadoSanitizacao.dados.clienteNome 
-                : '';
-            contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
-                ? (resultadoSanitizacao.dados.clienteContato || '') 
-                : '';
-        } else {
-            // Fallback: sanitização básica se DataSanitizer não estiver disponível
-            console.warn('DataSanitizer não disponível, usando sanitização básica');
-            nomeArmazenado = clienteNome.trim();
-            contatoArmazenado = clienteContato.trim();
-        }
+        // Aplicar DataSanitizer importado explicitamente - sempre disponível
+        const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+        nomeArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+            ? resultadoSanitizacao.dados.clienteNome 
+            : '';
+        contatoArmazenado = resultadoSanitizacao.valido && resultadoSanitizacao.dados 
+            ? (resultadoSanitizacao.dados.clienteContato || '') 
+            : '';
 
         // Calcular Lead Time (dias entre cotação e evento)
         let leadTimeDays = null;
@@ -2593,8 +2589,5 @@ function mostrarNotificacao(mensagem, duracao = 3000) {
 // Exportar instância global do DataManager (Singleton Pattern)
 const dataManager = new DataManager();
 
-// Para compatibilidade com scripts legados (não-módulos)
-window.dataManager = dataManager;
-
-// Export ES6 para módulos
+// Export ES6 para módulos - Padrão v5.2.0
 export default dataManager;

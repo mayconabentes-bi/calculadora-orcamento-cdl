@@ -1,8 +1,15 @@
 /* =================================================================
-   APP.JS - AXIOMA: INTELIGÊNCIA DE MARGEM v5.1.0
+   APP.JS - AXIOMA: INTELIGÊNCIA DE MARGEM v5.2.0 - Refactored
    Calculadora de Orçamento CDL/UTV
    Lógica principal da aplicação, cálculos e interface do usuário
+   Módulo ES6 puro - Padrão ES Modules
    ================================================================= */
+
+// ========== ES6 MODULE IMPORTS ==========
+import dataManager from './data-manager.js';
+import { CoreUtils, DataSanitizer } from './validation.js';
+import BudgetEngine from './budget-engine.js';
+import PDFService from './pdf-service.js';
 
 // ========== VARIÁVEIS GLOBAIS ==========
 let ultimoCalculoRealizado = null;
@@ -1380,123 +1387,72 @@ function obterExtrasSelecionados() {
  */
 function calcularOrcamento() {
     // Coletar dados do formulário
-    let clienteNome = document.getElementById('cliente-nome').value.trim();
+    const clienteNome = document.getElementById('cliente-nome').value.trim();
     const clienteContato = document.getElementById('cliente-contato').value.trim();
-    let salaId = document.getElementById('espaco').value;
+    const salaId = document.getElementById('espaco').value;
     const duracao = parseInt(document.getElementById('duracao').value) || 1;
     const duracaoTipo = document.getElementById('duracao-tipo').value || 'meses';
     const margem = parseFloat(document.getElementById('margem').value) / 100 || 0;
     const desconto = parseFloat(document.getElementById('desconto').value) / 100 || 0;
-    let dataEvento = document.getElementById('data-evento').value;
+    const dataEvento = document.getElementById('data-evento').value;
     
     // ==============================================================
-    // MODO SIMULAÇÃO DE CENÁRIOS: Eliminar Gatekeepers de Validação
+    // ZERO TRUST VALIDATION: Strict data validation - No Fallbacks
     // ==============================================================
-    // Objetivo: Permitir cálculo com dados incompletos para:
-    // - Testes avançados de sistema
-    // - Integração de dados retroativos
-    // - Simulação de cenários parciais
-    // - Pipeline de oportunidades mais denso (ML/BI)
+    // Objetivo: Garantir qualidade dos dados e eliminar simulações
+    // conforme padrão SGQ v5.2.0 - Sem Sala Virtual ou dados falsos
     
-    // Rastrear se usamos fallbacks (para classificação de risco)
-    let usouFallbacks = false;
-    
-    // 1. ELIMINAÇÃO DE BLOQUEIO DE IDENTIDADE
-    // Se nome estiver vazio, gerar identificador de teste automático
-    let clienteNomeSanitizado = clienteNome;
-    let clienteContatoSanitizado = clienteContato;
-    
+    // 1. VALIDAÇÃO ESTRITA DE IDENTIDADE
+    // Nome do cliente é obrigatório
     if (!clienteNome || clienteNome.length === 0) {
-        // Fallback: nome automático para simulação do sistema
-        clienteNomeSanitizado = "Simulação_Axioma_" + Date.now();
-        console.warn('⚠️ Nome do cliente vazio - usando fallback:', clienteNomeSanitizado);
-        mostrarNotificacao('⚠️ Cálculo sem nome do cliente - usando identificador de simulação', 4000);
-        usouFallbacks = true;
-    } else {
-        // VALIDAÇÃO COM DATA SANITIZER - Gatekeeper de Qualidade de Dados
-        // Sempre tentar sanitizar para manter qualidade dos dados
-        const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
-        
-        if (!resultadoSanitizacao.valido) {
-            // MODO NÃO-INTERRUPTIVO: Avisar mas continuar
-            console.warn('⚠️ Avisos de qualidade de dados:', resultadoSanitizacao.erros);
-            
-            // Tentar usar dados normalizados se disponíveis
-            if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteNome) {
-                clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
-            }
-            if (resultadoSanitizacao.dados && resultadoSanitizacao.dados.clienteContato) {
-                clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato;
-            }
-        } else {
-            // Dados sanitizados e validados - usar valores normalizados
-            clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
-            clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato || clienteContato;
-        }
+        alert('❌ Nome do cliente é obrigatório para calcular o orçamento.');
+        document.getElementById('cliente-nome').focus();
+        return;
     }
     
-    // 2. FLEXIBILIZAÇÃO DE ESPAÇO
-    // Se sala não selecionada, usar primeira sala disponível (padrão de simulação)
+    // VALIDAÇÃO COM DATA SANITIZER - Gatekeeper de Qualidade de Dados
+    const resultadoSanitizacao = DataSanitizer.sanitizarDadosCliente(clienteNome, clienteContato);
+    
+    if (!resultadoSanitizacao.valido) {
+        // Exibir erros de validação e bloquear
+        alert('❌ Problemas com os dados do cliente:\n\n' + resultadoSanitizacao.erros.join('\n'));
+        document.getElementById('cliente-nome').focus();
+        return;
+    }
+    
+    // Usar dados sanitizados
+    const clienteNomeSanitizado = resultadoSanitizacao.dados.clienteNome;
+    const clienteContatoSanitizado = resultadoSanitizacao.dados.clienteContato || clienteContato;
+    
+    // 2. VALIDAÇÃO ESTRITA DE ESPAÇO
+    // Sala deve ser selecionada - sem fallback
     if (!salaId) {
-        const salasDisponiveis = dataManager.obterSalas();
-        if (salasDisponiveis.length > 0) {
-            salaId = salasDisponiveis[0].id;
-            console.warn('⚠️ Sala não selecionada - usando primeira disponível:', salasDisponiveis[0].nome);
-            mostrarNotificacao('⚠️ Sala não selecionada - usando padrão de simulação', 4000);
-            usouFallbacks = true;
-        } else {
-            // Situação crítica: sem salas no sistema
-            // Criar sala virtual mínima para permitir o cálculo
-            console.error('⚠️ AVISO CRÍTICO: Nenhuma sala disponível - criando sala virtual para simulação');
-            mostrarNotificacao('⚠️ Sistema sem salas configuradas - usando valores padrão de simulação', 5000);
-            // Não podemos criar sala no sistema, mas podemos simular uma temporariamente
-            // O cálculo continuará mas será marcado como ALTO RISCO
-            usouFallbacks = true;
-        }
+        alert('❌ Por favor, selecione um espaço/sala para o evento.');
+        document.getElementById('espaco').focus();
+        return;
     }
     
-    let sala = dataManager.obterSalaPorId(salaId);
+    const sala = dataManager.obterSalaPorId(salaId);
     if (!sala) {
-        // Criar objeto de sala virtual para permitir o cálculo
-        // Valores padrão médios baseados em salas típicas do sistema
-        console.warn('⚠️ Criando sala virtual para simulação');
-        const CAPACIDADE_PADRAO = 50;  // Capacidade média (pessoas)
-        const AREA_PADRAO = 100;        // Área média (m²)
-        const CUSTO_BASE_PADRAO = 100.00; // Custo/hora médio (R$)
-        
-        sala = {
-            id: 1,
-            nome: 'Sala Virtual (Simulação)',
-            unidade: 'Sistema',
-            capacidade: CAPACIDADE_PADRAO,
-            area: AREA_PADRAO,
-            custoBase: CUSTO_BASE_PADRAO
-        };
-        usouFallbacks = true;
+        alert('❌ Sala selecionada não encontrada no sistema. Por favor, selecione outra sala.');
+        document.getElementById('espaco').value = '';
+        document.getElementById('espaco').focus();
+        return;
     }
     
-    // 3. FLEXIBILIZAÇÃO DE DATA
-    // Se data não informada, usar data atual
-    let dataEventoObj;
-    if (!dataEvento) {
-        dataEventoObj = new Date();
-        dataEvento = dataEventoObj.toISOString().split('T')[0];
-        console.warn('⚠️ Data não informada - usando data atual:', dataEvento);
-        mostrarNotificacao('⚠️ Data não informada - usando data atual', 4000);
-        usouFallbacks = true;
-    } else {
-        dataEventoObj = new Date(dataEvento + 'T00:00:00');
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        
-        // Log informativo apenas (não bloqueia)
-        if (dataEventoObj < hoje) {
-            console.info('ℹ️ Data do evento está no passado:', dataEventoObj.toLocaleDateString('pt-BR'));
-            console.info('Permitindo registro retroativo para testes/histórico');
+    // 3. VALIDAÇÃO DE DATA (não obrigatória mas deve ser válida se fornecida)
+    let dataEventoValida = dataEvento;
+    if (dataEvento) {
+        const dataEventoObj = new Date(dataEvento + 'T00:00:00');
+        if (isNaN(dataEventoObj.getTime())) {
+            alert('❌ Data do evento inválida. Por favor, informe uma data válida.');
+            document.getElementById('data-evento').focus();
+            return;
         }
+        dataEventoValida = dataEvento;
     }
     
-    // 4. FLEXIBILIZAÇÃO DE DIAS DA SEMANA
+    // 4. VALIDAÇÃO DE DIAS DA SEMANA
     // Coletar dias da semana selecionados
     let diasSelecionados = [];
     const diasIds = ['dia-seg', 'dia-ter', 'dia-qua', 'dia-qui', 'dia-sex', 'dia-sab', 'dia-dom'];
@@ -1507,19 +1463,16 @@ function calcularOrcamento() {
         }
     });
     
-    // Se nenhum dia selecionado, assumir Segunda-feira (value: 1) como padrão
+    // Pelo menos um dia deve ser selecionado
     if (diasSelecionados.length === 0) {
-        diasSelecionados = [1]; // Segunda-feira
-        console.warn('⚠️ Nenhum dia selecionado - usando Segunda-feira como padrão');
-        mostrarNotificacao('⚠️ Nenhum dia selecionado - usando Segunda-feira', 4000);
-        usouFallbacks = true;
+        alert('❌ Por favor, selecione pelo menos um dia da semana para o evento.');
+        return;
     }
     
-    // 5. VALIDAÇÃO DE HORÁRIOS (mantida mas não interruptiva)
+    // 5. VALIDAÇÃO DE HORÁRIOS
     if (!validarHorarios()) {
-        console.warn('⚠️ Horários inválidos - alguns horários podem ter problemas');
-        mostrarNotificacao('⚠️ Aviso: Verifique os horários configurados', 4000);
-        // Não retornar - continuar com o cálculo
+        alert('❌ Por favor, corrija os horários antes de calcular.');
+        return;
     }
     
     // Calcular total de horas por dia
@@ -1553,9 +1506,9 @@ function calcularOrcamento() {
         margem,
         desconto,
         resultado,
-        dataEvento,
+        dataEvento: dataEventoValida,
         data: new Date().toLocaleDateString('pt-BR'),
-        calculoIncompleto: usouFallbacks  // Marcar se usou fallbacks
+        calculoIncompleto: false  // v5.2.0: Sempre false após validação estrita
     };
     
     // Salvar no histórico
@@ -1567,7 +1520,7 @@ function calcularOrcamento() {
     }
     
     // Exibir resultados
-    exibirResultados(resultado, usouFallbacks);
+    exibirResultados(resultado, false);  // Sempre false após validação estrita
     
     mostrarNotificacao('Orçamento calculado com sucesso!');
 }
@@ -2661,13 +2614,15 @@ function esconderLoading() {
 
 /**
  * Wrapper para exportarPDFCliente com loading e atualização de status
+ * Utiliza PDFService v5.2.0
  */
 async function exportarPDFClienteComLoading() {
     mostrarLoading();
     // Pequeno delay para o overlay aparecer antes do processamento pesado
     await new Promise(resolve => setTimeout(resolve, 100));
     try {
-        await exportarPDFCliente();
+        // Usar PDFService com dados do último cálculo
+        PDFService.exportarPDFCliente(ultimoCalculoRealizado);
         
         // Após sucesso do download, atualizar status para ENVIADO_AO_CLIENTE
         if (ultimoCalculoRealizado) {
@@ -2701,658 +2656,16 @@ async function exportarPDFClienteComLoading() {
 
 /**
  * Wrapper para exportarPDFSuperintendencia com loading
+ * Utiliza PDFService v5.2.0
  */
 async function exportarPDFSuperintendenciaComLoading() {
     mostrarLoading();
     // Pequeno delay para o overlay aparecer antes do processamento pesado
     await new Promise(resolve => setTimeout(resolve, 100));
     try {
-        exportarPDFSuperintendencia();
+        // Usar PDFService com dados do último cálculo
+        PDFService.exportarPDFSuperintendencia(ultimoCalculoRealizado);
     } finally {
-        esconderLoading();
-    }
-}
-
-// ========== EXPORTAÇÃO DE PDF ==========
-
-/**
- * Verifica se há espaço suficiente na página e adiciona nova se necessário
- * @param {jsPDF} doc - Instância do jsPDF
- * @param {number} yAtual - Posição Y atual
- * @param {number} espacoNecessario - Espaço necessário em mm
- * @returns {number} Nova posição Y
- */
-function verificarEAdicionarPagina(doc, yAtual, espacoNecessario = 20) {
-    if (yAtual + espacoNecessario > 280) {
-        doc.addPage();
-        return 20;
-    }
-    return yAtual;
-}
-
-/**
- * Exporta PDF versão cliente (proposta comercial)
- */
-function exportarPDFCliente() {
-    if (!ultimoCalculoRealizado) {
-        alert('Por favor, calcule um orçamento primeiro!');
-        return;
-    }
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    const calculo = ultimoCalculoRealizado;
-    const sala = calculo.sala;
-    const resultado = calculo.resultado;
-    
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(30, 71, 138);
-    doc.text('PROPOSTA DE ORÇAMENTO', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text('CDL/UTV - Locação de Espaços para Eventos', 105, 28, { align: 'center' });
-    
-    // Linha separadora
-    doc.setDrawColor(30, 71, 138);
-    doc.setLineWidth(0.5);
-    doc.line(20, 32, 190, 32);
-    
-    // Informações do espaço
-    let y = 45;
-    doc.setFontSize(14);
-    doc.setTextColor(30, 71, 138);
-    doc.text('Informações do Espaço', 20, y);
-    
-    y += 8;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Espaço: ${sala.unidade} - ${sala.nome}`, 20, y);
-    y += 6;
-    doc.text(`Capacidade: ${sala.capacidade} pessoas`, 20, y);
-    y += 6;
-    doc.text(`Área: ${sala.area} m²`, 20, y);
-    
-    // Detalhes do contrato
-    y += 12;
-    doc.setFontSize(14);
-    doc.setTextColor(30, 71, 138);
-    doc.text('Detalhes do Contrato', 20, y);
-    
-    y += 8;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Duração: ${calculo.duracao} ${calculo.duracaoTipo || 'meses'}`, 20, y);
-    y += 6;
-    
-    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const diasSelecionadosTexto = calculo.diasSelecionados ? 
-        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
-        `${calculo.diasSemana || 0} dias/semana`;
-    doc.text(`Dias: ${diasSelecionadosTexto}`, 20, y);
-    y += 6;
-    
-    if (calculo.horarios && calculo.horarios.length > 0) {
-        if (calculo.horarios.length === 1) {
-            doc.text(`Horário: ${calculo.horarios[0].inicio} às ${calculo.horarios[0].fim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
-        } else {
-            doc.text(`Horários: ${calculo.horarios.map(h => `${h.inicio}-${h.fim}`).join(', ')} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
-        }
-    } else if (calculo.horarioInicio && calculo.horarioFim) {
-        doc.text(`Horário: ${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
-    } else {
-        const turnos = [];
-        if (calculo.turnos && calculo.turnos.manha) turnos.push('Manhã');
-        if (calculo.turnos && calculo.turnos.tarde) turnos.push('Tarde');
-        if (calculo.turnos && calculo.turnos.noite) turnos.push('Noite');
-        doc.text(`Turnos: ${turnos.join(', ')}`, 20, y);
-    }
-    y += 6;
-    doc.text(`Total de horas: ${resultado.horasTotais.toFixed(1)}h`, 20, y);
-    
-    // Valores
-    y += 12;
-    doc.setFontSize(14);
-    doc.setTextColor(30, 71, 138);
-    doc.text('Valores', 20, y);
-    
-    y += 8;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Valor por hora: R$ ${CoreUtils.formatarMoeda(resultado.valorPorHora)}`, 20, y);
-    y += 6;
-    doc.text(`Desconto aplicado: ${resultado.descontoPercent.toFixed(0)}%`, 20, y);
-    y += 6;
-    doc.text(`Economia: R$ ${CoreUtils.formatarMoeda(resultado.economia)}`, 20, y);
-    
-    // Valor final (destaque)
-    y += 15;
-    doc.setFillColor(30, 71, 138);
-    doc.rect(20, y - 8, 170, 15, 'F');
-    
-    doc.setFontSize(16);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`VALOR TOTAL: R$ ${CoreUtils.formatarMoeda(resultado.valorFinal)}`, 105, y, { align: 'center' });
-    
-    // Footer
-    y = 270;
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text('CDL Manaus - Câmara de Dirigentes Lojistas', 105, y, { align: 'center' });
-    y += 4;
-    doc.text(`Proposta gerada em: ${calculo.data}`, 105, y, { align: 'center' });
-    y += 4;
-    doc.text('Esta proposta tem validade de 30 dias', 105, y, { align: 'center' });
-    
-    // Salvar PDF
-    doc.save(`proposta-orcamento-${sala.unidade}-${sala.nome}-${new Date().getTime()}.pdf`);
-    
-    mostrarNotificacao('PDF gerado com sucesso!');
-}
-
-/**
- * Exporta PDF versão superintendência (análise detalhada)
- */
-function exportarPDFSuperintendencia() {
-    if (!ultimoCalculoRealizado) {
-        alert('Por favor, calcule um orçamento primeiro!');
-        return;
-    }
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    const calculo = ultimoCalculoRealizado;
-    const sala = calculo.sala;
-    const resultado = calculo.resultado;
-    
-    // Header
-    doc.setFontSize(18);
-    doc.setTextColor(30, 71, 138);
-    doc.text('ANÁLISE FINANCEIRA - SUPERINTENDÊNCIA', 105, 15, { align: 'center' });
-    
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Relatório Gerencial Detalhado', 105, 22, { align: 'center' });
-    
-    // Linha separadora
-    doc.setDrawColor(30, 71, 138);
-    doc.setLineWidth(0.5);
-    doc.line(15, 25, 195, 25);
-    
-    // Informações do espaço
-    let y = 35;
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('1. DADOS DO ESPAÇO', 15, y);
-    
-    y += 7;
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Espaço: ${sala.unidade} - ${sala.nome}`, 20, y);
-    y += 5;
-    doc.text(`Capacidade: ${sala.capacidade} pessoas | Área: ${sala.area} m² | Custo base: R$ ${CoreUtils.formatarMoeda(sala.custoBase)}/h`, 20, y);
-    
-    // Parâmetros do contrato
-    y += 10;
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(12);
-    doc.text('2. PARÂMETROS DO CONTRATO', 15, y);
-    
-    y += 7;
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    
-    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const diasTexto = calculo.diasSelecionados ? 
-        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
-        `${calculo.diasSemana || 0} dias/semana`;
-    
-    doc.text(`Duração: ${calculo.duracao} ${calculo.duracaoTipo || 'meses'} | Dias: ${diasTexto} | Total de horas: ${resultado.horasTotais.toFixed(1)}h`, 20, y);
-    y += 5;
-    
-    if (calculo.horarios && calculo.horarios.length > 0) {
-        if (calculo.horarios.length === 1) {
-            doc.text(`Horário: ${calculo.horarios[0].inicio} às ${calculo.horarios[0].fim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
-        } else {
-            doc.text(`Horários: ${calculo.horarios.map(h => `${h.inicio}-${h.fim}`).join(', ')} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
-        }
-    } else if (calculo.horarioInicio && calculo.horarioFim) {
-        doc.text(`Horário: ${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)`, 20, y);
-    } else if (calculo.turnos) {
-        const turnos = [];
-        if (calculo.turnos.manha) turnos.push('Manhã');
-        if (calculo.turnos.tarde) turnos.push('Tarde');
-        if (calculo.turnos.noite) turnos.push('Noite');
-        doc.text(`Turnos utilizados: ${turnos.join(', ')}`, 20, y);
-    }
-    y += 5;
-    doc.text(`Margem de lucro: ${resultado.margemPercent.toFixed(0)}% | Desconto: ${resultado.descontoPercent.toFixed(0)}%`, 20, y);
-    
-    // Detalhamento de custos
-    y += 10;
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(12);
-    doc.text('3. DETALHAMENTO DE CUSTOS', 15, y);
-    
-    y += 7;
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    
-    // Tabela de custos
-    const custos = [
-        ['Custo Operacional Base', `R$ ${CoreUtils.formatarMoeda(resultado.custoOperacionalBase)}`],
-        ['Mão de Obra - Horas Normais', `R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraNormal)}`],
-        ['Mão de Obra - HE 50% (Sábado)', `R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraHE50)}`],
-        ['Mão de Obra - HE 100% (Domingo)', `R$ ${CoreUtils.formatarMoeda(resultado.custoMaoObraHE100)}`],
-        ['Vale Transporte', `R$ ${CoreUtils.formatarMoeda(resultado.custoValeTransporte)}`]
-    ];
-    
-    // Adicionar transporte por aplicativo se houver
-    if (resultado.custoTransporteApp > 0) {
-        custos.push(['Transporte por Aplicativo', `R$ ${CoreUtils.formatarMoeda(resultado.custoTransporteApp)}`]);
-    }
-    
-    // Adicionar refeição se houver
-    if (resultado.custoRefeicao > 0) {
-        custos.push(['Refeição', `R$ ${CoreUtils.formatarMoeda(resultado.custoRefeicao)}`]);
-    }
-    
-    custos.push(['Itens Extras', `R$ ${CoreUtils.formatarMoeda(resultado.custoExtras)}`]);
-    
-    custos.forEach(([item, valor]) => {
-        doc.text(item, 20, y);
-        doc.text(valor, 190, y, { align: 'right' });
-        y += 5;
-    });
-    
-    // === 3.1. BREAKDOWN DETALHADO - MÃO DE OBRA ===
-    if (resultado.detalhamentoFuncionarios && resultado.detalhamentoFuncionarios.length > 0) {
-        y += 8;
-        y = verificarEAdicionarPagina(doc, y, 25);
-        
-        doc.setFont(undefined, 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(30, 71, 138);
-        doc.text('3.1. BREAKDOWN DETALHADO - MÃO DE OBRA', 15, y);
-        
-        y += 7;
-        doc.setFont(undefined, 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(0, 0, 0);
-        
-        resultado.detalhamentoFuncionarios.forEach((func, index) => {
-            // Verificar espaço para o funcionário completo (precisa ~35mm)
-            y = verificarEAdicionarPagina(doc, y, 35);
-            
-            // Nome do funcionário com fundo cinza claro
-            doc.setFillColor(240, 240, 240);
-            doc.rect(20, y - 3, 170, 6, 'F');
-            doc.setFont(undefined, 'bold');
-            doc.setFontSize(10);
-            doc.text(`Funcionário ${index + 1}: ${func.nome}`, 22, y);
-            
-            y += 7;
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(9);
-            
-            // Horas normais
-            if (func.horasNormais > 0) {
-                doc.text(`• Horas Normais: ${func.horasNormais.toFixed(1)}h`, 25, y);
-                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoNormal)}`, 190, y, { align: 'right' });
-                y += 4;
-            }
-            
-            // HE 50% (Sábado)
-            if (func.horasHE50 > 0) {
-                doc.text(`• HE 50% (Sábado): ${func.horasHE50.toFixed(1)}h`, 25, y);
-                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoHE50)}`, 190, y, { align: 'right' });
-                y += 4;
-            }
-            
-            // HE 100% (Domingo)
-            if (func.horasHE100 > 0) {
-                doc.text(`• HE 100% (Domingo): ${func.horasHE100.toFixed(1)}h`, 25, y);
-                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoHE100)}`, 190, y, { align: 'right' });
-                y += 4;
-            }
-            
-            // Vale Transporte
-            if (func.custoVT > 0) {
-                doc.text(`• Vale Transporte: ${Math.round(resultado.diasTotais)} dias`, 25, y);
-                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoVT)}`, 190, y, { align: 'right' });
-                y += 4;
-            }
-            
-            // Transporte por aplicativo
-            if (func.custoTransApp > 0) {
-                doc.text(`• Transporte por Aplicativo: ${Math.round(resultado.diasTotais)} dias`, 25, y);
-                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoTransApp)}`, 190, y, { align: 'right' });
-                y += 4;
-            }
-            
-            // Refeição
-            if (func.custoRefeicao > 0) {
-                doc.text(`• Refeição: ${Math.round(resultado.diasTotais)} dias`, 25, y);
-                doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoRefeicao)}`, 190, y, { align: 'right' });
-                y += 4;
-            }
-            
-            // Linha e subtotal do funcionário
-            y += 1;
-            doc.setDrawColor(200, 200, 200);
-            doc.setLineWidth(0.3);
-            doc.line(25, y, 190, y);
-            y += 4;
-            
-            doc.setFont(undefined, 'bold');
-            doc.text(`Subtotal ${func.nome}:`, 25, y);
-            doc.text(`R$ ${CoreUtils.formatarMoeda(func.custoTotal)}`, 190, y, { align: 'right' });
-            
-            y += 7;
-            doc.setFont(undefined, 'normal');
-        });
-    }
-    
-    y += 3;
-    doc.setDrawColor(0, 0, 0);
-    doc.line(20, y, 190, y);
-    y += 5;
-    
-    doc.setFont(undefined, 'bold');
-    doc.text('SUBTOTAL (sem margem)', 20, y);
-    doc.text(`R$ ${CoreUtils.formatarMoeda(resultado.subtotalSemMargem)}`, 190, y, { align: 'right' });
-    
-    y += 7;
-    doc.setFont(undefined, 'normal');
-    doc.text(`Margem de Lucro (${resultado.margemPercent.toFixed(0)}%)`, 20, y);
-    doc.text(`R$ ${CoreUtils.formatarMoeda(resultado.valorMargem)}`, 190, y, { align: 'right' });
-    
-    y += 5;
-    doc.setFont(undefined, 'bold');
-    doc.text('SUBTOTAL (com margem)', 20, y);
-    doc.text(`R$ ${CoreUtils.formatarMoeda(resultado.subtotalComMargem)}`, 190, y, { align: 'right' });
-    
-    y += 7;
-    doc.setFont(undefined, 'normal');
-    doc.text(`Desconto (${resultado.descontoPercent.toFixed(0)}%)`, 20, y);
-    doc.text(`- R$ ${CoreUtils.formatarMoeda(resultado.valorDesconto)}`, 190, y, { align: 'right' });
-    
-    y += 5;
-    doc.setDrawColor(30, 71, 138);
-    doc.setLineWidth(1);
-    doc.line(20, y, 190, y);
-    
-    // Valor final destacado
-    y += 7;
-    doc.setFillColor(30, 71, 138);
-    doc.rect(15, y - 5, 180, 10, 'F');
-    
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text('VALOR FINAL', 20, y);
-    doc.text(`R$ ${CoreUtils.formatarMoeda(resultado.valorFinal)}`, 190, y, { align: 'right' });
-    
-    // Indicadores financeiros
-    y += 15;
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.text('4. INDICADORES FINANCEIROS', 15, y);
-    
-    y += 7;
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    
-    const margemLiquida = ((resultado.valorFinal - resultado.subtotalSemMargem) / resultado.valorFinal * 100).toFixed(2);
-    const custoHoraFinal = resultado.valorPorHora;
-    const markup = ((resultado.subtotalComMargem / resultado.subtotalSemMargem - 1) * 100).toFixed(2);
-    
-    doc.text(`• Valor por hora: R$ ${CoreUtils.formatarMoeda(custoHoraFinal)}`, 20, y);
-    y += 5;
-    doc.text(`• Margem líquida: ${margemLiquida}%`, 20, y);
-    y += 5;
-    doc.text(`• Markup aplicado: ${markup}%`, 20, y);
-    y += 5;
-    doc.text(`• Economia total para cliente: R$ ${CoreUtils.formatarMoeda(resultado.economia)}`, 20, y);
-    
-    // === 5. ANÁLISE DE VIABILIDADE ===
-    y += 12;
-    y = verificarEAdicionarPagina(doc, y, 50);
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(30, 71, 138);
-    doc.text('5. ANÁLISE DE VIABILIDADE', 15, y);
-    
-    y += 7;
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(0, 0, 0);
-    
-    // Calcular custos fixos e variáveis
-    const custoFixo = resultado.custoOperacionalBase;
-    const custoVariavel = resultado.custoMaoObraTotal + resultado.custoValeTransporte + 
-                          resultado.custoTransporteApp + resultado.custoRefeicao;
-    const custoTotal = custoFixo + custoVariavel + resultado.custoExtras;
-    const percentualFixo = (custoFixo / custoTotal * 100);
-    const percentualVariavel = (custoVariavel / custoTotal * 100);
-    
-    // Margem de contribuição
-    const margemContribuicao = resultado.valorFinal - custoVariavel;
-    const percentualMargemContrib = (margemContribuicao / resultado.valorFinal * 100);
-    
-    // Ponto de equilíbrio (evitar divisão por zero)
-    const pontoEquilibrio = percentualMargemContrib > 0 ? custoFixo / (percentualMargemContrib / 100) : 0;
-    
-    // Obter classificação de risco centralizada do DataManager
-    const riscoClassificacao = dataManager.calcularClassificacaoRisco(resultado);
-    const riscoMaoObra = riscoClassificacao.percentual;
-    const classificacaoRisco = riscoClassificacao.nivel;
-    
-    // Converter cores hex para RGB para jsPDF
-    let corRisco = [0, 0, 0];
-    if (classificacaoRisco === 'ALTO') {
-        corRisco = [220, 38, 38]; // Vermelho
-    } else if (classificacaoRisco === 'MÉDIO') {
-        corRisco = [234, 179, 8]; // Amarelo
-    } else {
-        corRisco = [34, 197, 94]; // Verde
-    }
-    
-    // Exibir análise
-    doc.setFont(undefined, 'bold');
-    doc.text('Estrutura de Custos:', 20, y);
-    y += 6;
-    
-    doc.setFont(undefined, 'normal');
-    doc.text(`• Custos Fixos (Operacional): R$ ${CoreUtils.formatarMoeda(custoFixo)} (${percentualFixo.toFixed(1)}%)`, 25, y);
-    y += 5;
-    doc.text(`• Custos Variáveis (Pessoal): R$ ${CoreUtils.formatarMoeda(custoVariavel)} (${percentualVariavel.toFixed(1)}%)`, 25, y);
-    y += 5;
-    doc.text(`• Custos Extras: R$ ${CoreUtils.formatarMoeda(resultado.custoExtras)} (${(resultado.custoExtras/custoTotal*100).toFixed(1)}%)`, 25, y);
-    
-    y += 8;
-    doc.setFont(undefined, 'bold');
-    doc.text('Indicadores de Viabilidade:', 20, y);
-    y += 6;
-    
-    doc.setFont(undefined, 'normal');
-    doc.text(`• Margem de Contribuição: R$ ${CoreUtils.formatarMoeda(margemContribuicao)} (${percentualMargemContrib.toFixed(1)}%)`, 25, y);
-    y += 5;
-    doc.text(`• Ponto de Equilíbrio: R$ ${CoreUtils.formatarMoeda(pontoEquilibrio)}`, 25, y);
-    
-    y += 8;
-    doc.setFont(undefined, 'bold');
-    doc.text('Análise de Risco Operacional:', 20, y);
-    y += 6;
-    
-    doc.setFont(undefined, 'normal');
-    doc.text(`• Percentual de Custos Variáveis sobre Receita: ${riscoMaoObra.toFixed(1)}%`, 25, y);
-    y += 5;
-    
-    // Classificação de risco com cor
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(corRisco[0], corRisco[1], corRisco[2]);
-    doc.text(`• Classificação de Risco: ${classificacaoRisco}`, 25, y);
-    
-    y += 5;
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text('(Alto: >60% | Médio: 40-60% | Baixo: <40%)', 27, y);
-    
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    
-    // Observações
-    y += 12;
-    y = verificarEAdicionarPagina(doc, y, 25);
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(30, 71, 138);
-    doc.text('6. OBSERVAÇÕES', 15, y);
-    
-    y += 7;
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    doc.text('• Valores calculados considerando multiplicadores de turno (manhã 1.0x, tarde 1.15x, noite 1.40x)', 20, y);
-    y += 4;
-    doc.text('• Custos de mão de obra incluem horas normais e extras conforme dias da semana', 20, y);
-    y += 4;
-    doc.text('• Vale transporte calculado por dia trabalhado', 20, y);
-    y += 4;
-    doc.text('• Esta análise é de uso interno e confidencial', 20, y);
-    
-    // === APROVAÇÃO GERENCIAL ===
-    y += 15;
-    y = verificarEAdicionarPagina(doc, y, 40);
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(30, 71, 138);
-    doc.text('APROVAÇÃO GERENCIAL', 15, y);
-    
-    y += 10;
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    
-    // Três caixas de assinatura lado a lado
-    const boxWidth = 55;
-    const boxHeight = 20;
-    const boxSpacing = 5;
-    const startX = 15;
-    
-    // Caixa 1: Analista Responsável
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(0.3);
-    doc.rect(startX, y, boxWidth, boxHeight);
-    
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(9);
-    doc.text('Analista Responsável', startX + 2, y + 5);
-    
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8);
-    doc.setDrawColor(150, 150, 150);
-    doc.line(startX + 2, y + 13, startX + boxWidth - 2, y + 13);
-    doc.text('Assinatura', startX + 2, y + 16);
-    doc.text('Data: ___/___/______', startX + 2, y + 19);
-    
-    // Caixa 2: Coordenação
-    const box2X = startX + boxWidth + boxSpacing;
-    doc.setDrawColor(100, 100, 100);
-    doc.rect(box2X, y, boxWidth, boxHeight);
-    
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(9);
-    doc.text('Coordenação', box2X + 2, y + 5);
-    
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8);
-    doc.setDrawColor(150, 150, 150);
-    doc.line(box2X + 2, y + 13, box2X + boxWidth - 2, y + 13);
-    doc.text('Assinatura', box2X + 2, y + 16);
-    doc.text('Data: ___/___/______', box2X + 2, y + 19);
-    
-    // Caixa 3: Superintendência
-    const box3X = box2X + boxWidth + boxSpacing;
-    doc.setDrawColor(100, 100, 100);
-    doc.rect(box3X, y, boxWidth, boxHeight);
-    
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(9);
-    doc.text('Superintendência', box3X + 2, y + 5);
-    
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8);
-    doc.setDrawColor(150, 150, 150);
-    doc.line(box3X + 2, y + 13, box3X + boxWidth - 2, y + 13);
-    doc.text('Assinatura', box3X + 2, y + 16);
-    doc.text('Data: ___/___/______', box3X + 2, y + 19);
-    
-    // Footer
-    y = 280;
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text('CDL Manaus - Superintendência', 105, y, { align: 'center' });
-    y += 3;
-    doc.text(`Relatório gerado em: ${calculo.data}`, 105, y, { align: 'center' });
-    y += 3;
-    doc.text('DOCUMENTO CONFIDENCIAL - USO INTERNO', 105, y, { align: 'center' });
-    
-    // Salvar PDF
-    doc.save(`analise-financeira-${sala.unidade}-${sala.nome}-${new Date().getTime()}.pdf`);
-    
-    mostrarNotificacao('PDF gerencial gerado com sucesso!');
-}
-
-/**
- * Imprime o orçamento (versão cliente)
- */
-function imprimirOrcamento() {
-    if (!ultimoCalculoRealizado) {
-        alert('Por favor, calcule um orçamento primeiro!');
-        return;
-    }
-    
-    // Preparar conteúdo para impressão
-    const printSection = document.getElementById('print-section');
-    const calculo = ultimoCalculoRealizado;
-    const sala = calculo.sala;
-    const resultado = calculo.resultado;
-    
-    const diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const diasSelecionadosTexto = calculo.diasSelecionados ? 
-        calculo.diasSelecionados.map(d => diasNomes[d]).join(', ') : 
-        `${calculo.diasSemana || 0} dias/semana`;
-    
-    let horarioTexto = '';
-    if (calculo.horarios && calculo.horarios.length > 0) {
-        if (calculo.horarios.length === 1) {
-            horarioTexto = `<tr><td>Horário:</td><td>${calculo.horarios[0].inicio} às ${calculo.horarios[0].fim} (${calculo.horasPorDia.toFixed(1)}h/dia)</td></tr>`;
-        } else {
-            horarioTexto = `<tr><td>Horários:</td><td>${calculo.horarios.map(h => `${h.inicio}-${h.fim}`).join(', ')} (${calculo.horasPorDia.toFixed(1)}h/dia)</td></tr>`;
-        }
-    } else if (calculo.horarioInicio && calculo.horarioFim) {
-        horarioTexto = `<tr><td>Horário:</td><td>${calculo.horarioInicio} às ${calculo.horarioFim} (${calculo.horasPorDia.toFixed(1)}h/dia)</td></tr>`;
-    } else if (calculo.turnos) {
-        const turnos = [];
-        if (calculo.turnos.manha) turnos.push('Manhã');
-        if (calculo.turnos.tarde) turnos.push('Tarde');
-        if (calculo.turnos.noite) turnos.push('Noite');
-        horarioTexto = `<tr><td>Turnos:</td><td>${turnos.join(', ')}</td></tr>`;
-    }
-    
-    printSection.innerHTML = `
-        <div class="pdf-content">
-            <div class="pdf-header">
-                <h1>🏢 PROPOSTA DE ORÇAMENTO</h1>
-                <p>CDL/UTV - Locação de Espaços para Eventos</p>
             </div>
             
             <div class="pdf-section">
