@@ -955,15 +955,6 @@ class DataManager {
     }
 
     /**
-     * Obtém o funcionário ativo (usado nos cálculos)
-     * @deprecated Desde v5.0 - Use obterFuncionariosAtivos() para suportar múltiplos funcionários ativos
-     */
-    obterFuncionarioAtivo() {
-        const ativo = this.dados.funcionarios.find(func => func.ativo === true);
-        return ativo || this.dados.funcionarios[0] || null;
-    }
-
-    /**
      * Obtém todos os funcionários ativos (usados nos cálculos)
      */
     obterFuncionariosAtivos() {
@@ -1065,7 +1056,7 @@ class DataManager {
 
     /**
      * Obtém custos agregados de todos os funcionários ativos
-     * @deprecated Desde v5.0 - Este método retorna custos agregados. Para dados individuais, use obterFuncionariosAtivos()
+     * Retorna a soma dos custos de todos os funcionários ativos
      */
     obterCustosFuncionario() {
         const funcionariosAtivos = this.obterFuncionariosAtivos();
@@ -1103,18 +1094,6 @@ class DataManager {
         custosAgregados.quantidadeFuncionarios = funcionariosAtivos.length;
         
         return custosAgregados;
-    }
-
-    /**
-     * Atualiza custos do funcionário (mantido para compatibilidade)
-     * @deprecated Use atualizarFuncionario() ao invés
-     */
-    atualizarCustosFuncionario(custos) {
-        const funcionarioAtivo = this.obterFuncionarioAtivo();
-        if (funcionarioAtivo) {
-            return this.atualizarFuncionario(funcionarioAtivo.id, custos);
-        }
-        return false;
     }
 
     /**

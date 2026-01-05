@@ -462,11 +462,12 @@ async function salvarLeadShadow(campo, valor) {
     leadTemp.dataUltimaAtualizacao = new Date().toISOString();
     leadTemp.ultimo_campo_focado = campo;
     
-    // Salvar no localStorage
+    // Salvar no localStorage (operação síncrona, não bloqueia UI)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(leadTemp));
     
     console.log('[SGQ-SECURITY] Shadow Capture: Campo salvo -', campo);
     
+    // Performance: Sincronização com Firebase é assíncrona e não bloqueia a UI
     // Se o email estiver presente ou já existir firebaseId, tentar sincronizar com Firebase
     // Isso garante visibilidade imediata para o comercial e mantém UPSERT funcionando
     if ((leadTemp.email && leadTemp.email.trim() !== '') || leadTemp.firebaseId) {
@@ -481,7 +482,7 @@ async function salvarLeadShadow(campo, valor) {
             }
         } catch (error) {
             console.warn('[SGQ-SECURITY] Erro ao sincronizar lead com Firebase:', error);
-            // Não bloqueia - lead já está salvo no localStorage
+            // Performance: Não bloqueia - lead já está salvo no localStorage
         }
     }
 }
@@ -718,10 +719,61 @@ function setupDiasSemanListener() {
 }
 
 /**
+ * Limpa dados órfãos do localStorage
+ * Remove leads temporários que já foram convertidos com sucesso ou são muito antigos
+ * Performance: Evita poluição do armazenamento do navegador do cliente
+ */
+function limparDadosOrfaos() {
+    try {
+        const leadTemp = obterLeadTemporario();
+        
+        if (!leadTemp) {
+            console.log('[SGQ-SECURITY] Nenhum lead temporário encontrado - storage limpo');
+            return;
+        }
+        
+        // Verificar se o lead foi convertido (tem firebaseId e status diferente de LEAD_INCOMPLETO/LEAD_EM_PREENCHIMENTO)
+        const statusConvertido = leadTemp.status && 
+                                 leadTemp.status !== 'LEAD_INCOMPLETO' && 
+                                 leadTemp.status !== 'LEAD_EM_PREENCHIMENTO' &&
+                                 leadTemp.status !== 'LEAD_ABANDONADO';
+        
+        if (leadTemp.firebaseId && statusConvertido) {
+            console.log('[SGQ-SECURITY] Lead órfão detectado (já convertido e sincronizado com Firebase) - removendo do localStorage');
+            console.log('[SGQ-SECURITY] Lead ID:', leadTemp.id, '| Firebase ID:', leadTemp.firebaseId, '| Status:', leadTemp.status);
+            localStorage.removeItem(STORAGE_KEY);
+            return;
+        }
+        
+        // Verificar se o lead é muito antigo (mais de 7 dias sem atualização)
+        if (leadTemp.dataUltimaAtualizacao) {
+            const dataAtualizacao = new Date(leadTemp.dataUltimaAtualizacao);
+            const hoje = new Date();
+            const diasDesdeAtualizacao = Math.floor((hoje - dataAtualizacao) / (1000 * 60 * 60 * 24));
+            
+            if (diasDesdeAtualizacao > 7) {
+                console.log('[SGQ-SECURITY] Lead órfão detectado (mais de 7 dias sem atualização) - removendo do localStorage');
+                console.log('[SGQ-SECURITY] Lead ID:', leadTemp.id, '| Dias desde última atualização:', diasDesdeAtualizacao);
+                localStorage.removeItem(STORAGE_KEY);
+                return;
+            }
+        }
+        
+        console.log('[SGQ-SECURITY] Lead temporário válido mantido no localStorage');
+        
+    } catch (error) {
+        console.error('[SGQ-SECURITY] Erro ao limpar dados órfãos:', error);
+    }
+}
+
+/**
  * Inicializar ao carregar a página
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[SGQ-SECURITY] Inicializando módulo de solicitação de orçamento');
+    
+    // Performance: Limpar dados órfãos do localStorage antes de carregar dados temporários
+    limparDadosOrfaos();
     
     // Inicializar gestão de horários múltiplos
     inicializarHorariosSolicitacao();
