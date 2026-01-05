@@ -44,6 +44,7 @@ Para configurar sua credencial de acesso, consulte:
 * **[RECOMENDACOES_ACIONAVEIS.md](./RECOMENDACOES_ACIONAVEIS.md)** - ⭐ **Guia completo passo-a-passo** (RECOMENDADO)
 * **[GUIA_RAPIDO_LOGIN.md](./GUIA_RAPIDO_LOGIN.md)** - Guia rápido de configuração (5 minutos)
 * **[RESOLUCAO_LOGIN.md](./RESOLUCAO_LOGIN.md)** - Documentação completa e troubleshooting
+* **[RESOLVING_AUTH_INVALID_CREDENTIAL.md](./RESOLVING_AUTH_INVALID_CREDENTIAL.md)** - 🔧 Resolvendo erro auth/invalid-credential
 * **[AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md)** - Guia técnico do sistema de autenticação
 * **[SETUP_USERS_CDL.md](./SETUP_USERS_CDL.md)** - 👥 Registo em massa de utilizadores da equipa CDL
 
