@@ -1,6 +1,7 @@
 /* =================================================================
-   BUDGET ENGINE - Motor de Cálculo de Orçamentos
+   BUDGET ENGINE - Motor de Cálculo de Orçamentos v5.2.0 - Refactored
    Inteligência financeira desacoplada da interface do usuário
+   Módulo ES6 puro - Padrão ES Modules
    ================================================================= */
 
 /**
@@ -254,7 +255,12 @@ class BudgetEngine {
     }
 }
 
-// Exportar para uso em módulos (se necessário)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = BudgetEngine;
+// ========== ES6 MODULE EXPORT ==========
+// Exportação ES Modules padrão v5.2.0
+export default BudgetEngine;
+
+// Para compatibilidade com scripts legados (não-módulos) - v5.2.0
+// Mantido para compatibilidade durante transição
+if (typeof window !== 'undefined') {
+    window.BudgetEngine = BudgetEngine;
 }

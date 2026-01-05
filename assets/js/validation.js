@@ -1,6 +1,7 @@
 /* =================================================================
-   VALIDATION.JS - Sistema de Validação de Dados
+   VALIDATION.JS - Sistema de Validação de Dados v5.2.0 - Refactored
    Funções para validar dados e prevenir problemas de precisão
+   Módulo ES6 puro - Padrão ES Modules
    ================================================================= */
 
 // Constantes de validação
@@ -448,64 +449,7 @@ class DataSanitizer {
         return { valido: true, tipo: 'texto', contatoNormalizado: contatoTrimmed, erro: null };
     }
 
-    /**
-     * Valida e normaliza email
-     * 
-     * @deprecated Este método não é mais usado por validarContato.
-     *             Mantido para compatibilidade com código legado.
-     * 
-     * @param {string} email - Email a ser validado
-     * @returns {Object} { valido: boolean, tipo: 'email', contatoNormalizado: string|null, erro: string|null }
-     */
-    static validarEmail(email) {
-        const emailLower = email.toLowerCase().trim();
 
-        // Validar com regex
-        if (!this.REGEX_EMAIL.test(emailLower)) {
-            return { valido: false, tipo: 'email', contatoNormalizado: null, erro: 'Formato de email inválido' };
-        }
-
-        // Validação adicional: verificar se domínio tem pelo menos um ponto
-        const dominio = emailLower.split('@')[1];
-        if (!dominio || !dominio.includes('.')) {
-            return { valido: false, tipo: 'email', contatoNormalizado: null, erro: 'Domínio de email inválido' };
-        }
-
-        return { valido: true, tipo: 'email', contatoNormalizado: emailLower, erro: null };
-    }
-
-    /**
-     * Valida e normaliza telefone
-     * 
-     * @deprecated Este método não é mais usado por validarContato.
-     *             Mantido para compatibilidade com código legado.
-     * 
-     * @param {string} telefone - Telefone a ser validado
-     * @returns {Object} { valido: boolean, tipo: 'telefone', contatoNormalizado: string|null, erro: string|null }
-     */
-    static validarTelefone(telefone) {
-        const telefoneTrimmed = telefone.trim();
-
-        // Validar formato antes de remover caracteres
-        if (!this.REGEX_TELEFONE.test(telefoneTrimmed)) {
-            return { valido: false, tipo: 'telefone', contatoNormalizado: null, erro: 'Formato de telefone inválido' };
-        }
-
-        // Remover toda formatação: parênteses, traços, espaços, pontos, sinal de +
-        const apenasDigitos = telefoneTrimmed.replace(/[\s\-\.\(\)\+]/g, '');
-
-        // Validar quantidade de dígitos (mínimo 10, máximo 13 para incluir código do país)
-        if (apenasDigitos.length < 10 || apenasDigitos.length > 13) {
-            return { valido: false, tipo: 'telefone', contatoNormalizado: null, erro: 'Telefone deve ter entre 10 e 13 dígitos' };
-        }
-
-        // Validar que só contém dígitos
-        if (!/^\d+$/.test(apenasDigitos)) {
-            return { valido: false, tipo: 'telefone', contatoNormalizado: null, erro: 'Telefone deve conter apenas números' };
-        }
-
-        return { valido: true, tipo: 'telefone', contatoNormalizado: apenasDigitos, erro: null };
-    }
 
     /**
      * Detecta viés emocional ou linguagem subjetiva no texto
@@ -624,18 +568,26 @@ class DataSanitizer {
     }
 }
 
-// Exportar funções (se estiver usando módulos)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        validarValorMonetario,
-        validarPercentual,
-        validarQuantidade,
-        validarDuracao,
-        validarHorario,
-        validarIntervaloHorario,
-        validarDiasSemana,
-        arredondarMoeda,
-        detectarPerdaPrecisao,
-        DataSanitizer
-    };
+// ========== ES6 MODULE EXPORTS ==========
+// Exportação ES Modules padrão v5.2.0
+
+export {
+    CoreUtils,
+    DataSanitizer,
+    validarValorMonetario,
+    validarPercentual,
+    validarQuantidade,
+    validarDuracao,
+    validarHorario,
+    validarIntervaloHorario,
+    validarDiasSemana,
+    arredondarMoeda,
+    detectarPerdaPrecisao
+};
+
+// Para compatibilidade com scripts legados (não-módulos) - v5.2.0
+// Mantido para compatibilidade durante transição
+if (typeof window !== 'undefined') {
+    window.CoreUtils = CoreUtils;
+    window.DataSanitizer = DataSanitizer;
 }
