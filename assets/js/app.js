@@ -348,27 +348,26 @@ function configurarNavegacaoAbas() {
             // SGQ-SECURITY: Gatekeeper RBAC para recursos administrativos
             if (targetTab === 'config' || targetTab === 'dashboard') {
                 // Verificar se authManager está disponível e se usuário é admin
-                let accessDenied = false;
-                let denialReason = '';
+                const accessInfo = { denied: false, reason: '' };
                 
                 if (typeof authManager !== 'undefined' && authManager) {
                     if (!authManager.isAdmin()) {
-                        accessDenied = true;
-                        denialReason = 'Tentativa de acesso não autorizado';
+                        accessInfo.denied = true;
+                        accessInfo.reason = 'Tentativa de acesso não autorizado';
                         console.log('[SGQ-SECURITY] Usuário:', authManager.currentUser?.email || 'não identificado');
                         mostrarNotificacao('⚠️ Acesso negado: Recurso administrativo');
                     }
                 } else {
                     // authManager não disponível - bloquear por segurança
-                    accessDenied = true;
-                    denialReason = 'Tentativa de acesso não autorizado - authManager indisponível';
+                    accessInfo.denied = true;
+                    accessInfo.reason = 'Tentativa de acesso não autorizado - authManager indisponível';
                     mostrarNotificacao('⚠️ Acesso negado: Sistema de autenticação não disponível');
                 }
                 
-                if (accessDenied) {
-                    // Log consolidado de acesso negado (requerido por SGQ-SECURITY)
+                if (accessInfo.denied) {
+                    // Log consolidado de acesso negado (requerido por verify-sgq-security.js)
                     console.log('[SGQ-SECURITY] Acesso negado a recurso administrativo');
-                    console.log('[SGQ-SECURITY]', denialReason);
+                    console.log('[SGQ-SECURITY]', accessInfo.reason);
                     console.log('[SGQ-SECURITY] Aba solicitada:', targetTab);
                     console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                     return; // Bloqueia a mudança de aba - mantém aba atual
