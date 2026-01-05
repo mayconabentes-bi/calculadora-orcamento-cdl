@@ -416,36 +416,52 @@ let dashboardController = null;
 // A senha atual é mantida no código para fins de demonstração conforme especificação.
 //
 // ** RECOMENDAÇÕES DE SEGURANÇA SGQ-SECURITY v5.1.0 **
-//
-// 1. MIGRAÇÃO PARA FIREBASE SECURITY RULES
-//    - Criar coleção protegida 'credenciais_executivas' no Firestore
-//    - Implementar validação via Firebase Security Rules:
-//      rules_version = '2';
-//      service cloud.firestore {
-//        match /databases/{database}/documents {
-//          match /credenciais_executivas/{document} {
-//            allow read, write: if request.auth != null && 
-//                                  request.auth.token.role == 'superintendente';
-//          }
-//        }
-//      }
-//
-// 2. HASH DE SENHA
-//    - Armazenar hash bcrypt ao invés de senha em texto plano
-//    - Utilizar Firebase Functions para validação server-side
-//
-// 3. ROTAÇÃO DE CREDENCIAIS
-//    - Implementar política de expiração de senhas (90 dias)
-//    - Adicionar histórico de senhas para evitar reutilização
-//
-// 4. AUDITORIA E MONITORAMENTO
-//    - Todos os acessos já são logados com [SGQ-SECURITY]
-//    - Implementar alertas para múltiplas tentativas falhas
-//
-// 5. MULTI-FACTOR AUTHENTICATION (MFA)
-//    - Adicionar segunda camada de autenticação via SMS ou Authenticator
-//
-const SENHA_SUPERINTENDENCIA = 'CDL2025';
+/* =================================================================
+   SECURITY REFACTORING - ZERO TRUST ARCHITECTURE
+   ================================================================= 
+   
+   CRITICAL SECURITY IMPROVEMENT:
+   Hardcoded passwords have been removed from client-side code.
+   
+   RECOMMENDED IMPLEMENTATION FOR SUPERINTENDENT ACCESS:
+   
+   1. FIREBASE AUTHENTICATION WITH CUSTOM CLAIMS
+      - Use Firebase Auth with custom claims to validate user roles
+      - Example: user.customClaims.role === 'superintendent'
+      - Server-side validation via Firebase Functions
+      
+      Firebase Security Rules example:
+      rules_version = '2';
+      service cloud.firestore {
+        match /databases/{database}/documents {
+          match /credenciais_executivas/{document} {
+            allow read, write: if request.auth != null && 
+                                  request.auth.token.role == 'superintendente';
+          }
+        }
+      }
+   
+   2. ROLE-BASED ACCESS CONTROL (RBAC)
+      - Create custom claims in Firebase Auth
+      - Validate permissions on both client and server side
+   
+   3. PASSWORD HASHING
+      - Store bcrypt hash instead of plaintext
+      - Use Firebase Functions for server-side validation
+   
+   4. CREDENTIAL ROTATION
+      - Implement password expiration policy (90 days)
+      - Maintain password history to prevent reuse
+   
+   5. AUDIT AND MONITORING
+      - All access attempts are logged with [SGQ-SECURITY]
+      - Implement alerts for multiple failed attempts
+   
+   6. MULTI-FACTOR AUTHENTICATION (MFA)
+      - Add second authentication layer via SMS or Authenticator
+      
+   For implementation guide, see: AUTHENTICATION_GUIDE.md
+   ================================================================= */
 
 /**
  * Bootstrap do Dashboard - ASYNC BOOTSTRAP v5.1.0
@@ -563,38 +579,34 @@ function configurarAreaRestrita() {
 }
 
 /**
- * Verifica a senha e autoriza acesso à área restrita (Assíncrono)
- * SGQ-SECURITY: Inclui logs de auditoria para tentativas de acesso
+ * Verifica acesso à área restrita da superintendência (Assíncrono)
+ * 
+ * SECURITY: Hardcoded password authentication has been REMOVED for security reasons.
+ * This function is currently DISABLED pending implementation of Firebase Auth with custom claims.
+ * 
+ * TODO: Implement Firebase Authentication with custom claims
+ * - Check if user has 'superintendent' role via custom claims
+ * - Validate permissions server-side via Firebase Functions
+ * - See AUTHENTICATION_GUIDE.md for implementation details
+ * 
+ * SGQ-SECURITY: Logs all access attempts for audit purposes
  */
 async function verificarAcessoSuperintendencia() {
     const senhaInput = document.getElementById('senha-superintendencia');
-    const senha = senhaInput.value;
-
-    if (senha === SENHA_SUPERINTENDENCIA) {
-        // Acesso autorizado
-        document.getElementById('superintendencia-login').style.display = 'none';
-        document.getElementById('superintendencia-aprovacoes').style.display = 'block';
-        
-        // Carregar tabela de aprovações pendentes (aguardar dados)
-        await carregarTabelaAprovacoes();
-        
-        // Limpar senha
+    
+    // SECURITY REFACTORING: Password authentication disabled
+    // Superintendent features are temporarily unavailable until proper Firebase Auth is implemented
+    
+    // SGQ-SECURITY: Log access attempt (even though feature is disabled)
+    console.log('[SGQ-SECURITY] Tentativa de acesso à Área Restrita detectada');
+    console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+    console.log('[SGQ-SECURITY] Status: Feature temporarily disabled - awaiting Firebase Auth implementation');
+    
+    mostrarNotificacao('Área Restrita temporariamente indisponível. Aguardando implementação de autenticação segura via Firebase.', 5000);
+    
+    // Limpar campo de senha
+    if (senhaInput) {
         senhaInput.value = '';
-        
-        // SGQ-SECURITY: Log de acesso autorizado
-        console.log('[SGQ-SECURITY] Acesso à Área Restrita autorizado');
-        console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
-        
-        mostrarNotificacao('Acesso autorizado à Área Restrita');
-    } else {
-        // Acesso negado
-        // SGQ-SECURITY: Log detalhado de tentativa de acesso negada
-        console.log('[SGQ-SECURITY] Tentativa de acesso à Área Restrita com senha executiva incorreta');
-        console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
-        
-        mostrarNotificacao('Senha incorreta! Acesso negado.', 3000);
-        senhaInput.value = '';
-        senhaInput.focus();
     }
 }
 
