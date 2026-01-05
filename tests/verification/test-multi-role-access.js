@@ -3,7 +3,7 @@
 /**
  * Test Script: Multi-Role Access Validation
  * SGQ-SECURITY: Teste de acesso para todas as roles do sistema
- * Versão: 5.1.0 - Axioma CDL/Manaus
+ * Versão: 5.1.1 - Axioma CDL/Manaus - Base64 Support
  * 
  * Este script testa o login e validação de acesso para:
  * - user: Usuário padrão
@@ -17,23 +17,35 @@
 require('dotenv').config();
 const admin = require('firebase-admin');
 const path = require('path');
+const { getFirebaseCredentials } = require('../../firebase-key-handler');
 
+const timestamp = new Date().toISOString();
 console.log('╔══════════════════════════════════════════════════════════════════╗');
 console.log('║  SGQ-SECURITY: Multi-Role Access Test                           ║');
-console.log('║  Axioma v5.1.0 - CDL/Manaus                                     ║');
+console.log('║  Axioma v5.1.1 - CDL/Manaus - Base64 Support                    ║');
 console.log('╚══════════════════════════════════════════════════════════════════╝');
+console.log(`[SGQ-SECURITY] ${timestamp}`);
 console.log('');
 
 // Validar variáveis de ambiente
 const requiredEnvVars = [
   'FIREBASE_PROJECT_ID',
-  'FIREBASE_PRIVATE_KEY',
   'FIREBASE_CLIENT_EMAIL'
 ];
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+// Check for private key (either format)
+const hasBase64Key = !!process.env.FIREBASE_PRIVATE_KEY_BASE64;
+const hasLegacyKey = !!process.env.FIREBASE_PRIVATE_KEY;
+
+if (!hasBase64Key && !hasLegacyKey) {
+  missingVars.push('FIREBASE_PRIVATE_KEY_BASE64 or FIREBASE_PRIVATE_KEY');
+}
+
 if (missingVars.length > 0) {
-  console.error('❌ ERRO: Variáveis de ambiente obrigatórias não configuradas');
+  const errorTimestamp = new Date().toISOString();
+  console.error(`[SGQ-SECURITY] ${errorTimestamp} - ❌ ERRO: Variáveis de ambiente obrigatórias não configuradas`);
   console.error('Variáveis ausentes:', missingVars.join(', '));
   console.error('Configure o arquivo .env e tente novamente.');
   process.exit(1);
@@ -41,21 +53,19 @@ if (missingVars.length > 0) {
 
 // Inicializar Firebase Admin
 try {
-  const credential = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-  };
+  const credential = getFirebaseCredentials();
 
   admin.initializeApp({
     credential: admin.credential.cert(credential)
   });
 
-  console.log('[SGQ-SECURITY] Firebase Admin inicializado');
-  console.log('[SGQ-SECURITY] Project:', process.env.FIREBASE_PROJECT_ID);
+  const initTimestamp = new Date().toISOString();
+  console.log(`[SGQ-SECURITY] ${initTimestamp} - Firebase Admin inicializado`);
+  console.log(`[SGQ-SECURITY] Project: ${credential.projectId}`);
   console.log('');
 } catch (error) {
-  console.error('❌ Erro ao inicializar Firebase Admin:', error.message);
+  const errorTimestamp = new Date().toISOString();
+  console.error(`[SGQ-SECURITY] ${errorTimestamp} - ❌ Erro ao inicializar Firebase Admin: ${error.message}`);
   process.exit(1);
 }
 

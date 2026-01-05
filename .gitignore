@@ -17,6 +17,7 @@ npm-debug.log*
 tmp/
 temp/
 *.tmp
+BASE64_SETUP_INSTRUCTIONS.txt
 
 # Backup files
 *.bak

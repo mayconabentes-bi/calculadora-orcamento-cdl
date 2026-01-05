@@ -1,8 +1,9 @@
 /**
  * Script para criar o usuário inicial do desenvolvedor
- * Versão 2.0 - Zero Trust com Variáveis de Ambiente
+ * Versão 2.1 - Zero Trust com Base64 Support
  * 
  * ✅ Arquitetura Gemini: Credenciais via environment variables
+ * ✅ Suporte a FIREBASE_PRIVATE_KEY_BASE64 (recomendado)
  * 
  * Uso:
  * 1. npm install firebase-admin dotenv
@@ -17,19 +18,33 @@
 
 require('dotenv').config();
 const admin = require('firebase-admin');
+const { getFirebaseCredentials, displayConfigurationInfo } = require('./firebase-key-handler');
+
+const timestamp = new Date().toISOString();
+console.log(`[SGQ-SECURITY] ${timestamp} - Script iniciado`);
 
 // Validação rigorosa de variáveis de ambiente obrigatórias
 const requiredEnvVars = [
   'FIREBASE_PROJECT_ID',
-  'FIREBASE_PRIVATE_KEY',
   'FIREBASE_CLIENT_EMAIL'
 ];
 
-console.log('🔐 Verificando configuração de segurança (Arquitetura Gemini)...\n');
+console.log(`[SGQ-SECURITY] ${timestamp} - 🔐 Verificando configuração de segurança (Arquitetura Gemini)...`);
+console.log('');
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+// Check for private key (either format)
+const hasBase64Key = !!process.env.FIREBASE_PRIVATE_KEY_BASE64;
+const hasLegacyKey = !!process.env.FIREBASE_PRIVATE_KEY;
+
+if (!hasBase64Key && !hasLegacyKey) {
+  missingVars.push('FIREBASE_PRIVATE_KEY_BASE64 or FIREBASE_PRIVATE_KEY');
+}
+
 if (missingVars.length > 0) {
-  console.error('❌ ERRO CRÍTICO: Variáveis de ambiente obrigatórias não configuradas');
+  const errorTimestamp = new Date().toISOString();
+  console.error(`[SGQ-SECURITY] ${errorTimestamp} - ❌ ERRO CRÍTICO: Variáveis de ambiente obrigatórias não configuradas`);
   console.error('');
   console.error('Variáveis ausentes:');
   missingVars.forEach(varName => {
@@ -39,7 +54,8 @@ if (missingVars.length > 0) {
   console.error('🔧 Para corrigir:');
   console.error('   1. Copie o template: cp .env.example .env');
   console.error('   2. Edite .env com suas credenciais do Firebase Console');
-  console.error('   3. Execute este script novamente');
+  console.error('   3. Para Base64 (recomendado): node convert-private-key-to-base64.js');
+  console.error('   4. Execute este script novamente');
   console.error('');
   console.error('📚 Documentação: ENVIRONMENT_VARIABLES_GUIDE.md');
   console.error('🔒 Segurança: SECURITY_REMEDIATION_GUIDE.md');
@@ -50,27 +66,27 @@ if (missingVars.length > 0) {
 
 // Inicializar Firebase Admin com credenciais de ambiente
 try {
-  const credential = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-  };
+  const credential = getFirebaseCredentials();
 
   admin.initializeApp({
     credential: admin.credential.cert(credential)
   });
 
-  console.log('✅ Firebase Admin inicializado via variáveis de ambiente');
-  console.log(`   Project: ${process.env.FIREBASE_PROJECT_ID}`);
-  console.log(`   Service Account: ${process.env.FIREBASE_CLIENT_EMAIL}`);
+  const initTimestamp = new Date().toISOString();
+  console.log(`[SGQ-SECURITY] ${initTimestamp} - ✅ Firebase Admin inicializado via variáveis de ambiente`);
+  console.log(`   Project: ${credential.projectId}`);
+  console.log(`   Service Account: ${credential.clientEmail}`);
   console.log('');
 } catch (error) {
-  console.error('❌ Erro ao inicializar Firebase Admin:', error.message);
+  const errorTimestamp = new Date().toISOString();
+  console.error(`[SGQ-SECURITY] ${errorTimestamp} - ❌ Erro ao inicializar Firebase Admin: ${error.message}`);
   console.error('');
   console.error('💡 Dicas de troubleshooting:');
-  console.error('   - Verifique o formato da FIREBASE_PRIVATE_KEY (deve incluir \\n)');
+  console.error('   - Verifique o formato da FIREBASE_PRIVATE_KEY_BASE64 (Base64 válido)');
+  console.error('   - Se usar FIREBASE_PRIVATE_KEY, deve incluir \\n para quebras de linha');
   console.error('   - Confirme que as credenciais no .env estão corretas');
   console.error('   - Valide se o service account tem permissões adequadas');
+  console.error('   - Execute: node convert-private-key-to-base64.js para gerar Base64');
   console.error('');
   process.exit(1);
 }
@@ -99,7 +115,8 @@ const developerData = {
  * 4. Auditoria completa de operações
  */
 async function createDeveloperUser() {
-  console.log('[SGQ-SECURITY] Iniciando criação de usuário desenvolvedor');
+  const startTimestamp = new Date().toISOString();
+  console.log(`[SGQ-SECURITY] ${startTimestamp} - Iniciando criação de usuário desenvolvedor`);
   console.log(`[SGQ-SECURITY] Email: ${developerData.email}`);
   console.log(`[SGQ-SECURITY] Role: ${developerData.role}\n`);
   
@@ -107,14 +124,16 @@ async function createDeveloperUser() {
     // Verificar se o usuário já existe
     try {
       const existingUser = await auth.getUserByEmail(developerData.email);
-      console.log('[SGQ-SECURITY] ⚠️  Usuário já existe no Firebase Authentication');
+      const existTimestamp = new Date().toISOString();
+      console.log(`[SGQ-SECURITY] ${existTimestamp} - ⚠️  Usuário já existe no Firebase Authentication`);
       console.log(`[SGQ-SECURITY] UID: ${existingUser.uid}`);
       
       // Verificar se existe no Firestore
       const userDoc = await db.collection('usuarios').doc(existingUser.uid).get();
       
       if (userDoc.exists) {
-        console.log('[SGQ-SECURITY] ⚠️  Registro encontrado no Firestore');
+        const updateTimestamp = new Date().toISOString();
+        console.log(`[SGQ-SECURITY] ${updateTimestamp} - ⚠️  Registro encontrado no Firestore`);
         console.log('[SGQ-SECURITY] Operação: Atualização de dados existentes');
         
         await db.collection('usuarios').doc(existingUser.uid).set({
@@ -125,9 +144,10 @@ async function createDeveloperUser() {
           updatedAt: new Date().toISOString()
         }, { merge: true });
         
-        console.log('[SGQ-SECURITY] ✅ Dados atualizados no Firestore');
+        const completeTimestamp = new Date().toISOString();
+        console.log(`[SGQ-SECURITY] ${completeTimestamp} - ✅ Dados atualizados no Firestore`);
         console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('[SGQ-SECURITY] Status: OPERAÇÃO CONCLUÍDA');
+        console.log(`[SGQ-SECURITY] ${completeTimestamp} - Status: OPERAÇÃO CONCLUÍDA`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
         console.log('Credenciais de acesso:');
         console.log(`  E-mail: ${developerData.email}`);
@@ -137,7 +157,8 @@ async function createDeveloperUser() {
         console.log('\n[SGQ-SECURITY] ATENÇÃO: Altere a senha após o primeiro login\n');
         return;
       } else {
-        console.log('[SGQ-SECURITY] ⚠️  Inconsistência detectada: Auth OK, Firestore ausente');
+        const syncTimestamp = new Date().toISOString();
+        console.log(`[SGQ-SECURITY] ${syncTimestamp} - ⚠️  Inconsistência detectada: Auth OK, Firestore ausente`);
         console.log('[SGQ-SECURITY] Operação: Sincronização de dados');
         
         // Usar timestamp de criação do Auth para manter consistência de auditoria
@@ -153,9 +174,10 @@ async function createDeveloperUser() {
           updatedAt: new Date().toISOString()
         }, { merge: true });
         
-        console.log('[SGQ-SECURITY] ✅ Documento criado no Firestore');
+        const syncCompleteTimestamp = new Date().toISOString();
+        console.log(`[SGQ-SECURITY] ${syncCompleteTimestamp} - ✅ Documento criado no Firestore`);
         console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('[SGQ-SECURITY] Status: SINCRONIZAÇÃO CONCLUÍDA');
+        console.log(`[SGQ-SECURITY] ${syncCompleteTimestamp} - Status: SINCRONIZAÇÃO CONCLUÍDA`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
         console.log('Credenciais de acesso:');
         console.log(`  E-mail: ${developerData.email}`);
@@ -168,11 +190,13 @@ async function createDeveloperUser() {
       if (error.code !== 'auth/user-not-found') {
         throw error;
       }
-      console.log('[SGQ-SECURITY] Usuário não encontrado. Iniciando criação...');
+      const notFoundTimestamp = new Date().toISOString();
+      console.log(`[SGQ-SECURITY] ${notFoundTimestamp} - Usuário não encontrado. Iniciando criação...`);
     }
     
     // Criar usuário no Firebase Authentication
-    console.log('[SGQ-SECURITY] Operação: Criação de novo usuário');
+    const createTimestamp = new Date().toISOString();
+    console.log(`[SGQ-SECURITY] ${createTimestamp} - Operação: Criação de novo usuário`);
     console.log('[SGQ-SECURITY] Criando registro no Firebase Authentication...');
     const userRecord = await auth.createUser({
       email: developerData.email,
@@ -182,11 +206,13 @@ async function createDeveloperUser() {
       disabled: false
     });
     
-    console.log('[SGQ-SECURITY] ✅ Usuário criado no Authentication');
+    const authCreatedTimestamp = new Date().toISOString();
+    console.log(`[SGQ-SECURITY] ${authCreatedTimestamp} - ✅ Usuário criado no Authentication`);
     console.log(`[SGQ-SECURITY] UID gerado: ${userRecord.uid}`);
     
     // Criar documento no Firestore
-    console.log('[SGQ-SECURITY] Criando documento no Firestore...');
+    const firestoreTimestamp = new Date().toISOString();
+    console.log(`[SGQ-SECURITY] ${firestoreTimestamp} - Criando documento no Firestore...`);
     
     // Usar timestamp único para createdAt e updatedAt para manter consistência
     const timestamp = new Date().toISOString();
@@ -200,9 +226,10 @@ async function createDeveloperUser() {
       updatedAt: timestamp
     }, { merge: true });
     
-    console.log('[SGQ-SECURITY] ✅ Documento criado no Firestore');
+    const firestoreCompleteTimestamp = new Date().toISOString();
+    console.log(`[SGQ-SECURITY] ${firestoreCompleteTimestamp} - ✅ Documento criado no Firestore`);
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('[SGQ-SECURITY] Status: USUÁRIO CRIADO COM SUCESSO');
+    console.log(`[SGQ-SECURITY] ${firestoreCompleteTimestamp} - Status: USUÁRIO CRIADO COM SUCESSO`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     console.log('Credenciais de acesso:');
     console.log(`  E-mail: ${developerData.email}`);
@@ -217,7 +244,8 @@ async function createDeveloperUser() {
     console.log('3. Você será redirecionado para o dashboard-admin.html\n');
     
   } catch (error) {
-    console.error('[SGQ-SECURITY] ❌ FALHA NA OPERAÇÃO');
+    const errorTimestamp = new Date().toISOString();
+    console.error(`[SGQ-SECURITY] ${errorTimestamp} - ❌ FALHA NA OPERAÇÃO`);
     console.error(`[SGQ-SECURITY] Erro: ${error.message}`);
     
     if (error.code === 'auth/email-already-exists') {
@@ -232,7 +260,7 @@ async function createDeveloperUser() {
       console.error('\n[SGQ-SECURITY] Diagnóstico: Formato de e-mail inválido');
     }
     
-    console.error('[SGQ-SECURITY] Status: ABORTADO\n');
+    console.error(`[SGQ-SECURITY] ${errorTimestamp} - Status: ABORTADO\n`);
     process.exit(1);
   }
 }
@@ -240,12 +268,14 @@ async function createDeveloperUser() {
 // Executar a função
 createDeveloperUser()
   .then(() => {
-    console.log('[SGQ-SECURITY] Operação concluída com sucesso');
-    console.log('[SGQ-SECURITY] Todas as operações executadas corretamente\n');
+    const successTimestamp = new Date().toISOString();
+    console.log(`[SGQ-SECURITY] ${successTimestamp} - Operação concluída com sucesso`);
+    console.log(`[SGQ-SECURITY] ${successTimestamp} - Todas as operações executadas corretamente\n`);
     process.exit(0);
   })
   .catch((error) => {
-    console.error('[SGQ-SECURITY] ❌ Erro fatal no processo:', error.message);
-    console.error('[SGQ-SECURITY] Status: FALHA CRÍTICA\n');
+    const fatalTimestamp = new Date().toISOString();
+    console.error(`[SGQ-SECURITY] ${fatalTimestamp} - ❌ Erro fatal no processo: ${error.message}`);
+    console.error(`[SGQ-SECURITY] ${fatalTimestamp} - Status: FALHA CRÍTICA\n`);
     process.exit(1);
   });

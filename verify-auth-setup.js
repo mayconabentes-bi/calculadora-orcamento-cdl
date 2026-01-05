@@ -15,11 +15,14 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const { getFirebaseCredentials, displayConfigurationInfo } = require('./firebase-key-handler');
 
+const timestamp = new Date().toISOString();
 console.log('╔════════════════════════════════════════════════════════════════╗');
-console.log('║  Authentication Setup Verification Tool v2.0                  ║');
-console.log('║  Arquitetura Gemini (Zero Trust)                              ║');
+console.log('║  Authentication Setup Verification Tool v2.1                  ║');
+console.log('║  Arquitetura Gemini (Zero Trust) - Base64 Support             ║');
 console.log('╚════════════════════════════════════════════════════════════════╝');
+console.log(`[SGQ-SECURITY] ${timestamp}`);
 console.log('');
 
 // Check if firebase-admin is installed
@@ -69,7 +72,6 @@ console.log('');
 console.log('4️⃣  Checking environment variables...');
 const requiredVars = [
   'FIREBASE_PROJECT_ID',
-  'FIREBASE_PRIVATE_KEY',
   'FIREBASE_CLIENT_EMAIL'
 ];
 
@@ -82,6 +84,20 @@ requiredVars.forEach(varName => {
     allVarsPresent = false;
   }
 });
+
+// Check for private key (either format)
+const hasBase64Key = process.env.FIREBASE_PRIVATE_KEY_BASE64 && process.env.FIREBASE_PRIVATE_KEY_BASE64.trim() !== '';
+const hasLegacyKey = process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_PRIVATE_KEY.trim() !== '';
+
+if (hasBase64Key) {
+  console.log('   ✅ FIREBASE_PRIVATE_KEY_BASE64 is set (recommended)');
+} else if (hasLegacyKey) {
+  console.log('   ⚠️  FIREBASE_PRIVATE_KEY is set (legacy format)');
+  console.log('      Consider migrating to FIREBASE_PRIVATE_KEY_BASE64');
+} else {
+  console.log('   ❌ FIREBASE_PRIVATE_KEY_BASE64 or FIREBASE_PRIVATE_KEY is NOT set');
+  allVarsPresent = false;
+}
 
 // Check for legacy serviceAccountKey.json (should NOT exist)
 console.log('');
@@ -113,18 +129,18 @@ if (allVarsPresent && hasEnvFile) {
   (async () => {
     try {
       const admin = require('firebase-admin');
+      const firebaseTimestamp = new Date().toISOString();
+      
+      // Use key handler to get credentials with automatic fallback
+      const credentials = getFirebaseCredentials();
       
       admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-        })
+        credential: admin.credential.cert(credentials)
       });
       
-      console.log('   ✅ Successfully connected to Firebase!');
-      console.log(`      Project: ${process.env.FIREBASE_PROJECT_ID}`);
-      console.log(`      Service Account: ${process.env.FIREBASE_CLIENT_EMAIL}`);
+      console.log(`[SGQ-SECURITY] ${firebaseTimestamp} - ✅ Successfully connected to Firebase!`);
+      console.log(`[SGQ-SECURITY] ${firebaseTimestamp} - Project: ${credentials.projectId}`);
+      console.log(`[SGQ-SECURITY] ${firebaseTimestamp} - Service Account: ${credentials.clientEmail}`);
       
       // Try to verify the developer user
       const auth = admin.auth();
@@ -133,11 +149,13 @@ if (allVarsPresent && hasEnvFile) {
       
       console.log('');
       console.log('7️⃣  Verifying developer user...');
-      console.log('   📧 Checking for user:', developerEmail);
+      const verifyTimestamp = new Date().toISOString();
+      console.log(`[SGQ-SECURITY] ${verifyTimestamp} - 📧 Checking for user: ${developerEmail}`);
       
       try {
         const userRecord = await auth.getUserByEmail(developerEmail);
-        console.log('   ✅ User exists in Firebase Authentication');
+        const userTimestamp = new Date().toISOString();
+        console.log(`[SGQ-SECURITY] ${userTimestamp} - ✅ User exists in Firebase Authentication`);
         console.log('      UID:', userRecord.uid);
         console.log('      Email:', userRecord.email);
         console.log('      Disabled:', userRecord.disabled);
@@ -147,14 +165,16 @@ if (allVarsPresent && hasEnvFile) {
         
         if (userDoc.exists) {
           const userData = userDoc.data();
-          console.log('   ✅ User document exists in Firestore');
+          const docTimestamp = new Date().toISOString();
+          console.log(`[SGQ-SECURITY] ${docTimestamp} - ✅ User document exists in Firestore`);
           console.log('      Nome:', userData.nome);
           console.log('      Role:', userData.role);
           console.log('      Status:', userData.status);
           
           if (userData.status === 'ativo') {
+            const successTimestamp = new Date().toISOString();
             console.log('');
-            console.log('   ✅ ALL CHECKS PASSED!');
+            console.log(`[SGQ-SECURITY] ${successTimestamp} - ✅ ALL CHECKS PASSED!`);
             console.log('');
             console.log('   User should be able to login with:');
             console.log('   Email: mayconabentes@gmail.com');
@@ -206,19 +226,23 @@ if (allVarsPresent && hasEnvFile) {
       process.exit(0);
       
     } catch (error) {
-      console.log('   ❌ Failed to connect to Firebase');
+      const errorTimestamp = new Date().toISOString();
+      console.log(`[SGQ-SECURITY] ${errorTimestamp} - ❌ Failed to connect to Firebase`);
       console.log(`      Error: ${error.message}`);
       console.log('');
       console.log('═══════════════════════════════════════════════════════════════');
       console.log('SUMMARY');
       console.log('═══════════════════════════════════════════════════════════════');
       console.log('⚠️  Could not connect to Firebase. Please check:');
-      console.log('   1. FIREBASE_PRIVATE_KEY format (must include \\n for line breaks)');
+      console.log('   1. FIREBASE_PRIVATE_KEY_BASE64 is properly encoded');
+      console.log('      OR FIREBASE_PRIVATE_KEY has correct format with \\n');
       console.log('   2. All credentials are correct in .env file');
       console.log('   3. Service account has proper permissions');
+      console.log('   4. Run: node convert-private-key-to-base64.js to generate Base64 key');
       console.log('');
       console.log('📚 For detailed instructions, see: ENVIRONMENT_VARIABLES_GUIDE.md');
       console.log('');
+      console.log(`[SGQ-SECURITY] ${errorTimestamp} - Authentication check failed`);
       process.exit(1);
     }
   })();
