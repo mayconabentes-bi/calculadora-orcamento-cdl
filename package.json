@@ -10,6 +10,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:all": "npm run test && npm run test:e2e",
+    "test:multi-role": "node tests/verification/test-multi-role-access.js",
     "playwright:install": "playwright install",
     "setup:user": "node setup-developer-user.js",
     "verify:auth": "node verify-auth-setup.js",
