@@ -119,6 +119,7 @@ check(
 );
 
 // 4. Verificar Funcionalidade de Troca de Senha
+// Nova seção adicionada após implementação do password change gatekeeper
 section('4. Funcionalidade de Troca de Senha');
 
 check(

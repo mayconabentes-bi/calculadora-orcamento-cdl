@@ -548,6 +548,7 @@
             const hasUpperCase = /[A-Z]/.test(password);
             const hasLowerCase = /[a-z]/.test(password);
             const hasNumber = /\d/.test(password);
+            // Caracteres especiais: @ # $ % ^ & * ( ) _ + - = [ ] { } ; ' : " \ | , . < > / ?
             const hasSpecialChar = /[@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
 
             if (password.length < minLength) {
