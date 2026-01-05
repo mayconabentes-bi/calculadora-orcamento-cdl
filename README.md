@@ -45,10 +45,16 @@ Para configurar sua credencial de acesso, consulte:
 * **[RESOLUCAO_LOGIN.md](./RESOLUCAO_LOGIN.md)** - Documentação completa e troubleshooting
 * **[AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md)** - Guia técnico do sistema de autenticação
 
+### ✅ Finalização do Ambiente (Protocolo Zero Trust)
+Para concluir a fase de desenvolvimento e garantir conformidade com SGQ-SECURITY v5.1.0:
+* **[FINAL_SECURITY_SETUP.md](./FINAL_SECURITY_SETUP.md)** - 📋 Guia completo de sincronização final do ambiente
+* **[CHECKLIST_FINALIZACAO.md](./CHECKLIST_FINALIZACAO.md)** - ✅ Checklist executivo de finalização
+
 **Ferramentas disponíveis:**
 ```bash
-npm run setup:user      # Criar usuário desenvolvedor
-npm run verify:auth     # Verificar configuração de autenticação
+npm run setup:user         # Criar usuário desenvolvedor
+npm run verify:auth        # Verificar configuração de autenticação
+npm run verify:security    # Validar conformidade SGQ-SECURITY (OBRIGATÓRIO: 100%)
 ```
 
 ## Qualidade e Validação (QA)

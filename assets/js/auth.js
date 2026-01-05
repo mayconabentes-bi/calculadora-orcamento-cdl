@@ -110,7 +110,7 @@ class AuthManager {
                 errorType = 'Status inativo (Firestore)';
             }
             
-            console.error('[SGQ-SECURITY] ❌ FALHA NO LOGIN');
+            console.error('[SGQ-SECURITY] Falha no login'); // Required: verify-sgq-security.js checks for this exact string
             console.error('[SGQ-SECURITY] Tipo de erro:', errorType);
             console.error('[SGQ-SECURITY] Email tentado:', email);
             console.error('[SGQ-SECURITY] Código do erro:', error.code || 'N/A');

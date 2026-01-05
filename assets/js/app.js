@@ -348,23 +348,29 @@ function configurarNavegacaoAbas() {
             // SGQ-SECURITY: Gatekeeper RBAC para recursos administrativos
             if (targetTab === 'config' || targetTab === 'dashboard') {
                 // Verificar se authManager está disponível e se usuário é admin
+                const accessInfo = { denied: false, reason: '' };
+                
                 if (typeof authManager !== 'undefined' && authManager) {
                     if (!authManager.isAdmin()) {
-                        // Acesso negado - bloquear e logar tentativa
-                        console.log('[SGQ-SECURITY] Tentativa de acesso não autorizado');
-                        console.log('[SGQ-SECURITY] Aba solicitada:', targetTab);
+                        accessInfo.denied = true;
+                        accessInfo.reason = 'Tentativa de acesso não autorizado';
                         console.log('[SGQ-SECURITY] Usuário:', authManager.currentUser?.email || 'não identificado');
-                        console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                         mostrarNotificacao('⚠️ Acesso negado: Recurso administrativo');
-                        return; // Bloqueia a mudança de aba - mantém aba atual
                     }
                 } else {
                     // authManager não disponível - bloquear por segurança
-                    console.log('[SGQ-SECURITY] Tentativa de acesso não autorizado - authManager indisponível');
+                    accessInfo.denied = true;
+                    accessInfo.reason = 'Tentativa de acesso não autorizado - authManager indisponível';
+                    mostrarNotificacao('⚠️ Acesso negado: Sistema de autenticação não disponível');
+                }
+                
+                if (accessInfo.denied) {
+                    // Log consolidado de acesso negado (requerido por verify-sgq-security.js)
+                    console.log('[SGQ-SECURITY] Acesso negado a recurso administrativo');
+                    console.log('[SGQ-SECURITY]', accessInfo.reason);
                     console.log('[SGQ-SECURITY] Aba solicitada:', targetTab);
                     console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
-                    mostrarNotificacao('⚠️ Acesso negado: Sistema de autenticação não disponível');
-                    return;
+                    return; // Bloqueia a mudança de aba - mantém aba atual
                 }
             }
             
