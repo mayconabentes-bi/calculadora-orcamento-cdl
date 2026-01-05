@@ -31,7 +31,13 @@ O script cria os seguintes utilizadores:
 
 **Senha padrão para todos os utilizadores:** `Cdl@Manaus2026`
 
-⚠️ **ATENÇÃO:** Esta é uma senha temporária. Todos os utilizadores **DEVEM** alterá-la no primeiro acesso ao sistema.
+⚠️ **ATENÇÃO DE SEGURANÇA:**
+- Esta é uma **senha temporária** definida no código do script
+- Todos os utilizadores **DEVEM** alterá-la no primeiro acesso ao sistema
+- Execute o script apenas em ambiente seguro/controlado
+- Os logs do script contêm a senha temporária - proteja a saída do console
+- Não partilhe logs do script através de canais não seguros
+- Considere alterar a senha no código se executar em ambiente de produção
 
 ## 🔒 Requisitos de Segurança
 

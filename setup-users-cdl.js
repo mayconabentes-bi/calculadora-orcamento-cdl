@@ -6,6 +6,12 @@
  * Este script permite o registo em massa de utilizadores seguindo
  * rigorosamente a Arquitetura Zero Trust e os padrões de auditoria SGQ-SECURITY.
  * 
+ * ⚠️ ATENÇÃO DE SEGURANÇA:
+ * - Senha temporária definida no código (senhaTemporaria)
+ * - Utilizadores DEVEM alterar no primeiro acesso
+ * - Execute apenas em ambiente seguro/controlado
+ * - Logs contêm senha temporária - proteja saída do console
+ * 
  * Uso:
  * 1. Certifique-se que o .env está configurado corretamente
  * 2. Execute: node setup-users-cdl.js
@@ -17,7 +23,7 @@
  * - lidiane.cabral@cdlmanaus.org.br (user)
  * 
  * Senha temporária padrão: Cdl@Manaus2026
- * ATENÇÃO: Os utilizadores devem alterar a senha no primeiro acesso
+ * CRÍTICO: Informe aos utilizadores para alterarem a senha no primeiro acesso
  */
 
 require('dotenv').config();
@@ -174,7 +180,7 @@ async function cadastrarUsuarios() {
       if (userCreated) {
         console.log(`[SGQ-SECURITY] ${syncTimestamp} - 📧 Credenciais criadas:`);
         console.log(`    Email: ${u.email}`);
-        console.log(`    Senha: ${senhaTemporaria}`);
+        console.log(`    Senha: ******** (ver resumo final)`);
         console.log(`    Role: ${u.role}`);
         console.log(`    Status: ativo`);
       }
