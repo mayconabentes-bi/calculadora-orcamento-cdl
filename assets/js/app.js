@@ -351,6 +351,7 @@ function configurarNavegacaoAbas() {
                 if (typeof authManager !== 'undefined' && authManager) {
                     if (!authManager.isAdmin()) {
                         // Acesso negado - bloquear e logar tentativa
+                        console.log('[SGQ-SECURITY] Acesso negado a recurso administrativo');
                         console.log('[SGQ-SECURITY] Tentativa de acesso não autorizado');
                         console.log('[SGQ-SECURITY] Aba solicitada:', targetTab);
                         console.log('[SGQ-SECURITY] Usuário:', authManager.currentUser?.email || 'não identificado');
@@ -360,6 +361,7 @@ function configurarNavegacaoAbas() {
                     }
                 } else {
                     // authManager não disponível - bloquear por segurança
+                    console.log('[SGQ-SECURITY] Acesso negado a recurso administrativo');
                     console.log('[SGQ-SECURITY] Tentativa de acesso não autorizado - authManager indisponível');
                     console.log('[SGQ-SECURITY] Aba solicitada:', targetTab);
                     console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
