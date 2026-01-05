@@ -41,6 +41,7 @@ Para informações completas sobre segurança e gerenciamento de credenciais:
 
 ### 🚀 Setup Inicial de Credenciais
 Para configurar sua credencial de acesso, consulte:
+* **[RECOMENDACOES_ACIONAVEIS.md](./RECOMENDACOES_ACIONAVEIS.md)** - ⭐ **Guia completo passo-a-passo** (RECOMENDADO)
 * **[GUIA_RAPIDO_LOGIN.md](./GUIA_RAPIDO_LOGIN.md)** - Guia rápido de configuração (5 minutos)
 * **[RESOLUCAO_LOGIN.md](./RESOLUCAO_LOGIN.md)** - Documentação completa e troubleshooting
 * **[AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md)** - Guia técnico do sistema de autenticação
