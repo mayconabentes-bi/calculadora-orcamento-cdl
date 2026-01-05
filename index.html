@@ -202,6 +202,140 @@
             color: rgba(255, 255, 255, 0.8);
             font-size: 0.9rem;
         }
+
+        /* Password Change Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10001;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #1e3c72;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-header p {
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-body .form-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-body .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .modal-body .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .modal-body .form-group input:focus {
+            outline: none;
+            border-color: #1e3c72;
+        }
+
+        .password-requirements {
+            background: #f3f4f6;
+            border-left: 4px solid #1e3c72;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #374151;
+        }
+
+        .password-requirements ul {
+            margin: 8px 0 0 20px;
+            padding: 0;
+        }
+
+        .password-requirements li {
+            margin: 4px 0;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary {
+            padding: 12px 24px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            color: #374151;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -311,6 +445,55 @@
         </div>
     </div>
 
+    <!-- Password Change Modal -->
+    <div id="password-change-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Troca de Senha Obrigatória
+                </h2>
+                <p>Por segurança, você deve alterar sua senha temporária antes de continuar.</p>
+            </div>
+            
+            <div id="password-error-message" class="error-message">
+                <strong>Erro:</strong> <span id="password-error-text"></span>
+            </div>
+
+            <form id="password-change-form">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="new-password">Nova Senha:</label>
+                        <input type="password" id="new-password" name="new-password" required placeholder="Digite sua nova senha">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm-password">Confirmar Senha:</label>
+                        <input type="password" id="confirm-password" name="confirm-password" required placeholder="Digite novamente sua nova senha">
+                    </div>
+
+                    <div class="password-requirements">
+                        <strong>Requisitos da senha:</strong>
+                        <ul>
+                            <li>Mínimo de 8 caracteres</li>
+                            <li>Pelo menos uma letra maiúscula</li>
+                            <li>Pelo menos uma letra minúscula</li>
+                            <li>Pelo menos um número</li>
+                            <li>Pelo menos um caractere especial (@, #, $, etc.)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn-primary">Alterar Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script type="module">
         import authManager from './assets/js/auth.js';
@@ -335,6 +518,55 @@
             setTimeout(() => {
                 errorDiv.classList.remove('show');
             }, 5000);
+        }
+
+        // Mostrar mensagem de erro no modal de senha
+        function showPasswordError(message) {
+            const errorDiv = document.getElementById('password-error-message');
+            const errorText = document.getElementById('password-error-text');
+            errorText.textContent = message;
+            errorDiv.classList.add('show');
+
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Mostrar modal de troca de senha
+        function showPasswordChangeModal() {
+            document.getElementById('password-change-modal').classList.add('show');
+        }
+
+        // Ocultar modal de troca de senha
+        function hidePasswordChangeModal() {
+            document.getElementById('password-change-modal').classList.remove('show');
+        }
+
+        // Validar requisitos de senha
+        function validatePassword(password) {
+            const minLength = 8;
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            const hasSpecialChar = /[@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+            if (password.length < minLength) {
+                return { valid: false, message: 'A senha deve ter no mínimo 8 caracteres.' };
+            }
+            if (!hasUpperCase) {
+                return { valid: false, message: 'A senha deve conter pelo menos uma letra maiúscula.' };
+            }
+            if (!hasLowerCase) {
+                return { valid: false, message: 'A senha deve conter pelo menos uma letra minúscula.' };
+            }
+            if (!hasNumber) {
+                return { valid: false, message: 'A senha deve conter pelo menos um número.' };
+            }
+            if (!hasSpecialChar) {
+                return { valid: false, message: 'A senha deve conter pelo menos um caractere especial.' };
+            }
+
+            return { valid: true };
         }
 
         // Verificar se usuário já está autenticado ao carregar a página
@@ -374,6 +606,13 @@
                 const result = await authManager.login(email, password);
                 
                 if (result.success) {
+                    // Verificar se requer troca de senha
+                    if (result.forcePasswordChange) {
+                        hideLoading();
+                        showPasswordChangeModal();
+                        return;
+                    }
+                    
                     // Login bem-sucedido, redirecionar para dashboard
                     window.location.href = 'dashboard-admin.html';
                 }
@@ -398,6 +637,58 @@
                 
                 showError(errorMessage);
                 console.error('Erro no login:', error);
+            }
+        });
+
+        // Handle password change form submission
+        document.getElementById('password-change-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Validar se as senhas coincidem
+            if (newPassword !== confirmPassword) {
+                showPasswordError('As senhas não coincidem.');
+                return;
+            }
+
+            // Validar requisitos da senha
+            const validation = validatePassword(newPassword);
+            if (!validation.valid) {
+                showPasswordError(validation.message);
+                return;
+            }
+
+            showLoading();
+
+            try {
+                await authManager.alterarSenha(newPassword);
+                
+                hideLoading();
+                hidePasswordChangeModal();
+                
+                // Redirecionar para dashboard após sucesso
+                window.location.href = 'dashboard-admin.html';
+            } catch (error) {
+                hideLoading();
+                
+                let errorMessage = 'Erro ao alterar senha. Tente novamente.';
+                
+                if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Senha muito fraca. Use uma senha mais forte.';
+                } else if (error.code === 'auth/requires-recent-login') {
+                    errorMessage = 'Por segurança, faça login novamente antes de alterar a senha.';
+                    // Fazer logout e recarregar a página
+                    await authManager.logout();
+                    window.location.reload();
+                    return;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                showPasswordError(errorMessage);
+                console.error('Erro ao alterar senha:', error);
             }
         });
     </script>
