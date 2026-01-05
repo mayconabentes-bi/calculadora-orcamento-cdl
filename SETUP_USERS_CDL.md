@@ -23,6 +23,7 @@ O script cria os seguintes utilizadores:
 
 | Nome | Email | Role | Status |
 |------|-------|------|--------|
+| Maycon Bentes | maycon.bentes@cdlmanaus.org.br | admin | ativo |
 | Manuel Joaquim | manuel.joaquim@cdlmanaus.org.br | admin | ativo |
 | Josiane Oliveira | josiane.oliveira@cdlmanaus.org.br | user | ativo |
 | Lidiane Cabral | lidiane.cabral@cdlmanaus.org.br | user | ativo |

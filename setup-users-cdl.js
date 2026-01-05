@@ -18,6 +18,7 @@
  *    OU: npm run setup:users
  * 
  * Utilizadores criados:
+ * - maycon.bentes@cdlmanaus.org.br (admin)
  * - manuel.joaquim@cdlmanaus.org.br (admin)
  * - josiane.oliveira@cdlmanaus.org.br (user)
  * - lidiane.cabral@cdlmanaus.org.br (user)
@@ -103,6 +104,7 @@ const db = admin.firestore();
 
 // Lista de utilizadores para registo (Status padrão: 'ativo')
 const novosUtilizadores = [
+  { email: 'maycon.bentes@cdlmanaus.org.br', nome: 'Maycon Bentes', role: 'admin' },
   { email: 'manuel.joaquim@cdlmanaus.org.br', nome: 'Manuel Joaquim', role: 'admin' },
   { email: 'josiane.oliveira@cdlmanaus.org.br', nome: 'Josiane Oliveira', role: 'user' },
   { email: 'lidiane.cabral@cdlmanaus.org.br', nome: 'Lidiane Cabral', role: 'user' }
