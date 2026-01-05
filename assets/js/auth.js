@@ -1,362 +1,196 @@
-/* =================================================================
-   AUTHENTICATION MODULE - AXIOMA: INTELIGÊNCIA DE MARGEM
-   Sistema de autenticação com Firebase Authentication e Firestore
-   ================================================================= */
+/* assets/js/auth.js */
+// ================================================================
+// SECURITY LAYER - AUTHENTICATION MANAGER
+// Arquitetura Zero Trust - Axioma v5.2.0
+// SGQ-SECURITY: Controle de Acesso Baseado em Roles (RBAC)
+// ================================================================
 
-// Imports das funções do Firebase Authentication
+// 1. Importar instâncias SINGLETON da nossa infraestrutura local
+// Isso garante que usamos a MESMA conexão iniciada em firebase-config.js
+import { 
+    auth, db, doc, getDoc, setDoc, updateDoc, 
+    signOut, onAuthStateChanged, collection, getDocs 
+} from './firebase-config.js';
+
+// 2. Importar funções específicas do Auth (v10.8.0)
 import { 
     signInWithEmailAndPassword, 
-    signOut, 
-    onAuthStateChanged,
-    createUserWithEmailAndPassword,
+    createUserWithEmailAndPassword, 
     updatePassword 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// Imports das funções do Firestore
-import { 
-    doc, 
-    getDoc, 
-    setDoc, 
-    collection, 
-    getDocs,
-    updateDoc 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-// Importar instâncias já inicializadas do firebase-config.js
-import { auth, db } from './firebase-config.js';
-
-/**
- * Classe AuthManager
- * Responsável por gerenciar autenticação e controle de acesso
- */
 class AuthManager {
     constructor() {
-        this.currentUser = null;
         this.userMetadata = null;
+        this.currentUser = null;
     }
 
     /**
-     * Realizar login com email e senha
-     * SGQ-SECURITY: Inclui logs de auditoria detalhados
-     * @param {string} email 
-     * @param {string} password 
-     * @returns {Promise<object>} Dados do usuário
+     * Login com Auditoria e Validação Cruzada (Auth + Firestore)
      */
     async login(email, password) {
         const timestamp = new Date().toISOString();
-        
         try {
-            // Passo 1: Autenticação no Firebase Auth
-            console.log('[SGQ-SECURITY] Iniciando autenticação | Timestamp:', timestamp);
+            console.log(`[SGQ-AUTH] 🔒 Tentativa de login: ${email} | ${timestamp}`);
+            
+            // A. Autenticação de Credenciais
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            console.log('[SGQ-SECURITY] Autenticação Firebase Auth bem-sucedida | UID:', user.uid);
-            
-            // Passo 2: Buscar metadata do usuário no Firestore
-            console.log('[SGQ-SECURITY] Verificando metadados no Firestore | UID:', user.uid);
+
+            // B. Validação de Metadados (Zero Trust)
+            // Não confiamos apenas no Auth; verificamos se o registo existe no banco
             const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
             
             if (!userDoc.exists()) {
+                console.error('[SGQ-AUTH] 🚫 FALHA CRÍTICA: Usuário autenticado sem registo no Firestore.');
                 await signOut(auth);
-                const errorTimestamp = new Date().toISOString();
-                console.error('[SGQ-SECURITY] FALHA: Usuário autenticado mas ausente no Firestore');
-                console.error('[SGQ-SECURITY] Tipo de erro: Metadados ausentes (Firestore)');
-                console.error('[SGQ-SECURITY] UID:', user.uid);
-                console.error('[SGQ-SECURITY] Email:', email);
-                console.error('[SGQ-SECURITY] Timestamp:', errorTimestamp);
-                throw new Error('Usuário não encontrado no sistema');
+                throw new Error('PERFIL_NAO_ENCONTRADO: Usuário sem registro no banco de dados.');
             }
-            
+
             const userData = userDoc.data();
-            console.log('[SGQ-SECURITY] Metadados encontrados | Role:', userData.role, '| Status:', userData.status);
             
-            // Passo 3: Verificar se o usuário está ativo
+            // C. Verificação de Status
             if (userData.status !== 'ativo') {
+                console.warn(`[SGQ-AUTH] ⛔ Acesso negado para usuário inativo: ${email}`);
                 await signOut(auth);
-                const errorTimestamp = new Date().toISOString();
-                console.error('[SGQ-SECURITY] FALHA: Usuário inativo');
-                console.error('[SGQ-SECURITY] Status atual:', userData.status);
-                console.error('[SGQ-SECURITY] Email:', email);
-                console.error('[SGQ-SECURITY] Role:', userData.role);
-                console.error('[SGQ-SECURITY] Timestamp:', errorTimestamp);
-                throw new Error('Usuário inativo. Entre em contato com o administrador.');
+                throw new Error('ACESSO_REVOGADO: Conta inativa ou suspensa. Contacte o administrador.');
             }
-            
-            // Passo 4: Verificar se requer troca de senha
+
+            // D. Verificação de Troca de Senha Obrigatória
             if (userData.requerTrocaSenha) {
-                console.warn('[SGQ-SECURITY] Troca de senha obrigatória pendente | UID:', user.uid);
+                console.log('[SGQ-AUTH] ⚠️ Troca de senha obrigatória solicitada.');
                 return { success: true, user, metadata: userData, forcePasswordChange: true };
             }
-            
+
             this.currentUser = user;
             this.userMetadata = userData;
             
-            // SGQ-SECURITY: Log de sucesso de login com role
-            const successTimestamp = new Date().toISOString();
-            console.log('[SGQ-SECURITY] ✅ Acesso validado para role:', userData.role, '| Timestamp:', successTimestamp);
-            console.log('[SGQ-SECURITY] Login bem-sucedido');
-            console.log('[SGQ-SECURITY] Email:', email);
-            console.log('[SGQ-SECURITY] UID:', user.uid);
-            console.log('[SGQ-SECURITY] Role:', userData.role);
-            console.log('[SGQ-SECURITY] Status:', userData.status);
-            
-            return {
-                success: true,
-                user: user,
-                metadata: userData
-            };
+            console.log(`[SGQ-AUTH] ✅ Login Autorizado. Role: ${userData.role}`);
+            return { success: true, user, metadata: userData };
+
         } catch (error) {
-            // SGQ-SECURITY: Log detalhado de falha no login
-            const errorTimestamp = new Date().toISOString();
-            
-            // Determinar tipo de erro (Auth vs Firestore)
-            let errorType = 'Credencial (Auth)';
-            if (error.message === 'Usuário não encontrado no sistema') {
-                errorType = 'Metadados ausentes (Firestore)';
-            } else if (error.message === 'Usuário inativo. Entre em contato com o administrador.') {
-                errorType = 'Status inativo (Firestore)';
-            }
-            
-            console.error('[SGQ-SECURITY] Falha no login');
-            console.error('[SGQ-SECURITY] Tipo de erro:', errorType);
-            console.error('[SGQ-SECURITY] Email tentado:', email);
-            console.error('[SGQ-SECURITY] Código do erro:', error.code || 'N/A');
-            console.error('[SGQ-SECURITY] Mensagem:', error.message);
-            console.error('[SGQ-SECURITY] Timestamp:', errorTimestamp);
-            
-            console.error('Erro no login:', error);
+            console.error('[SGQ-AUTH] ❌ Falha de Login:', error.code || error.message);
             throw error;
         }
     }
 
     /**
-     * Realizar logout
-     * @returns {Promise<void>}
-     */
-    async logout() {
-        try {
-            await signOut(auth);
-            this.currentUser = null;
-            this.userMetadata = null;
-        } catch (error) {
-            console.error('Erro no logout:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Verificar se o usuário tem acesso ao dashboard
-     * Redireciona para index.html se não autorizado
-     * @returns {Promise<boolean>}
+     * Verificar Sessão Atual (Persistência com Revalidação)
+     * Chamado em cada carregamento de página para garantir que o utilizador ainda é válido.
      */
     async verificarAcesso() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             onAuthStateChanged(auth, async (user) => {
-                const timestamp = new Date().toISOString();
+                if (!user) {
+                    console.log('[SGQ-AUTH] Sessão: Não autenticado.');
+                    resolve(false);
+                    return;
+                }
                 
+                // Revalidar status no banco a cada refresh (Zero Trust)
                 try {
-                    if (!user) {
-                        // Usuário não autenticado
-                        console.log('[SGQ-SECURITY] Verificação de acesso: Não autenticado | Timestamp:', timestamp);
-                        resolve(false);
-                        return;
-                    }
-
-                    console.log('[SGQ-SECURITY] Verificando acesso para UID:', user.uid, '| Timestamp:', timestamp);
-                    
-                    // Buscar metadata do usuário
                     const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
                     
-                    if (!userDoc.exists()) {
-                        // Usuário não existe no Firestore
-                        console.error('[SGQ-SECURITY] FALHA: Metadados ausentes (Firestore) | UID:', user.uid);
-                        console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
+                    if (userDoc.exists() && userDoc.data().status === 'ativo') {
+                        this.currentUser = user;
+                        this.userMetadata = userDoc.data();
+                        console.log(`[SGQ-AUTH] 🔄 Sessão Restaurada: ${this.userMetadata.role}`);
+                        resolve(true);
+                    } else {
+                        console.warn('[SGQ-AUTH] Sessão inválida ou utilizador desativado remotamente.');
                         await signOut(auth);
                         resolve(false);
-                        return;
                     }
-
-                    const userData = userDoc.data();
-
-                    // Verificar se está ativo
-                    if (userData.status !== 'ativo') {
-                        console.error('[SGQ-SECURITY] FALHA: Status inativo | UID:', user.uid, '| Status:', userData.status);
-                        console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
-                        await signOut(auth);
-                        resolve(false);
-                        return;
-                    }
-
-                    // Usuário autenticado e ativo
-                    this.currentUser = user;
-                    this.userMetadata = userData;
-                    
-                    const successTimestamp = new Date().toISOString();
-                    console.log('[SGQ-SECURITY] ✅ Acesso validado para role:', userData.role, '| Timestamp:', successTimestamp);
-                    console.log('[SGQ-SECURITY] Email:', user.email);
-                    console.log('[SGQ-SECURITY] UID:', user.uid);
-                    
-                    resolve(true);
-                } catch (error) {
-                    console.error('[SGQ-SECURITY] ❌ Erro ao verificar acesso');
-                    console.error('[SGQ-SECURITY] Mensagem:', error.message);
-                    console.error('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
-                    console.error('Erro ao verificar acesso:', error);
-                    reject(error);
+                } catch (e) {
+                    console.error('[SGQ-AUTH] Erro na verificação de sessão:', e);
+                    resolve(false);
                 }
             });
         });
     }
 
     /**
-     * Obter o usuário atual
-     * @returns {object|null}
+     * Logout Seguro
      */
+    async logout() {
+        try {
+            await signOut(auth);
+            this.currentUser = null;
+            this.userMetadata = null;
+            console.log('[SGQ-AUTH] Logout realizado com sucesso.');
+            // O redirecionamento deve ser feito pela UI, mas por segurança:
+            if (window.location.pathname.includes('dashboard')) {
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            console.error('[SGQ-AUTH] Erro ao sair:', error);
+        }
+    }
+
+    // --- Utilitários de Permissão ---
+
+    isAdmin() {
+        return this.userMetadata?.role === 'admin' || this.userMetadata?.role === 'superintendente';
+    }
+
+    getCurrentRole() {
+        return this.userMetadata?.role || 'guest';
+    }
+
     getCurrentUser() {
         return this.currentUser;
     }
 
-    /**
-     * Obter metadata do usuário atual
-     * @returns {object|null}
-     */
     getUserMetadata() {
         return this.userMetadata;
     }
 
-    /**
-     * Verificar se o usuário é admin ou superintendente
-     * @returns {boolean}
-     */
-    isAdmin() {
-        if (!this.userMetadata) return false;
-        return this.userMetadata.role === 'admin' || this.userMetadata.role === 'superintendente';
-    }
+    // --- Gestão de Utilizadores (Admin) ---
 
-    /**
-     * Criar novo usuário (apenas para admin/superintendente)
-     * @param {string} email 
-     * @param {string} password 
-     * @param {string} nome 
-     * @param {string} role - 'user', 'admin', 'superintendente'
-     * @returns {Promise<object>}
-     */
     async criarUsuario(email, password, nome, role = 'user') {
-        try {
-            // Verificar se o usuário atual é admin
-            if (!this.isAdmin()) {
-                throw new Error('Acesso negado. Apenas administradores podem criar usuários.');
-            }
+        if (!this.isAdmin()) throw new Error('Acesso Negado: Requer privilégios de Admin.');
+        
+        // Nota: Criar utilizador secundário enquanto logado requer Cloud Functions ou App Secundário
+        // Esta é uma implementação simplificada para o frontend atual
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
 
-            // Criar usuário no Firebase Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
+        await setDoc(doc(db, 'usuarios', user.uid), {
+            email, nome, role,
+            status: 'ativo',
+            dataCriacao: new Date().toISOString(),
+            criadoPor: this.currentUser.uid
+        });
 
-            // Criar documento no Firestore com metadata
-            await setDoc(doc(db, 'usuarios', user.uid), {
-                email: email,
-                nome: nome,
-                role: role,
-                status: 'ativo',
-                dataCriacao: new Date().toISOString(),
-                criadoPor: this.currentUser.uid
-            });
-
-            return {
-                success: true,
-                uid: user.uid,
-                email: email
-            };
-        } catch (error) {
-            console.error('Erro ao criar usuário:', error);
-            throw error;
-        }
+        return user;
     }
 
-    /**
-     * Listar todos os usuários (apenas para admin)
-     * @returns {Promise<Array>}
-     */
-    async listarUsuarios() {
-        try {
-            if (!this.isAdmin()) {
-                throw new Error('Acesso negado. Apenas administradores podem listar usuários.');
-            }
-
-            const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
-            const usuarios = [];
-
-            usuariosSnapshot.forEach(doc => {
-                usuarios.push({
-                    uid: doc.id,
-                    ...doc.data()
-                });
-            });
-
-            return usuarios;
-        } catch (error) {
-            console.error('Erro ao listar usuários:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Atualizar status do usuário (apenas para admin)
-     * @param {string} uid 
-     * @param {string} status - 'ativo' ou 'inativo'
-     * @returns {Promise<void>}
-     */
-    async atualizarStatusUsuario(uid, status) {
-        try {
-            if (!this.isAdmin()) {
-                throw new Error('Acesso negado. Apenas administradores podem atualizar status.');
-            }
-
-            await updateDoc(doc(db, 'usuarios', uid), {
-                status: status,
-                dataAtualizacao: new Date().toISOString(),
-                atualizadoPor: this.currentUser.uid
-            });
-        } catch (error) {
-            console.error('Erro ao atualizar status do usuário:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Alterar senha do usuário atual
-     * SGQ-SECURITY: Remove flag requerTrocaSenha após alteração bem-sucedida
-     * @param {string} novaSenha - Nova senha do usuário
-     * @returns {Promise<void>}
-     */
     async alterarSenha(novaSenha) {
-        const user = auth.currentUser;
-        const timestamp = new Date().toISOString();
+        if (!this.currentUser) throw new Error('Nenhum usuário autenticado.');
         
-        if (!user) {
-            throw new Error('Usuário não autenticado');
-        }
-        
-        try {
-            // Atualizar senha no Firebase Auth
-            await updatePassword(user, novaSenha);
-            
-            // Atualizar flag no Firestore
-            await updateDoc(doc(db, 'usuarios', user.uid), {
-                requerTrocaSenha: false,
-                dataAtualizacao: timestamp
-            });
-            
-            console.log('[SGQ-SECURITY] ✅ Senha alterada com sucesso | UID:', user.uid);
-            console.log('[SGQ-SECURITY] Timestamp:', timestamp);
-        } catch (error) {
-            console.error('[SGQ-SECURITY] ❌ Erro ao alterar senha:', error.message);
-            console.error('[SGQ-SECURITY] Timestamp:', timestamp);
-            throw error;
-        }
+        await updatePassword(this.currentUser, novaSenha);
+        await updateDoc(doc(db, 'usuarios', this.currentUser.uid), {
+            requerTrocaSenha: false,
+            dataAtualizacao: new Date().toISOString()
+        });
+    }
+    
+    async listarUsuarios() {
+        if (!this.isAdmin()) throw new Error('Acesso Negado.');
+        const snapshot = await getDocs(collection(db, 'usuarios'));
+        return snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
+    }
+
+    async atualizarStatusUsuario(uid, status) {
+        if (!this.isAdmin()) throw new Error('Acesso Negado.');
+        await updateDoc(doc(db, 'usuarios', uid), { 
+            status, 
+            atualizadoPor: this.currentUser.uid,
+            dataAtualizacao: new Date().toISOString() 
+        });
     }
 }
 
-// Exportar instância singleton
+// Exportar Instância Singleton
 const authManager = new AuthManager();
 export default authManager;
