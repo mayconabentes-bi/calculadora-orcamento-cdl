@@ -352,22 +352,15 @@ function configurarNavegacaoAbas() {
                 
                 if (typeof authManager !== 'undefined' && authManager) {
                     if (!authManager.isAdmin()) {
-                        accessInfo.denied = true;
-                        accessInfo.reason = 'Tentativa de acesso não autorizado';
+                        // Acesso negado - bloquear e logar tentativa
+                        console.log('[SGQ-SECURITY] Acesso negado a recurso administrativo');
+                        console.log('[SGQ-SECURITY] Aba solicitada:', targetTab);
                         console.log('[SGQ-SECURITY] Usuário:', authManager.currentUser?.email || 'não identificado');
                         mostrarNotificacao('⚠️ Acesso negado: Recurso administrativo');
                     }
                 } else {
                     // authManager não disponível - bloquear por segurança
-                    accessInfo.denied = true;
-                    accessInfo.reason = 'Tentativa de acesso não autorizado - authManager indisponível';
-                    mostrarNotificacao('⚠️ Acesso negado: Sistema de autenticação não disponível');
-                }
-                
-                if (accessInfo.denied) {
-                    // Log consolidado de acesso negado (requerido por verify-sgq-security.js)
-                    console.log('[SGQ-SECURITY] Acesso negado a recurso administrativo');
-                    console.log('[SGQ-SECURITY]', accessInfo.reason);
+                    console.log('[SGQ-SECURITY] Acesso negado a recurso administrativo - authManager indisponível');
                     console.log('[SGQ-SECURITY] Aba solicitada:', targetTab);
                     console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
                     return; // Bloqueia a mudança de aba - mantém aba atual

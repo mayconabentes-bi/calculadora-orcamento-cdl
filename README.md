@@ -45,16 +45,21 @@ Para configurar sua credencial de acesso, consulte:
 * **[RESOLUCAO_LOGIN.md](./RESOLUCAO_LOGIN.md)** - Documentação completa e troubleshooting
 * **[AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md)** - Guia técnico do sistema de autenticação
 
-### ✅ Finalização do Ambiente (Protocolo Zero Trust)
-Para concluir a fase de desenvolvimento e garantir conformidade com SGQ-SECURITY v5.1.0:
-* **[FINAL_SECURITY_SETUP.md](./FINAL_SECURITY_SETUP.md)** - 📋 Guia completo de sincronização final do ambiente
-* **[CHECKLIST_FINALIZACAO.md](./CHECKLIST_FINALIZACAO.md)** - ✅ Checklist executivo de finalização
+### ✅ Recomendações Acionáveis - Validação SGQ-SECURITY
+Após configurar as credenciais, valide seu ambiente com o protocolo SGQ-SECURITY:
+* **[QUICK_REFERENCE_RECOMENDACOES.md](./QUICK_REFERENCE_RECOMENDACOES.md)** - ⚡ Quick Reference (1 minuto)
+* **[RECOMENDACOES_ACIONAVEIS.md](./RECOMENDACOES_ACIONAVEIS.md)** - 📋 Guia completo de validação
 
-**Ferramentas disponíveis:**
+**Validação Rápida (Recomendado):**
 ```bash
-npm run setup:user         # Criar usuário desenvolvedor
-npm run verify:auth        # Verificar configuração de autenticação
-npm run verify:security    # Validar conformidade SGQ-SECURITY (OBRIGATÓRIO: 100%)
+npm run validate:all    # Valida todo o ambiente (acesso + role + SGQ)
+```
+
+**Ferramentas Individuais:**
+```bash
+npm run setup:user      # Criar/sincronizar usuário desenvolvedor
+npm run verify:auth     # Verificar configuração de autenticação
+npm run verify:security # Auditoria SGQ (RBAC + Resiliência)
 ```
 
 ## Qualidade e Validação (QA)
