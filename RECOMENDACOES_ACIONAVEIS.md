@@ -227,7 +227,7 @@ Credenciais de acesso:
 
 Se por algum motivo o status do usuário não estiver correto, você pode corrigi-lo manualmente na consola do Firebase.
 
-### Aceder à Consola Firebase:
+### Acessar a Consola Firebase:
 1. Vá para: https://console.firebase.google.com/
 2. Selecione o projeto: **axioma-cdl-manaus**
 3. No menu lateral, clique em **Firestore Database**
@@ -367,7 +367,7 @@ chmod +x setup-developer-user.js
 - Re-execute o script de conversão Base64
 
 ### Problema: "Status inativo" no login
-- Aceda à consola do Firebase
+- Acesse a consola do Firebase
 - Navegue até Firestore → usuarios
 - Encontre o usuário e edite o campo `status` para `"ativo"` (minúsculas)
 
