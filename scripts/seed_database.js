@@ -1,473 +1,330 @@
 /**
- * Script de População do Banco de Dados (Database Seeding)
- * Versão 1.0 - Zero Trust com Base64 Support
+ * Database Seeding Script
+ * Axioma CDL - Sistema de Orçamento v5.2.0
  * 
- * ✅ Arquitetura Gemini: Credenciais via environment variables
- * ✅ Suporte a FIREBASE_PRIVATE_KEY_BASE64 (recomendado)
- * ✅ Idempotência: Verifica existência antes de inserir
+ * Popula o Firestore com dados iniciais necessários para o sistema
+ * - Espaços (salas) com custos base
+ * - Itens extras (equipamentos)
+ * - Configurações de multiplicadores de turno
  * 
- * Uso:
- * 1. Certifique-se de que as credenciais estão configuradas no .env
- * 2. Execute: node scripts/seed_database.js
- * 
- * Coleções populadas:
- * - espacos: Espaços da CDL Manaus (DJLM e UTV)
- * - extras: Itens extras para orçamentos
- * - configuracoes: Multiplicadores de turno
+ * Uso: npm run seed:database
  */
 
 require('dotenv').config();
 const admin = require('firebase-admin');
-const { getFirebaseCredentials } = require('../firebase-key-handler');
+const { getFirebaseCredentials, displayConfigurationInfo } = require('../firebase-key-handler');
 
-console.log(`[SEED-DB] ${new Date().toISOString()} - Script de seeding iniciado`);
-
-// Validação rigorosa de variáveis de ambiente obrigatórias
-const requiredEnvVars = [
-  'FIREBASE_PROJECT_ID',
-  'FIREBASE_CLIENT_EMAIL'
-];
-
-console.log(`[SEED-DB] ${new Date().toISOString()} - 🔐 Verificando configuração de segurança (Arquitetura Gemini)...`);
+const timestamp = new Date().toISOString();
+console.log(`[SEED] ${timestamp} - Database Seeding Script Started`);
 console.log('');
 
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+// ============================================================================
+// FIREBASE INITIALIZATION
+// ============================================================================
 
-// Check for private key (either format)
-const hasBase64Key = !!process.env.FIREBASE_PRIVATE_KEY_BASE64;
-const hasLegacyKey = !!process.env.FIREBASE_PRIVATE_KEY;
-
-if (!hasBase64Key && !hasLegacyKey) {
-  missingVars.push('FIREBASE_PRIVATE_KEY_BASE64 or FIREBASE_PRIVATE_KEY');
-}
-
-if (missingVars.length > 0) {
-  console.error(`[SEED-DB] ${new Date().toISOString()} - ❌ ERRO CRÍTICO: Variáveis de ambiente obrigatórias não configuradas`);
-  console.error('');
-  console.error('Variáveis ausentes:');
-  missingVars.forEach(varName => {
-    console.error(`   ✗ ${varName}`);
-  });
-  console.error('');
-  console.error('🔧 Para corrigir:');
-  console.error('   1. Copie o template: cp .env.example .env');
-  console.error('   2. Edite .env com suas credenciais do Firebase Console');
-  console.error('   3. Para Base64 (recomendado): node convert-private-key-to-base64.js');
-  console.error('   4. Execute este script novamente');
-  console.error('');
-  console.error('📚 Documentação: ENVIRONMENT_VARIABLES_GUIDE.md');
-  console.error('🔒 Segurança: SECURITY_REMEDIATION_GUIDE.md');
-  console.error('');
-  console.error('⚠️  PRINCÍPIO ZERO TRUST: Este script NÃO aceita arquivos JSON locais');
-  process.exit(1);
-}
-
-// Inicializar Firebase Admin com credenciais de ambiente
 try {
+  displayConfigurationInfo();
+  
   const credential = getFirebaseCredentials();
-
+  
   admin.initializeApp({
     credential: admin.credential.cert(credential)
   });
-
-  console.log(`[SEED-DB] ${new Date().toISOString()} - ✅ Firebase Admin inicializado via variáveis de ambiente`);
-  console.log(`   Project: ${credential.projectId}`);
-  console.log(`   Service Account: ${credential.clientEmail}`);
+  
+  console.log(`[SEED] ✅ Firebase Admin initialized successfully`);
+  console.log(`[SEED]    Project: ${credential.projectId}`);
   console.log('');
 } catch (error) {
-  console.error(`[SEED-DB] ${new Date().toISOString()} - ❌ Erro ao inicializar Firebase Admin: ${error.message}`);
+  console.error(`[SEED] ❌ FATAL ERROR: Could not initialize Firebase Admin`);
+  console.error(`[SEED]    ${error.message}`);
   console.error('');
-  console.error('💡 Dicas de troubleshooting:');
-  console.error('   - Verifique o formato da FIREBASE_PRIVATE_KEY_BASE64 (Base64 válido)');
-  console.error('   - Se usar FIREBASE_PRIVATE_KEY, deve incluir \\n para quebras de linha');
-  console.error('   - Confirme que as credenciais no .env estão corretas');
-  console.error('   - Valide se o service account tem permissões adequadas');
-  console.error('   - Execute: node convert-private-key-to-base64.js para gerar Base64');
+  console.error('🔧 To fix:');
+  console.error('   1. Copy template: cp .env.example .env');
+  console.error('   2. Configure Firebase credentials in .env');
+  console.error('   3. Run: node convert-private-key-to-base64.js (if needed)');
   console.error('');
   process.exit(1);
 }
 
 const db = admin.firestore();
 
-// =========================================================================
-// HELPER FUNCTIONS
-// =========================================================================
+// ============================================================================
+// SEED DATA DEFINITIONS
+// ============================================================================
 
-/**
- * Gera timestamp ISO atual
- * @returns {string} Timestamp no formato ISO 8601
- */
-function getCurrentTimestamp() {
-  return new Date().toISOString();
-}
-
-// =========================================================================
-// DADOS DE SEEDING
-// =========================================================================
-
-/**
- * Espaços da CDL Manaus (DJLM e UTV)
- * Fonte: docs/MANUAL_TECNICO.md
- */
-const espacosData = [
+const espacos = [
   {
-    nome: "DJLM - Auditório",
-    unidade: "DJLM",
-    capacidade: 120,
-    area: 108,
-    custoBase: 132.72
+    id: 'djlm-auditorio',
+    nome: 'DJLM - Auditório',
+    capacidade: 200,
+    custoBase: 150.00,
+    descricao: 'Auditório principal com capacidade para 200 pessoas',
+    ativo: true
   },
   {
-    nome: "UTV - Auditório",
-    unidade: "UTV",
-    capacidade: 70,
-    area: 63,
-    custoBase: 77.60
-  },
-  {
-    nome: "UTV - Sala 2",
-    unidade: "UTV",
-    capacidade: 30,
-    area: 27,
-    custoBase: 35.69
-  },
-  {
-    nome: "UTV - Sala 3",
-    unidade: "UTV",
+    id: 'sala-vip-1',
+    nome: 'Sala VIP 1',
     capacidade: 50,
-    area: 45,
-    custoBase: 55.19
+    custoBase: 80.00,
+    descricao: 'Sala VIP com infraestrutura completa',
+    ativo: true
   },
   {
-    nome: "UTV - Sala 4",
-    unidade: "UTV",
+    id: 'sala-vip-2',
+    nome: 'Sala VIP 2',
+    capacidade: 50,
+    custoBase: 80.00,
+    descricao: 'Sala VIP com infraestrutura completa',
+    ativo: true
+  },
+  {
+    id: 'sala-conferencia-1',
+    nome: 'Sala de Conferência 1',
+    capacidade: 30,
+    custoBase: 60.00,
+    descricao: 'Sala de conferência equipada',
+    ativo: true
+  },
+  {
+    id: 'sala-conferencia-2',
+    nome: 'Sala de Conferência 2',
+    capacidade: 30,
+    custoBase: 60.00,
+    descricao: 'Sala de conferência equipada',
+    ativo: true
+  },
+  {
+    id: 'sala-reuniao-1',
+    nome: 'Sala de Reunião 1',
+    capacidade: 15,
+    custoBase: 40.00,
+    descricao: 'Sala de reunião para pequenos grupos',
+    ativo: true
+  },
+  {
+    id: 'sala-reuniao-2',
+    nome: 'Sala de Reunião 2',
+    capacidade: 15,
+    custoBase: 40.00,
+    descricao: 'Sala de reunião para pequenos grupos',
+    ativo: true
+  },
+  {
+    id: 'sala-treinamento',
+    nome: 'Sala de Treinamento',
     capacidade: 40,
-    area: 36,
-    custoBase: 43.92
+    custoBase: 70.00,
+    descricao: 'Sala para treinamentos e workshops',
+    ativo: true
   },
   {
-    nome: "UTV - Sala 7",
-    unidade: "UTV",
-    capacidade: 26,
-    area: 25,
-    custoBase: 29.53
+    id: 'espaco-coworking',
+    nome: 'Espaço Coworking',
+    capacidade: 25,
+    custoBase: 35.00,
+    descricao: 'Espaço compartilhado de trabalho',
+    ativo: true
   },
   {
-    nome: "UTV - Sala 8",
-    unidade: "UTV",
-    capacidade: 16,
-    area: 14.4,
-    custoBase: 17.74
-  },
-  {
-    nome: "UTV - Sala 9",
-    unidade: "UTV",
-    capacidade: 28,
-    area: 25,
-    custoBase: 30.52
-  },
-  {
-    nome: "UTV - Sala 12",
-    unidade: "UTV",
-    capacidade: 9,
-    area: 8.1,
-    custoBase: 10.02
-  },
-  {
-    nome: "UTV - Sala 13",
-    unidade: "UTV",
-    capacidade: 8,
-    area: 7.2,
-    custoBase: 8.86
+    id: 'sala-diretoria',
+    nome: 'Sala da Diretoria',
+    capacidade: 20,
+    custoBase: 100.00,
+    descricao: 'Sala executiva premium',
+    ativo: true
   }
 ];
 
-/**
- * Itens extras para orçamentos
- * Fonte: docs/MANUAL_USUARIO.md e problema statement
- */
-const extrasData = [
+const extras = [
   {
-    nome: "Coffee Break Premium",
-    custo: 50.00,
-    descricao: "Coffee break completo com variedade de bebidas e alimentos"
+    id: 'projetor',
+    nome: 'Projetor Multimídia',
+    custo: 5.00,
+    unidade: 'hora',
+    descricao: 'Projetor Full HD',
+    ativo: true
   },
   {
-    nome: "Serviço de Limpeza",
-    custo: 150.00,
-    descricao: "Serviço de limpeza completo do espaço"
+    id: 'sonorizacao',
+    nome: 'Sistema de Sonorização',
+    custo: 8.00,
+    unidade: 'hora',
+    descricao: 'Sistema de som completo',
+    ativo: true
   },
   {
-    nome: "Projetor/Datashow",
-    custo: 80.00,
-    descricao: "Projetor profissional para apresentações"
+    id: 'microfone',
+    nome: 'Microfone sem Fio',
+    custo: 3.00,
+    unidade: 'hora',
+    descricao: 'Microfone profissional',
+    ativo: true
   },
   {
-    nome: "Serviço de Impressão",
-    custo: 15.00,
-    descricao: "Serviço de impressão de documentos"
+    id: 'notebook',
+    nome: 'Notebook',
+    custo: 10.00,
+    unidade: 'hora',
+    descricao: 'Notebook para apresentações',
+    ativo: true
   },
   {
-    nome: "Gravação Profissional",
-    custo: 80.00,
-    descricao: "Gravação profissional do evento"
+    id: 'flip-chart',
+    nome: 'Flip Chart',
+    custo: 2.00,
+    unidade: 'hora',
+    descricao: 'Flip chart com material',
+    ativo: true
   }
 ];
 
-/**
- * Configurações do sistema
- * Multiplicadores de turno conforme especificação
- */
-const configuracoesData = {
+const configuracoes = {
   multiplicadores: {
     manha: 1.0,
     tarde: 1.15,
-    noite: 1.40
+    noite: 1.40,
+    descricao: 'Multiplicadores de turno para cálculo de custos'
+  },
+  sistema: {
+    versao: '5.2.0',
+    nome: 'Axioma: Inteligência de Margem',
+    descricao: 'Sistema de precificação CDL/UTV'
   }
 };
 
-// =========================================================================
-// FUNÇÕES DE SEEDING COM IDEMPOTÊNCIA
-// =========================================================================
+// ============================================================================
+// SEEDING FUNCTIONS
+// ============================================================================
 
-/**
- * Popula a coleção de espaços
- * Verifica existência pelo nome antes de inserir
- */
 async function seedEspacos() {
-  const startTimestamp = new Date().toISOString();
-  console.log(`[SEED-DB] ${startTimestamp} - 🏢 Iniciando seeding de espaços...`);
+  console.log('[SEED] 📦 Seeding Spaces (Espaços)...');
   
   let created = 0;
   let updated = 0;
-  let skipped = 0;
-
-  for (const espaco of espacosData) {
+  
+  for (const espaco of espacos) {
     try {
-      // Buscar por nome para verificar existência
-      const querySnapshot = await db.collection('espacos')
-        .where('nome', '==', espaco.nome)
-        .limit(1)
-        .get();
-
-      if (querySnapshot.empty) {
-        // Não existe, criar novo
-        const docRef = await db.collection('espacos').add({
-          ...espaco,
-          ativo: true,
-          criadoEm: getCurrentTimestamp(),
-          atualizadoEm: getCurrentTimestamp()
-        });
-        console.log(`   ✅ Espaço '${espaco.nome}' criado (ID: ${docRef.id})`);
-        created++;
-      } else {
-        // Já existe, atualizar (preserva criadoEm original)
-        const doc = querySnapshot.docs[0];
-        const existingData = doc.data();
-        await db.collection('espacos').doc(doc.id).set({
-          ...espaco,
-          ativo: true,
-          criadoEm: existingData.criadoEm, // Preserva timestamp de criação original
-          atualizadoEm: getCurrentTimestamp()
-        }, { merge: true });
-        console.log(`   ♻️  Espaço '${espaco.nome}' atualizado (ID: ${doc.id})`);
+      const espacoRef = db.collection('espacos').doc(espaco.id);
+      const doc = await espacoRef.get();
+      
+      const data = {
+        ...espaco,
+        atualizadoEm: new Date().toISOString(),
+        criadoEm: doc.exists ? (doc.data().criadoEm || new Date().toISOString()) : new Date().toISOString()
+      };
+      
+      await espacoRef.set(data, { merge: true });
+      
+      if (doc.exists) {
         updated++;
+        console.log(`[SEED]    ✓ Updated: ${espaco.nome}`);
+      } else {
+        created++;
+        console.log(`[SEED]    ✓ Created: ${espaco.nome}`);
       }
     } catch (error) {
-      console.error(`   ❌ Erro ao processar espaço '${espaco.nome}': ${error.message}`);
-      skipped++;
+      console.error(`[SEED]    ✗ Error with ${espaco.nome}:`, error.message);
     }
   }
-
-  const endTimestamp = new Date().toISOString();
-  console.log(`[SEED-DB] ${endTimestamp} - ✅ Espaços processados: ${created} criados, ${updated} atualizados, ${skipped} com erro`);
-  console.log('');
   
-  return { created, updated, skipped };
+  console.log(`[SEED] ✅ Spaces: ${created} created, ${updated} updated`);
+  console.log('');
 }
 
-/**
- * Popula a coleção de extras
- * Verifica existência pelo nome antes de inserir
- */
 async function seedExtras() {
-  const startTimestamp = new Date().toISOString();
-  console.log(`[SEED-DB] ${startTimestamp} - 🎁 Iniciando seeding de extras...`);
+  console.log('[SEED] 📦 Seeding Extras (Equipment)...');
   
   let created = 0;
   let updated = 0;
-  let skipped = 0;
-
-  for (const extra of extrasData) {
+  
+  for (const extra of extras) {
     try {
-      // Buscar por nome para verificar existência
-      const querySnapshot = await db.collection('extras')
-        .where('nome', '==', extra.nome)
-        .limit(1)
-        .get();
-
-      if (querySnapshot.empty) {
-        // Não existe, criar novo
-        const docRef = await db.collection('extras').add({
-          ...extra,
-          ativo: true,
-          criadoEm: getCurrentTimestamp(),
-          atualizadoEm: getCurrentTimestamp()
-        });
-        console.log(`   ✅ Extra '${extra.nome}' criado (ID: ${docRef.id})`);
-        created++;
-      } else {
-        // Já existe, atualizar (preserva criadoEm original)
-        const doc = querySnapshot.docs[0];
-        const existingData = doc.data();
-        await db.collection('extras').doc(doc.id).set({
-          ...extra,
-          ativo: true,
-          criadoEm: existingData.criadoEm, // Preserva timestamp de criação original
-          atualizadoEm: getCurrentTimestamp()
-        }, { merge: true });
-        console.log(`   ♻️  Extra '${extra.nome}' atualizado (ID: ${doc.id})`);
+      const extraRef = db.collection('extras').doc(extra.id);
+      const doc = await extraRef.get();
+      
+      const data = {
+        ...extra,
+        atualizadoEm: new Date().toISOString(),
+        criadoEm: doc.exists ? (doc.data().criadoEm || new Date().toISOString()) : new Date().toISOString()
+      };
+      
+      await extraRef.set(data, { merge: true });
+      
+      if (doc.exists) {
         updated++;
+        console.log(`[SEED]    ✓ Updated: ${extra.nome}`);
+      } else {
+        created++;
+        console.log(`[SEED]    ✓ Created: ${extra.nome}`);
       }
     } catch (error) {
-      console.error(`   ❌ Erro ao processar extra '${extra.nome}': ${error.message}`);
-      skipped++;
+      console.error(`[SEED]    ✗ Error with ${extra.nome}:`, error.message);
     }
   }
-
-  const endTimestamp = new Date().toISOString();
-  console.log(`[SEED-DB] ${endTimestamp} - ✅ Extras processados: ${created} criados, ${updated} atualizados, ${skipped} com erro`);
-  console.log('');
   
-  return { created, updated, skipped };
+  console.log(`[SEED] ✅ Extras: ${created} created, ${updated} updated`);
+  console.log('');
 }
 
-/**
- * Popula a coleção de configurações
- * Usa documento fixo com ID 'multiplicadores'
- */
 async function seedConfiguracoes() {
-  const startTimestamp = new Date().toISOString();
-  console.log(`[SEED-DB] ${startTimestamp} - ⚙️  Iniciando seeding de configurações...`);
+  console.log('[SEED] 📦 Seeding Configuration...');
   
-  let created = 0;
-  let updated = 0;
-
   try {
-    const docRef = db.collection('configuracoes').doc('multiplicadores');
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
-      // Não existe, criar novo
-      await docRef.set({
-        ...configuracoesData,
-        criadoEm: getCurrentTimestamp(),
-        atualizadoEm: getCurrentTimestamp()
-      });
-      console.log(`   ✅ Configuração 'multiplicadores' criada`);
-      created++;
-    } else {
-      // Já existe, atualizar (preserva criadoEm original)
-      const existingData = doc.data();
-      await docRef.set({
-        ...configuracoesData,
-        criadoEm: existingData.criadoEm, // Preserva timestamp de criação original
-        atualizadoEm: getCurrentTimestamp()
-      }, { merge: true });
-      console.log(`   ♻️  Configuração 'multiplicadores' atualizada`);
-      updated++;
-    }
+    const configRef = db.collection('configuracoes').doc('sistema');
+    
+    await configRef.set({
+      ...configuracoes,
+      atualizadoEm: new Date().toISOString()
+    }, { merge: true });
+    
+    console.log('[SEED]    ✓ System configuration updated');
+    console.log('[SEED] ✅ Configuration seeded successfully');
+    console.log('');
   } catch (error) {
-    console.error(`   ❌ Erro ao processar configurações: ${error.message}`);
+    console.error('[SEED]    ✗ Error seeding configuration:', error.message);
   }
-
-  const endTimestamp = new Date().toISOString();
-  console.log(`[SEED-DB] ${endTimestamp} - ✅ Configurações processadas: ${created} criadas, ${updated} atualizadas`);
-  console.log('');
-  
-  return { created, updated };
 }
 
-// =========================================================================
-// FUNÇÃO PRINCIPAL
-// =========================================================================
+// ============================================================================
+// MAIN EXECUTION
+// ============================================================================
 
-/**
- * Executa o seeding completo do banco de dados
- */
-async function seedDatabase() {
-  const startTimestamp = new Date().toISOString();
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`[SEED-DB] ${startTimestamp} - 🚀 INICIANDO DATABASE SEEDING`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+async function main() {
+  console.log('═══════════════════════════════════════════════════════════════════');
+  console.log('DATABASE SEEDING - Axioma CDL');
+  console.log('═══════════════════════════════════════════════════════════════════');
   console.log('');
-
+  
   try {
-    // Executar seeding de cada coleção
-    const espacosResult = await seedEspacos();
-    const extrasResult = await seedExtras();
-    const configuracoesResult = await seedConfiguracoes();
-
-    // Resumo final
-    const endTimestamp = new Date().toISOString();
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`[SEED-DB] ${endTimestamp} - 🎉 DATABASE SEEDING CONCLUÍDO COM SUCESSO`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    await seedEspacos();
+    await seedExtras();
+    await seedConfiguracoes();
+    
+    console.log('═══════════════════════════════════════════════════════════════════');
+    console.log('✅ DATABASE SEEDING COMPLETED SUCCESSFULLY');
+    console.log('═══════════════════════════════════════════════════════════════════');
     console.log('');
-    console.log('📊 RESUMO FINAL:');
+    console.log('Summary:');
+    console.log(`  - ${espacos.length} spaces configured`);
+    console.log(`  - ${extras.length} extras configured`);
+    console.log('  - System configuration updated');
     console.log('');
-    console.log(`   🏢 Espaços:`);
-    console.log(`      ✅ Criados: ${espacosResult.created}`);
-    console.log(`      ♻️  Atualizados: ${espacosResult.updated}`);
-    console.log(`      ❌ Erros: ${espacosResult.skipped}`);
+    console.log('Next step: Run health check');
+    console.log('  npm run health:check');
     console.log('');
-    console.log(`   🎁 Extras:`);
-    console.log(`      ✅ Criados: ${extrasResult.created}`);
-    console.log(`      ♻️  Atualizados: ${extrasResult.updated}`);
-    console.log(`      ❌ Erros: ${extrasResult.skipped}`);
-    console.log('');
-    console.log(`   ⚙️  Configurações:`);
-    console.log(`      ✅ Criadas: ${configuracoesResult.created}`);
-    console.log(`      ♻️  Atualizadas: ${configuracoesResult.updated}`);
-    console.log('');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    const totalEspacos = espacosResult.created + espacosResult.updated;
-    const totalExtras = extrasResult.created + extrasResult.updated;
-    const totalConfigs = configuracoesResult.created + configuracoesResult.updated;
-    console.log(`🚀 Database Seeded: ${totalEspacos} espaços, ${totalExtras} extras, ${totalConfigs} configs`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('');
-    console.log('✅ O banco de dados está pronto para uso!');
-    console.log('');
-
+    
     process.exit(0);
   } catch (error) {
-    const errorTimestamp = new Date().toISOString();
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error(`[SEED-DB] ${errorTimestamp} - ❌ ERRO FATAL NO SEEDING`);
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('');
-    console.error(`Erro: ${error.message}`);
+    console.error('═══════════════════════════════════════════════════════════════════');
+    console.error('❌ DATABASE SEEDING FAILED');
+    console.error('═══════════════════════════════════════════════════════════════════');
     console.error('');
-    console.error('💡 Dicas de troubleshooting:');
-    console.error('   - Verifique se as credenciais Firebase estão corretas');
-    console.error('   - Confirme que o service account tem permissões de escrita no Firestore');
-    console.error('   - Verifique a conectividade com o Firebase');
-    console.error('   - Consulte os logs acima para mais detalhes');
+    console.error('Error:', error.message);
     console.error('');
     process.exit(1);
   }
 }
 
-// Executar o seeding
-seedDatabase()
-  .then(() => {
-    const successTimestamp = new Date().toISOString();
-    console.log(`[SEED-DB] ${successTimestamp} - Script finalizado com sucesso`);
-  })
-  .catch((error) => {
-    const fatalTimestamp = new Date().toISOString();
-    console.error(`[SEED-DB] ${fatalTimestamp} - ❌ Erro fatal não tratado: ${error.message}`);
-    console.error(`[SEED-DB] Stack: ${error.stack}`);
-    process.exit(1);
-  });
+// Execute main function
+main();
