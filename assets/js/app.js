@@ -35,15 +35,15 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Inicializa toda a aplicação
  */
-function inicializarAplicacao() {
+async function inicializarAplicacao() {
     // Inicializar o Motor de Cálculo de Orçamentos
     budgetEngine = new BudgetEngine(dataManager);
     
     configurarNavegacaoAbas();
-    carregarSelectEspacos();
+    await carregarSelectEspacos();
     carregarExtrasCheckboxes();
-    carregarTabelaEspacos();
-    carregarTabelaCustos();
+    await carregarTabelaEspacos();
+    await carregarTabelaCustos();
     carregarExtrasConfig();
     carregarListaFuncionarios();
     inicializarHorarios();
