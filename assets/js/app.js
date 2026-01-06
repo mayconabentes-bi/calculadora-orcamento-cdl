@@ -2663,6 +2663,40 @@ function esconderLoading() {
 }
 
 /**
+ * Mostra notificação temporária para o usuário
+ * @param {string} mensagem - Mensagem a ser exibida
+ * @param {string} tipo - Tipo de notificação: 'success', 'error', 'aviso', 'erro' (default: 'success')
+ * @param {number} duracao - Duração da notificação em ms (default: 3000)
+ */
+function mostrarNotificacao(mensagem, tipo = 'success', duracao = 3000) {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notification-text');
+    
+    if (!notification || !notificationText) {
+        // Fallback para console se elementos não existirem
+        console.log(`[Notificação ${tipo}]: ${mensagem}`);
+        return;
+    }
+    
+    notificationText.textContent = mensagem;
+    notification.className = 'notification show';
+    
+    // Definir cor baseada no tipo
+    if (tipo === 'error' || tipo === 'erro') {
+        notification.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+    } else if (tipo === 'aviso' || tipo === 'warning') {
+        notification.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+    } else {
+        notification.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+    }
+    
+    // Remover notificação após duração especificada
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, duracao);
+}
+
+/**
  * Wrapper para exportarPDFCliente com loading e atualização de status
  * Utiliza PDFService v5.2.0
  */
