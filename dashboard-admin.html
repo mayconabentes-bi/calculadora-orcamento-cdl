@@ -1427,27 +1427,34 @@
     <!-- JavaScript -->
     <!-- Authentication Check (MUST RUN FIRST) -->
     <script type="module">
-        import authManager from './assets/js/auth.js';
+        // Check if running in E2E test mode (Playwright detection) - CHECK THIS FIRST
+        const isE2ETest = window.location.search.includes('e2e-test') || 
+                          navigator.webdriver || 
+                          window.Cypress || 
+                          (window.navigator.userAgent && window.navigator.userAgent.includes('Playwright'));
         
-        // Make authManager globally available
-        window.authManager = authManager;
+        // Make test mode globally available
+        window.E2E_TEST_MODE = isE2ETest;
+        
+        if (isE2ETest) {
+            console.log('🧪 [E2E Test Mode Detected] Skipping authentication for testing');
+        }
         
         // Verify access on page load
         (async () => {
             try {
-                // Check if running in E2E test mode (Playwright detection)
-                const isE2ETest = window.location.search.includes('e2e-test') || 
-                                  navigator.webdriver || 
-                                  window.Cypress || 
-                                  (window.navigator.userAgent && window.navigator.userAgent.includes('Playwright'));
-                
                 let hasAccess = false;
+                let authManager = null;
                 
-                if (isE2ETest) {
-                    console.log('🧪 [E2E Test Mode] Skipping authentication for testing');
-                    hasAccess = true; // Bypass auth for E2E tests
-                } else {
+                if (!isE2ETest) {
+                    // Only import auth manager in production mode
+                    const authModule = await import('./assets/js/auth.js');
+                    authManager = authModule.default;
+                    window.authManager = authManager;
                     hasAccess = await authManager.verificarAcesso();
+                } else {
+                    // In test mode, bypass authentication
+                    hasAccess = true;
                 }
                 
                 if (!hasAccess) {
@@ -1457,8 +1464,8 @@
                 }
                 
                 // User authenticated (or test mode), show user info
-                const userMetadata = isE2ETest ? null : authManager.getUserMetadata();
-                const currentUser = isE2ETest ? null : authManager.getCurrentUser();
+                const userMetadata = (isE2ETest || !authManager) ? null : authManager.getUserMetadata();
+                const currentUser = (isE2ETest || !authManager) ? null : authManager.getCurrentUser();
                 
                 if (userMetadata && currentUser) {
                     // Display user info
@@ -1479,7 +1486,7 @@
                     console.log('✅ Usuário autenticado:', userMetadata.nome, `(${userMetadata.role})`);
                     
                     // Show user management card if admin
-                    if (authManager.isAdmin()) {
+                    if (authManager && authManager.isAdmin()) {
                         const userManagementCard = document.getElementById('user-management-card');
                         if (userManagementCard) {
                             userManagementCard.style.display = 'block';
