@@ -132,23 +132,35 @@ class DataManager {
      * @returns {Promise<Array>} Lista de espaços
      */
     async obterEspacos() {
+        // Verifica se db está disponível
+        if (!db) {
+            console.warn('[SGQ-DATA] Firebase não inicializado. Usando dados mock.');
+            return this._getMockEspacos();
+        }
+
         try {
-            // Tenta buscar do Firestore primeiro (Fonte da Verdade)
-            const snapshot = await getDocs(collection(db, this.collections.ESPACOS));
+            // Tenta buscar do Firestore com timeout
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Timeout')), 5000);
+            });
+            
+            const fetchPromise = getDocs(collection(db, this.collections.ESPACOS));
+            const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
             
             if (snapshot.empty) {
                 console.warn('[SGQ-DATA] Nenhum espaço encontrado no Firestore. Usando dados mock para testes.');
-                // Retorna dados mock para testes E2E e desenvolvimento
                 return this._getMockEspacos();
             }
 
-            return snapshot.docs.map(doc => ({
+            const espacos = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
+            
+            console.log(`[SGQ-DATA] ${espacos.length} espaços carregados do Firestore.`);
+            return espacos;
         } catch (error) {
-            console.error('[SGQ-DATA] Erro ao buscar espaços do Firestore. Usando dados mock.', error);
-            // Fallback para dados mock em caso de erro de conexão
+            console.warn('[SGQ-DATA] Erro ao buscar espaços do Firestore. Usando dados mock.', error.message);
             return this._getMockEspacos();
         }
     }
