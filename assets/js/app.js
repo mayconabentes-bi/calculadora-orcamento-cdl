@@ -33,52 +33,60 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Inicializa toda a aplicação
- * [SGQ-HOTFIX] Async/Await para sincronização correta com Firestore
+ * Inicializa a aplicação de forma ASSÍNCRONA (Async/Await)
  */
 async function inicializarAplicacao() {
-    // Inicializar o Motor de Cálculo de Orçamentos
-    budgetEngine = new BudgetEngine(dataManager);
-    
-    configurarNavegacaoAbas();
-    
-    // [SGQ-HOTFIX] Aguardar carregamento de dados do Firestore antes de continuar
-    await carregarSelectEspacos();
-    
-    carregarExtrasCheckboxes();
-    
-    // [SGQ-HOTFIX] Aguardar carregamento de tabelas do Firestore
-    await carregarTabelaEspacos();
-    await carregarTabelaCustos();
-    
-    carregarExtrasConfig();
-    carregarListaFuncionarios();
-    inicializarHorarios();
-    configurarEventListeners();
-    aplicarTema();
-    
-    // Listener para mudanças na preferência de tema do sistema
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    prefersDark.addEventListener('change', () => {
-        // Só reaplicar se o tema estiver em modo sistema
-        if (dataManager.obterTema() === 'sistema') {
-            aplicarTema();
+    try {
+        mostrarLoading(); // Bloqueia UI enquanto carrega
+        
+        budgetEngine = new BudgetEngine(dataManager);
+        configurarNavegacaoAbas();
+        
+        // Carregamento sequencial seguro
+        console.log('[App] Carregando dados...');
+        await carregarSelectEspacos(); 
+        carregarExtrasCheckboxes(); // Síncrono/Local
+        
+        // Tabelas admin (podem carregar em paralelo)
+        await Promise.all([
+            carregarTabelaEspacos(),
+            carregarTabelaCustos()
+        ]);
+        
+        carregarExtrasConfig();
+        carregarListaFuncionarios();
+        inicializarHorarios();
+        configurarEventListeners();
+        aplicarTema();
+        
+        // Listener para mudanças na preferência de tema do sistema
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        prefersDark.addEventListener('change', () => {
+            // Só reaplicar se o tema estiver em modo sistema
+            if (dataManager.obterTema() === 'sistema') {
+                aplicarTema();
+            }
+        });
+        
+        // Realizar auditoria de dados para verificar itens desatualizados
+        const relatorioAuditoria = dataManager.realizarAuditoriaDados();
+        if (relatorioAuditoria.status === 'ATENCAO') {
+            exibirAlertaAuditoria(relatorioAuditoria);
         }
-    });
-    
-    // Realizar auditoria de dados para verificar itens desatualizados
-    const relatorioAuditoria = dataManager.realizarAuditoriaDados();
-    if (relatorioAuditoria.status === 'ATENCAO') {
-        exibirAlertaAuditoria(relatorioAuditoria);
+        
+        // Dashboard de Oportunidades de Renovação (CRM Proativo)
+        exibirOportunidadesRenovacao();
+        
+        // Carregar Centro de Operações Comerciais
+        carregarCentroOperacoesComerciais();
+        
+        mostrarNotificacao('Sistema carregado com sucesso!');
+    } catch (error) {
+        console.error('[App] Falha crítica na inicialização:', error);
+        alert('Erro ao carregar sistema. Verifique a conexão.');
+    } finally {
+        esconderLoading(); // Libera a UI
     }
-    
-    // Dashboard de Oportunidades de Renovação (CRM Proativo)
-    exibirOportunidadesRenovacao();
-    
-    // Carregar Centro de Operações Comerciais
-    carregarCentroOperacoesComerciais();
-    
-    mostrarNotificacao('Sistema carregado com sucesso!');
 }
 
 // ========== CENTRO DE OPERAÇÕES COMERCIAIS (SGQ-SECURITY) ==========
@@ -454,23 +462,33 @@ function alterarTema(novoTema) {
 // ========== CARREGAMENTO DE DADOS NA INTERFACE ==========
 
 /**
- * Carrega o select de espaços (ASYNC)
+ * Carrega select de espaços com tratamento Async
  */
 async function carregarSelectEspacos() {
     const select = document.getElementById('espaco');
-    const salas = await dataManager.obterEspacos();
-    
-    select.innerHTML = '<option value="">-- Selecione um espaço --</option>';
-    
-    salas.forEach(sala => {
-        const option = document.createElement('option');
-        option.value = sala.id;
-        option.textContent = `${sala.unidade} - ${sala.nome}`;
-        select.appendChild(option);
-    });
-    
-    // Event listener para mostrar informações da sala
-    select.addEventListener('change', mostrarInfoSala);
+    try {
+        // Agora usa AWAIT e chama o método correto
+        const salas = await dataManager.obterEspacos();
+        
+        select.innerHTML = '<option value="">-- Selecione um espaço --</option>';
+        
+        if (salas.length === 0) {
+            select.innerHTML += '<option disabled>Nenhuma sala disponível</option>';
+            return;
+        }
+
+        salas.forEach(sala => {
+            const option = document.createElement('option');
+            option.value = sala.id;
+            option.textContent = `${sala.unidade} - ${sala.nome}`;
+            select.appendChild(option);
+        });
+        
+        select.addEventListener('change', mostrarInfoSala);
+    } catch (e) {
+        console.error('Erro ao popular select:', e);
+        select.innerHTML = '<option error>Erro ao carregar salas</option>';
+    }
 }
 
 /**

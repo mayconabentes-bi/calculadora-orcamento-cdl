@@ -128,74 +128,44 @@ class DataManager {
     // =========================================================================
 
     /**
-     * Busca a lista de espaços e seus custos base
+     * Busca espaços com Timeout e Fallback (Robustez)
      * @returns {Promise<Array>} Lista de espaços
      */
     async obterEspacos() {
-        // Verifica se db está disponível
-        if (!db) {
-            console.warn('[SGQ-DATA] Firebase não inicializado. Usando dados mock.');
-            return this._getMockEspacos();
-        }
-
         try {
-            // Tenta buscar do Firestore com timeout
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Timeout')), 5000);
-            });
-            
+            // Timeout de 5s para não travar a UI se o Firebase estiver lento
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout Firebase')), 5000)
+            );
+
+            // Tenta buscar do Firestore
             const fetchPromise = getDocs(collection(db, this.collections.ESPACOS));
+            
             const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
             
             if (snapshot.empty) {
-                console.warn('[SGQ-DATA] Nenhum espaço encontrado no Firestore. Usando dados mock para testes.');
+                console.warn('[SGQ-DATA] Banco vazio. Usando Mock de segurança.');
                 return this._getMockEspacos();
             }
 
-            const espacos = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            
-            console.log(`[SGQ-DATA] ${espacos.length} espaços carregados do Firestore.`);
-            return espacos;
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
         } catch (error) {
-            console.warn('[SGQ-DATA] Erro ao buscar espaços do Firestore. Usando dados mock.', error.message);
+            console.error('[SGQ-DATA] Erro/Timeout ao buscar espaços. Usando Fallback.', error);
+            // Retorna dados falsos para a aplicação não travar (Tela Branca da Morte)
             return this._getMockEspacos();
         }
     }
 
     /**
-     * Retorna dados mock de espaços para testes e desenvolvimento
+     * Dados de emergência para quando o banco falha
      * @private
      * @returns {Array} Lista de espaços mock
      */
     _getMockEspacos() {
         return [
-            {
-                id: 'espaco-1',
-                unidade: 'CDL',
-                nome: 'Auditório Principal',
-                custoBase: 500,
-                capacidade: 200,
-                descricao: 'Auditório principal com recursos audiovisuais'
-            },
-            {
-                id: 'espaco-2',
-                unidade: 'UTV',
-                nome: 'Sala de Reuniões',
-                custoBase: 200,
-                capacidade: 50,
-                descricao: 'Sala de reuniões executivas'
-            },
-            {
-                id: 'espaco-3',
-                unidade: 'CDL',
-                nome: 'Sala de Treinamento',
-                custoBase: 300,
-                capacidade: 80,
-                descricao: 'Sala equipada para treinamentos'
-            }
+            { id: 'mock1', nome: 'Auditório Principal (Offline)', unidade: 'CDL', capacidade: 100, custoBase: 150 },
+            { id: 'mock2', nome: 'Sala de Reunião (Offline)', unidade: 'CDL', capacidade: 10, custoBase: 50 }
         ];
     }
 
@@ -264,10 +234,10 @@ class DataManager {
     // =========================================================================
 
     /**
-     * Alias para obterEspacos() - Retrocompatibilidade
+     * Alias para compatibilidade com código legado (app.js antigo)
      * @returns {Promise<Array>} Lista de salas/espaços
      */
-    obterSalas() {
+    async obterSalas() {
         return this.obterEspacos();
     }
 
