@@ -252,8 +252,8 @@ async function performHealthCheck() {
     console.log('');
     console.log(`   ✅ Variáveis de ambiente: OK`);
     console.log(`   ✅ Conectividade Firebase: OK`);
-    console.log(`   ✅ Coleção 'espacos': ${results.collections.espacos.count} documentos`);
-    console.log(`   ✅ Coleção 'extras': ${results.collections.extras.count} documentos`);
+    console.log(`   ✅ Coleção 'espacos': ${results.collections.espacos?.count || 0} documentos`);
+    console.log(`   ✅ Coleção 'extras': ${results.collections.extras?.count || 0} documentos`);
     console.log(`   ✅ Configurações: Multiplicadores configurados`);
     console.log('');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
