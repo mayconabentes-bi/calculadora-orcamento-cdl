@@ -875,10 +875,35 @@ function configurarEventListeners() {
     // Horários
     document.getElementById('adicionar-horario').addEventListener('click', () => adicionarNovoHorario());
     
-    // Exportação e impressão
-    document.getElementById('exportar-pdf-cliente').addEventListener('click', exportarPDFClienteComLoading);
-    document.getElementById('exportar-pdf-super').addEventListener('click', exportarPDFSuperintendenciaComLoading);
-    document.getElementById('imprimir').addEventListener('click', imprimirOrcamento);
+    // --- CORREÇÃO FINAL v5.2.1: Exportação de PDF ---
+    
+    // 1. Botão Superintendência (Com Loading)
+    const btnExportarPdfSuper = document.getElementById('exportar-pdf-super') || document.getElementById('btn-exportar-pdf') || document.getElementById('btn-imprimir');
+    if (btnExportarPdfSuper) {
+        // Usa a função assíncrona que gerencia o spinner
+        btnExportarPdfSuper.addEventListener('click', exportarPDFSuperintendenciaComLoading);
+    }
+
+    // 2. Botão Cliente (Wrapper Seguro)
+    const btnExportarPdfCliente = document.getElementById('exportar-pdf-cliente') || document.getElementById('btn-orcamento-cliente');
+    if (btnExportarPdfCliente) {
+        btnExportarPdfCliente.addEventListener('click', exportarPDFClienteComLoading);
+    }
+    
+    // 3. Botão Imprimir (se existir separadamente)
+    const btnImprimir = document.getElementById('imprimir');
+    if (btnImprimir) {
+        btnImprimir.addEventListener('click', async () => {
+            if (!ultimoCalculoRealizado) {
+                alert('Realize um cálculo antes de imprimir.');
+                return;
+            }
+            // Usar a mesma função de exportar PDF Superintendência para impressão
+            await exportarPDFSuperintendenciaComLoading();
+        });
+    }
+    
+    // Exportação CSV
     document.getElementById('exportar-csv').addEventListener('click', exportarCSV);
     
     // Espaços
