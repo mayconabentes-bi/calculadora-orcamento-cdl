@@ -439,12 +439,12 @@ class DataManager {
 
     /**
      * Obtém leads recentes para o Dashboard
-     * Previne erro na próxima chamada do app.js
-     * @param {number} limite - Quantidade máxima de leads a retornar (padrão: 5) - Não utilizado na versão mock
+     * @param {number} limite - Quantidade máxima de leads a retornar (padrão: 5)
      * @returns {Array} Lista de leads recentes
      */
     obterLeadsRecentes(limite = 5) {
         console.log('[SGQ-DATA] Buscando leads recentes (Mock)...');
+        // Parâmetro 'limite' será utilizado na implementação futura
         return [];
     }
 
