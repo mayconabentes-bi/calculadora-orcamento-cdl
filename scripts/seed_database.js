@@ -107,7 +107,7 @@ function getCurrentTimestamp() {
 
 /**
  * Espaços da CDL Manaus (DJLM e UTV)
- * Fonte: MANUAL_TECNICO.md
+ * Fonte: docs/MANUAL_TECNICO.md
  */
 const espacosData = [
   {
@@ -184,7 +184,7 @@ const espacosData = [
 
 /**
  * Itens extras para orçamentos
- * Fonte: MANUAL_USUARIO.md e problema statement
+ * Fonte: docs/MANUAL_USUARIO.md e problema statement
  */
 const extrasData = [
   {
@@ -261,11 +261,13 @@ async function seedEspacos() {
         console.log(`   ✅ Espaço '${espaco.nome}' criado (ID: ${docRef.id})`);
         created++;
       } else {
-        // Já existe, atualizar
+        // Já existe, atualizar (preserva criadoEm original)
         const doc = querySnapshot.docs[0];
+        const existingData = doc.data();
         await db.collection('espacos').doc(doc.id).set({
           ...espaco,
           ativo: true,
+          criadoEm: existingData.criadoEm, // Preserva timestamp de criação original
           atualizadoEm: getCurrentTimestamp()
         }, { merge: true });
         console.log(`   ♻️  Espaço '${espaco.nome}' atualizado (ID: ${doc.id})`);
@@ -315,11 +317,13 @@ async function seedExtras() {
         console.log(`   ✅ Extra '${extra.nome}' criado (ID: ${docRef.id})`);
         created++;
       } else {
-        // Já existe, atualizar
+        // Já existe, atualizar (preserva criadoEm original)
         const doc = querySnapshot.docs[0];
+        const existingData = doc.data();
         await db.collection('extras').doc(doc.id).set({
           ...extra,
           ativo: true,
+          criadoEm: existingData.criadoEm, // Preserva timestamp de criação original
           atualizadoEm: getCurrentTimestamp()
         }, { merge: true });
         console.log(`   ♻️  Extra '${extra.nome}' atualizado (ID: ${doc.id})`);
@@ -363,9 +367,11 @@ async function seedConfiguracoes() {
       console.log(`   ✅ Configuração 'multiplicadores' criada`);
       created++;
     } else {
-      // Já existe, atualizar
+      // Já existe, atualizar (preserva criadoEm original)
+      const existingData = doc.data();
       await docRef.set({
         ...configuracoesData,
+        criadoEm: existingData.criadoEm, // Preserva timestamp de criação original
         atualizadoEm: getCurrentTimestamp()
       }, { merge: true });
       console.log(`   ♻️  Configuração 'multiplicadores' atualizada`);
