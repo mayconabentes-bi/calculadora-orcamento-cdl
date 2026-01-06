@@ -878,7 +878,7 @@ function configurarEventListeners() {
     // --- CORREÇÃO FINAL v5.2.1: Exportação de PDF ---
     
     // 1. Botão Superintendência (Com Loading)
-    const btnExportarPdfSuper = document.getElementById('exportar-pdf-super') || document.getElementById('btn-exportar-pdf') || document.getElementById('btn-imprimir');
+    const btnExportarPdfSuper = document.getElementById('exportar-pdf-super') || document.getElementById('btn-exportar-pdf');
     if (btnExportarPdfSuper) {
         // Usa a função assíncrona que gerencia o spinner
         btnExportarPdfSuper.addEventListener('click', exportarPDFSuperintendenciaComLoading);
@@ -895,7 +895,7 @@ function configurarEventListeners() {
     if (btnImprimir) {
         btnImprimir.addEventListener('click', async () => {
             if (!ultimoCalculoRealizado) {
-                alert('Realize um cálculo antes de imprimir.');
+                mostrarNotificacao('Realize um cálculo antes de imprimir.', 'aviso');
                 return;
             }
             // Usar a mesma função de exportar PDF Superintendência para impressão
