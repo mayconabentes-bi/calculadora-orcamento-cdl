@@ -11,7 +11,7 @@ const { test, expect } = require('@playwright/test');
 test.describe('Correção do Bloqueio - DataSanitizer Flexível', () => {
   
   test('deve permitir cálculo com nome em CAPS', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
     
     // Preencher com nome em CAPS
     await page.fill('#cliente-nome', 'MARIA SILVA');
@@ -45,7 +45,7 @@ test.describe('Correção do Bloqueio - DataSanitizer Flexível', () => {
   });
   
   test('deve permitir cálculo com nome simples', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
     
     // Preencher com nome simples
     await page.fill('#cliente-nome', 'João Silva');
@@ -80,7 +80,7 @@ test.describe('Correção do Bloqueio - DataSanitizer Flexível', () => {
   });
   
   test('deve bloquear quando nome está vazio', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
     
     // Não preencher nome
     await page.fill('#cliente-contato', '11987654321');
@@ -119,7 +119,7 @@ test.describe('Correção do Bloqueio - DataSanitizer Flexível', () => {
 test.describe('Correção do Bloqueio - Data com Confirmação', () => {
   
   test('deve permitir cálculo com data passada após confirmação', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
     
     // Preencher dados do cliente
     await page.fill('#cliente-nome', 'Pedro Santos');
@@ -160,7 +160,7 @@ test.describe('Correção do Bloqueio - Data com Confirmação', () => {
   });
   
   test('não deve calcular com data passada se usuário cancelar', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
     
     // Preencher dados
     await page.fill('#cliente-nome', 'Ana Costa');
@@ -202,7 +202,7 @@ test.describe('Correção do Bloqueio - Data com Confirmação', () => {
 test.describe('Correção do Bloqueio - Casos Reais', () => {
   
   test('cenário completo: empresa com formatação não ideal', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
     
     // Nome com formatação não ideal mas válido
     await page.fill('#cliente-nome', 'EMPRESA ABC LTDA');
