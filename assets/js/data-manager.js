@@ -440,15 +440,20 @@ class DataManager {
     /**
      * Obtém leads recentes para o Dashboard
      * Previne erro na próxima chamada do app.js
+     * @param {number} limite - Quantidade máxima de leads a retornar (padrão: 5)
+     * @returns {Promise<Array>} Lista de leads recentes
      */
     async obterLeadsRecentes(limite = 5) {
+        console.log('[SGQ-DATA] Buscando leads recentes (Mock)...');
         return [];
     }
 
     /**
      * Obtém estatísticas gerais para os cards do topo
+     * @returns {Promise<Object>} Objeto com estatísticas do dashboard
      */
     async obterEstatisticas() {
+        console.log('[SGQ-DATA] Buscando estatísticas (Mock)...');
         return {
             totalOrcamentos: 0,
             taxaConversao: 0,
@@ -459,8 +464,10 @@ class DataManager {
 
     /**
      * Obtém metas do mês
+     * @returns {Promise<Object>} Objeto com metas do mês
      */
     async obterMetas() {
+        console.log('[SGQ-DATA] Buscando metas do mês (Mock)...');
         return {
             faturamento: 100000,
             atual: 0
