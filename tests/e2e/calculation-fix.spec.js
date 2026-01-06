@@ -11,11 +11,20 @@ const { test, expect } = require('@playwright/test');
 test.describe('Correção do Bloqueio - DataSanitizer Flexível', () => {
   
   test('deve permitir cálculo com nome em CAPS', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
+    
+    // Aguardar o carregamento completo da página e dados
+    await page.waitForLoadState('networkidle');
     
     // Preencher com nome em CAPS
     await page.fill('#cliente-nome', 'MARIA SILVA');
     await page.fill('#cliente-contato', '11987654321');
+    
+    // Aguardar que o select de espaços tenha opções disponíveis
+    await page.waitForFunction(() => {
+      const select = document.getElementById('espaco');
+      return select && select.options.length > 1;
+    }, { timeout: 10000 });
     
     // Selecionar espaço
     await page.selectOption('#espaco', { index: 1 });
@@ -45,11 +54,20 @@ test.describe('Correção do Bloqueio - DataSanitizer Flexível', () => {
   });
   
   test('deve permitir cálculo com nome simples', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
+    
+    // Aguardar o carregamento completo da página e dados
+    await page.waitForLoadState('networkidle');
     
     // Preencher com nome simples
     await page.fill('#cliente-nome', 'João Silva');
     await page.fill('#cliente-contato', 'joao@empresa.com');
+    
+    // Aguardar que o select de espaços tenha opções disponíveis
+    await page.waitForFunction(() => {
+      const select = document.getElementById('espaco');
+      return select && select.options.length > 1;
+    }, { timeout: 10000 });
     
     // Selecionar espaço
     await page.selectOption('#espaco', { index: 1 });
@@ -80,10 +98,19 @@ test.describe('Correção do Bloqueio - DataSanitizer Flexível', () => {
   });
   
   test('deve bloquear quando nome está vazio', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
+    
+    // Aguardar o carregamento completo da página e dados
+    await page.waitForLoadState('networkidle');
     
     // Não preencher nome
     await page.fill('#cliente-contato', '11987654321');
+    
+    // Aguardar que o select de espaços tenha opções disponíveis
+    await page.waitForFunction(() => {
+      const select = document.getElementById('espaco');
+      return select && select.options.length > 1;
+    }, { timeout: 10000 });
     
     // Selecionar espaço
     await page.selectOption('#espaco', { index: 1 });
@@ -119,11 +146,20 @@ test.describe('Correção do Bloqueio - DataSanitizer Flexível', () => {
 test.describe('Correção do Bloqueio - Data com Confirmação', () => {
   
   test('deve permitir cálculo com data passada após confirmação', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
+    
+    // Aguardar o carregamento completo da página e dados
+    await page.waitForLoadState('networkidle');
     
     // Preencher dados do cliente
     await page.fill('#cliente-nome', 'Pedro Santos');
     await page.fill('#cliente-contato', '21999887766');
+    
+    // Aguardar que o select de espaços tenha opções disponíveis
+    await page.waitForFunction(() => {
+      const select = document.getElementById('espaco');
+      return select && select.options.length > 1;
+    }, { timeout: 10000 });
     
     // Selecionar espaço
     await page.selectOption('#espaco', { index: 1 });
@@ -160,11 +196,20 @@ test.describe('Correção do Bloqueio - Data com Confirmação', () => {
   });
   
   test('não deve calcular com data passada se usuário cancelar', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
+    
+    // Aguardar o carregamento completo da página e dados
+    await page.waitForLoadState('networkidle');
     
     // Preencher dados
     await page.fill('#cliente-nome', 'Ana Costa');
     await page.fill('#cliente-contato', 'ana@empresa.com');
+    
+    // Aguardar que o select de espaços tenha opções disponíveis
+    await page.waitForFunction(() => {
+      const select = document.getElementById('espaco');
+      return select && select.options.length > 1;
+    }, { timeout: 10000 });
     
     // Selecionar espaço
     await page.selectOption('#espaco', { index: 1 });
@@ -202,11 +247,20 @@ test.describe('Correção do Bloqueio - Data com Confirmação', () => {
 test.describe('Correção do Bloqueio - Casos Reais', () => {
   
   test('cenário completo: empresa com formatação não ideal', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/dashboard-admin.html');
+    
+    // Aguardar o carregamento completo da página e dados
+    await page.waitForLoadState('networkidle');
     
     // Nome com formatação não ideal mas válido
     await page.fill('#cliente-nome', 'EMPRESA ABC LTDA');
     await page.fill('#cliente-contato', 'CONTATO@EMPRESA.COM');
+    
+    // Aguardar que o select de espaços tenha opções disponíveis
+    await page.waitForFunction(() => {
+      const select = document.getElementById('espaco');
+      return select && select.options.length > 1;
+    }, { timeout: 10000 });
     
     // Selecionar espaço
     await page.selectOption('#espaco', { index: 1 });

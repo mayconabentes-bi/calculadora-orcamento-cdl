@@ -34,16 +34,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /**
  * Inicializa toda a aplicação
+ * [SGQ-HOTFIX] Async/Await para sincronização correta com Firestore
  */
 async function inicializarAplicacao() {
     // Inicializar o Motor de Cálculo de Orçamentos
     budgetEngine = new BudgetEngine(dataManager);
     
     configurarNavegacaoAbas();
+    
+    // [SGQ-HOTFIX] Aguardar carregamento de dados do Firestore antes de continuar
     await carregarSelectEspacos();
+    
     carregarExtrasCheckboxes();
+    
+    // [SGQ-HOTFIX] Aguardar carregamento de tabelas do Firestore
     await carregarTabelaEspacos();
     await carregarTabelaCustos();
+    
     carregarExtrasConfig();
     carregarListaFuncionarios();
     inicializarHorarios();

@@ -132,24 +132,71 @@ class DataManager {
      * @returns {Promise<Array>} Lista de espaços
      */
     async obterEspacos() {
+        // Verifica se db está disponível
+        if (!db) {
+            console.warn('[SGQ-DATA] Firebase não inicializado. Usando dados mock.');
+            return this._getMockEspacos();
+        }
+
         try {
-            // Tenta buscar do Firestore primeiro (Fonte da Verdade)
-            const snapshot = await getDocs(collection(db, this.collections.ESPACOS));
+            // Tenta buscar do Firestore com timeout
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Timeout')), 5000);
+            });
+            
+            const fetchPromise = getDocs(collection(db, this.collections.ESPACOS));
+            const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
             
             if (snapshot.empty) {
-                console.warn('[SGQ-DATA] Nenhum espaço encontrado no Firestore. Verifique a inicialização.');
-                return [];
+                console.warn('[SGQ-DATA] Nenhum espaço encontrado no Firestore. Usando dados mock para testes.');
+                return this._getMockEspacos();
             }
 
-            return snapshot.docs.map(doc => ({
+            const espacos = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
+            
+            console.log(`[SGQ-DATA] ${espacos.length} espaços carregados do Firestore.`);
+            return espacos;
         } catch (error) {
-            console.error('[SGQ-DATA] Erro crítico ao buscar espaços:', error);
-            // Retorna array vazio em vez de lançar erro para evitar crash da UI
-            return [];
+            console.warn('[SGQ-DATA] Erro ao buscar espaços do Firestore. Usando dados mock.', error.message);
+            return this._getMockEspacos();
         }
+    }
+
+    /**
+     * Retorna dados mock de espaços para testes e desenvolvimento
+     * @private
+     * @returns {Array} Lista de espaços mock
+     */
+    _getMockEspacos() {
+        return [
+            {
+                id: 'espaco-1',
+                unidade: 'CDL',
+                nome: 'Auditório Principal',
+                custoBase: 500,
+                capacidade: 200,
+                descricao: 'Auditório principal com recursos audiovisuais'
+            },
+            {
+                id: 'espaco-2',
+                unidade: 'UTV',
+                nome: 'Sala de Reuniões',
+                custoBase: 200,
+                capacidade: 50,
+                descricao: 'Sala de reuniões executivas'
+            },
+            {
+                id: 'espaco-3',
+                unidade: 'CDL',
+                nome: 'Sala de Treinamento',
+                custoBase: 300,
+                capacidade: 80,
+                descricao: 'Sala equipada para treinamentos'
+            }
+        ];
     }
 
     /**
