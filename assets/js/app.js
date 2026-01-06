@@ -2110,7 +2110,7 @@ function toggleCostDetail(type) {
 /**
  * Adiciona um novo espaço
  */
-function adicionarNovoEspaco() {
+async function adicionarNovoEspaco() {
     const nome = document.getElementById('novo-espaco-nome').value.trim();
     const unidade = document.getElementById('novo-espaco-unidade').value.trim();
     const capacidade = document.getElementById('novo-espaco-capacidade').value;
@@ -2138,8 +2138,8 @@ function adicionarNovoEspaco() {
     document.getElementById('novo-espaco-area').value = '';
     
     // Atualizar interface
-    carregarTabelaEspacos();
-    carregarSelectEspacos();
+    await carregarTabelaEspacos();
+    await carregarSelectEspacos();
     
     mostrarNotificacao('Espaço adicionado com sucesso!');
 }
@@ -2147,7 +2147,7 @@ function adicionarNovoEspaco() {
 /**
  * Edita um espaço existente
  */
-function editarSala(id) {
+async function editarSala(id) {
     const sala = dataManager.obterSalaPorId(id);
     if (!sala) return;
     
@@ -2170,8 +2170,8 @@ function editarSala(id) {
         area: parseFloat(area)
     });
     
-    carregarTabelaEspacos();
-    carregarSelectEspacos();
+    await carregarTabelaEspacos();
+    await carregarSelectEspacos();
     
     mostrarNotificacao('Espaço atualizado com sucesso!');
 }
@@ -2179,14 +2179,14 @@ function editarSala(id) {
 /**
  * Remove um espaço
  */
-function removerSala(id) {
+async function removerSala(id) {
     if (!confirm('Deseja realmente remover este espaço?')) {
         return;
     }
     
     dataManager.removerSala(id);
-    carregarTabelaEspacos();
-    carregarSelectEspacos();
+    await carregarTabelaEspacos();
+    await carregarSelectEspacos();
     
     mostrarNotificacao('Espaço removido com sucesso!');
 }
@@ -2196,7 +2196,7 @@ function removerSala(id) {
 /**
  * Salva o custo de uma sala específica
  */
-function salvarCustoSala(id) {
+async function salvarCustoSala(id) {
     const input = document.getElementById(`custo-${id}`);
     const novoCusto = parseFloat(input.value);
     
@@ -2206,8 +2206,8 @@ function salvarCustoSala(id) {
     }
     
     dataManager.atualizarSala(id, { custoBase: novoCusto });
-    carregarTabelaCustos();
-    carregarSelectEspacos();
+    await carregarTabelaCustos();
+    await carregarSelectEspacos();
     
     mostrarNotificacao('Custo atualizado com sucesso!');
 }
@@ -2491,14 +2491,14 @@ function importarDados(event) {
     if (!file) return;
     
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         const conteudo = e.target.result;
         if (dataManager.importarDados(conteudo)) {
             // Recarregar toda a interface
-            carregarSelectEspacos();
+            await carregarSelectEspacos();
             carregarExtrasCheckboxes();
-            carregarTabelaEspacos();
-            carregarTabelaCustos();
+            await carregarTabelaEspacos();
+            await carregarTabelaCustos();
             carregarExtrasConfig();
             carregarListaFuncionarios();
             
@@ -2516,7 +2516,7 @@ function importarDados(event) {
 /**
  * Reseta os dados para o padrão
  */
-function resetarDados() {
+async function resetarDados() {
     if (!confirm('Deseja realmente restaurar os dados padrão? Todas as alterações serão perdidas!')) {
         return;
     }
@@ -2524,10 +2524,10 @@ function resetarDados() {
     dataManager.restaurarPadrao();
     
     // Recarregar toda a interface
-    carregarSelectEspacos();
+    await carregarSelectEspacos();
     carregarExtrasCheckboxes();
-    carregarTabelaEspacos();
-    carregarTabelaCustos();
+    await carregarTabelaEspacos();
+    await carregarTabelaCustos();
     carregarExtrasConfig();
     carregarListaFuncionarios();
     
