@@ -423,6 +423,56 @@ class DataManager {
         console.warn('[SGQ-DATA] adicionarCalculoHistoricoFirestore() é um mock - implementação completa pendente');
         return { id: Date.now(), success: true };
     }
+
+    // =========================================================================
+    // MÓDULO CRM & DASHBOARD (HOTFIX v5.2.2)
+    // =========================================================================
+
+    /**
+     * Obtém oportunidades de renovação para o Dashboard
+     * @returns {Array} Lista de oportunidades
+     */
+    obterOportunidadesRenovacao() {
+        console.log('[SGQ-DATA] Buscando oportunidades de renovação (Mock)...');
+        return []; // Retorna vazio por enquanto para destravar a tela
+    }
+
+    /**
+     * Obtém leads recentes para o Dashboard
+     * @param {number} limite - Quantidade máxima de leads a retornar (padrão: 5)
+     * @returns {Array} Lista de leads recentes
+     */
+    obterLeadsRecentes(limite = 5) {
+        console.log('[SGQ-DATA] Buscando leads recentes (Mock)...');
+        // Parâmetro 'limite' será utilizado na implementação futura
+        return [];
+    }
+
+    /**
+     * Obtém estatísticas gerais para os cards do topo
+     * @returns {Object} Objeto com estatísticas do dashboard
+     */
+    obterEstatisticas() {
+        console.log('[SGQ-DATA] Buscando estatísticas (Mock)...');
+        return {
+            totalOrcamentos: 0,
+            taxaConversao: 0,
+            faturamentoTotal: 0,
+            ticketMedio: 0
+        };
+    }
+
+    /**
+     * Obtém metas do mês
+     * @returns {Object} Objeto com metas do mês
+     */
+    obterMetas() {
+        console.log('[SGQ-DATA] Buscando metas do mês (Mock)...');
+        return {
+            faturamento: 100000,
+            atual: 0
+        };
+    }
 }
 
 // Exportar Instância Singleton
