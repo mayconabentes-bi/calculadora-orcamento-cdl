@@ -2982,4 +2982,42 @@ function limparHistoricoConfirmacao() {
     }
 }
 
+// =========================================================================
+// EXPORTAÇÃO GLOBAL (HOTFIX PARA HTML LEGADO)
+// Necessário para onclick/onchange no HTML funcionarem com Type="Module"
+// =========================================================================
+
+// Funções de Modal
+window.abrirModalImportarLead = abrirModalImportarLead;
+window.fecharModalImportarLead = fecharModalImportarLead;
+window.importarLead = importarLeadSelecionado; // Alias para compatibilidade
+
+// Funções de Interface da Calculadora
+window.atualizarHorario = atualizarHorario;
+window.adicionarEquipamento = function() {
+    console.warn('[App] adicionarEquipamento não implementado - função stub');
+};
+window.adicionarServico = function() {
+    console.warn('[App] adicionarServico não implementado - função stub');
+};
+window.copiarResumo = function() {
+    console.warn('[App] copiarResumo não implementado - função stub');
+};
+window.limparFormulario = function() {
+    console.warn('[App] limparFormulario não implementado - função stub');
+};
+
+// Funções de Tabs (se houver chamadas no HTML)
+window.abrirTab = function(tabName) {
+    console.log('[App] abrirTab chamado para:', tabName);
+    const tabButton = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+    if (tabButton) {
+        tabButton.click();
+    } else {
+        console.warn('[App] Tab não encontrada:', tabName);
+    }
+};
+
+console.log('[App] Funções globais exportadas para suporte a HTML legado.');
+
 // ========== FIM DO APP.JS ==========
