@@ -875,10 +875,38 @@ function configurarEventListeners() {
     // Horários
     document.getElementById('adicionar-horario').addEventListener('click', () => adicionarNovoHorario());
     
-    // Exportação e impressão
-    document.getElementById('exportar-pdf-cliente').addEventListener('click', exportarPDFClienteComLoading);
-    document.getElementById('exportar-pdf-super').addEventListener('click', exportarPDFSuperintendenciaComLoading);
-    document.getElementById('imprimir').addEventListener('click', imprimirOrcamento);
+    // PDF Export Event Listeners Configuration
+    
+    // 1. Botão Superintendência (Com Loading)
+    // Supports fallback IDs: 'exportar-pdf-super' (primary), 'btn-exportar-pdf' (legacy)
+    const btnExportarPdfSuper = document.getElementById('exportar-pdf-super') || document.getElementById('btn-exportar-pdf');
+    if (btnExportarPdfSuper) {
+        // Usa a função assíncrona que gerencia o spinner
+        btnExportarPdfSuper.addEventListener('click', exportarPDFSuperintendenciaComLoading);
+    }
+
+    // 2. Botão Cliente (Wrapper Seguro)
+    // Supports fallback IDs: 'exportar-pdf-cliente' (primary), 'btn-orcamento-cliente' (legacy)
+    const btnExportarPdfCliente = document.getElementById('exportar-pdf-cliente') || document.getElementById('btn-orcamento-cliente');
+    if (btnExportarPdfCliente) {
+        btnExportarPdfCliente.addEventListener('click', exportarPDFClienteComLoading);
+    }
+    
+    // 3. Botão Imprimir (se existir separadamente)
+    const btnImprimir = document.getElementById('imprimir');
+    if (btnImprimir) {
+        btnImprimir.addEventListener('click', async () => {
+            // Check if a calculation has been performed (ultimoCalculoRealizado is set in calcularOrcamento)
+            if (!ultimoCalculoRealizado) {
+                mostrarNotificacao('Realize um cálculo antes de imprimir.', 'aviso');
+                return;
+            }
+            // Usar a mesma função de exportar PDF Superintendência para impressão
+            await exportarPDFSuperintendenciaComLoading();
+        });
+    }
+    
+    // Exportação CSV
     document.getElementById('exportar-csv').addEventListener('click', exportarCSV);
     
     // Espaços
@@ -2635,6 +2663,40 @@ function esconderLoading() {
     if (overlay) {
         overlay.style.display = 'none';
     }
+}
+
+/**
+ * Mostra notificação temporária para o usuário
+ * @param {string} mensagem - Mensagem a ser exibida
+ * @param {string} tipo - Tipo de notificação: 'success', 'error', 'aviso', 'erro' (default: 'success')
+ * @param {number} duracao - Duração da notificação em ms (default: 3000)
+ */
+function mostrarNotificacao(mensagem, tipo = 'success', duracao = 3000) {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notification-text');
+    
+    if (!notification || !notificationText) {
+        // Fallback para console se elementos não existirem
+        console.log(`[Notificação ${tipo}]: ${mensagem}`);
+        return;
+    }
+    
+    notificationText.textContent = mensagem;
+    notification.className = 'notification show';
+    
+    // Definir cor baseada no tipo
+    if (tipo === 'error' || tipo === 'erro') {
+        notification.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+    } else if (tipo === 'aviso' || tipo === 'warning') {
+        notification.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+    } else {
+        notification.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+    }
+    
+    // Remover notificação após duração especificada
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, duracao);
 }
 
 /**
