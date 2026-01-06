@@ -18,7 +18,7 @@
 
 require('dotenv').config();
 const admin = require('firebase-admin');
-const { getFirebaseCredentials, displayConfigurationInfo } = require('../firebase-key-handler');
+const { getFirebaseCredentials } = require('../firebase-key-handler');
 
 const timestamp = new Date().toISOString();
 console.log(`[SEED-DB] ${timestamp} - Script de seeding iniciado`);
@@ -92,6 +92,18 @@ try {
 }
 
 const db = admin.firestore();
+
+// =========================================================================
+// HELPER FUNCTIONS
+// =========================================================================
+
+/**
+ * Gera timestamp ISO atual
+ * @returns {string} Timestamp no formato ISO 8601
+ */
+function getCurrentTimestamp() {
+  return new Date().toISOString();
+}
 
 // =========================================================================
 // DADOS DE SEEDING
@@ -247,8 +259,8 @@ async function seedEspacos() {
         const docRef = await db.collection('espacos').add({
           ...espaco,
           ativo: true,
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString()
+          criadoEm: getCurrentTimestamp(),
+          atualizadoEm: getCurrentTimestamp()
         });
         console.log(`   ✅ Espaço '${espaco.nome}' criado (ID: ${docRef.id})`);
         created++;
@@ -258,7 +270,7 @@ async function seedEspacos() {
         await db.collection('espacos').doc(doc.id).set({
           ...espaco,
           ativo: true,
-          atualizadoEm: new Date().toISOString()
+          atualizadoEm: getCurrentTimestamp()
         }, { merge: true });
         console.log(`   ♻️  Espaço '${espaco.nome}' atualizado (ID: ${doc.id})`);
         updated++;
@@ -301,8 +313,8 @@ async function seedExtras() {
         const docRef = await db.collection('extras').add({
           ...extra,
           ativo: true,
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString()
+          criadoEm: getCurrentTimestamp(),
+          atualizadoEm: getCurrentTimestamp()
         });
         console.log(`   ✅ Extra '${extra.nome}' criado (ID: ${docRef.id})`);
         created++;
@@ -312,7 +324,7 @@ async function seedExtras() {
         await db.collection('extras').doc(doc.id).set({
           ...extra,
           ativo: true,
-          atualizadoEm: new Date().toISOString()
+          atualizadoEm: getCurrentTimestamp()
         }, { merge: true });
         console.log(`   ♻️  Extra '${extra.nome}' atualizado (ID: ${doc.id})`);
         updated++;
@@ -349,8 +361,8 @@ async function seedConfiguracoes() {
       // Não existe, criar novo
       await docRef.set({
         ...configuracoesData,
-        criadoEm: new Date().toISOString(),
-        atualizadoEm: new Date().toISOString()
+        criadoEm: getCurrentTimestamp(),
+        atualizadoEm: getCurrentTimestamp()
       });
       console.log(`   ✅ Configuração 'multiplicadores' criada`);
       created++;
@@ -358,7 +370,7 @@ async function seedConfiguracoes() {
       // Já existe, atualizar
       await docRef.set({
         ...configuracoesData,
-        atualizadoEm: new Date().toISOString()
+        atualizadoEm: getCurrentTimestamp()
       }, { merge: true });
       console.log(`   ♻️  Configuração 'multiplicadores' atualizada`);
       updated++;
@@ -417,7 +429,10 @@ async function seedDatabase() {
     console.log(`      ♻️  Atualizadas: ${configuracoesResult.updated}`);
     console.log('');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`🚀 Database Seeded: ${espacosResult.created + espacosResult.updated} espaços, ${extrasResult.created + extrasResult.updated} extras, ${configuracoesResult.created + configuracoesResult.updated} configs`);
+    const totalEspacos = espacosResult.created + espacosResult.updated;
+    const totalExtras = extrasResult.created + extrasResult.updated;
+    const totalConfigs = configuracoesResult.created + configuracoesResult.updated;
+    console.log(`🚀 Database Seeded: ${totalEspacos} espaços, ${totalExtras} extras, ${totalConfigs} configs`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
     console.log('✅ O banco de dados está pronto para uso!');
