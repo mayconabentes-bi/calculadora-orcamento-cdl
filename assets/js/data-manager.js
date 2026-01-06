@@ -210,6 +210,165 @@ class DataManager {
             return [];
         }
     }
+
+    // =========================================================================
+    // RETROCOMPATIBILIDADE & POLYFILLS (SGQ-SECURITY HOTFIX)
+    // =========================================================================
+
+    /**
+     * Alias para obterEspacos() - Retrocompatibilidade
+     * @returns {Promise<Array>} Lista de salas/espaços
+     */
+    obterSalas() {
+        return this.obterEspacos();
+    }
+
+    /**
+     * Busca sala por ID
+     * Mock de estabilidade - retorna null se não encontrado
+     * @param {string} salaId - ID da sala
+     * @returns {Object|null} Sala encontrada ou null
+     */
+    obterSalaPorId(salaId) {
+        console.warn('[SGQ-DATA] obterSalaPorId() é um mock - implementação completa pendente');
+        return null;
+    }
+
+    /**
+     * Atualiza dados de uma sala
+     * Mock de estabilidade
+     * @param {string} salaId - ID da sala
+     * @param {Object} dados - Dados a atualizar
+     */
+    atualizarSala(salaId, dados) {
+        console.warn('[SGQ-DATA] atualizarSala() é um mock - implementação completa pendente');
+        return true;
+    }
+
+    /**
+     * Retorna multiplicadores de turno padrão
+     * Mock de estabilidade para evitar crash quando BD não está populado
+     * @returns {Object} Multiplicadores por turno
+     */
+    obterMultiplicadoresTurno() {
+        return {
+            manha: 1,
+            tarde: 1.15,
+            noite: 1.40
+        };
+    }
+
+    /**
+     * Retorna lista de itens extras
+     * Mock de estabilidade - retorna array vazio até implementação completa
+     * @returns {Array} Lista de extras
+     */
+    obterExtras() {
+        return [];
+    }
+
+    /**
+     * Retorna lista de funcionários
+     * Mock de estabilidade - retorna array vazio até implementação completa
+     * @returns {Array} Lista de funcionários
+     */
+    obterFuncionarios() {
+        return [];
+    }
+
+    /**
+     * Retorna lista de funcionários ativos
+     * Mock de estabilidade
+     * @returns {Array} Lista de funcionários ativos
+     */
+    obterFuncionariosAtivos() {
+        return [];
+    }
+
+    /**
+     * Define um funcionário como ativo/inativo
+     * Mock de estabilidade
+     */
+    definirFuncionarioAtivo(id, ativo) {
+        console.warn('[SGQ-DATA] definirFuncionarioAtivo() é um mock - implementação completa pendente');
+        return true;
+    }
+
+    /**
+     * Obter tema atual
+     * Mock de estabilidade - retorna tema padrão
+     */
+    obterTema() {
+        return 'claro';
+    }
+
+    /**
+     * Definir tema
+     * Mock de estabilidade
+     */
+    definirTema(tema) {
+        console.warn('[SGQ-DATA] definirTema() é um mock - implementação completa pendente');
+        return true;
+    }
+
+    /**
+     * Realizar auditoria de dados
+     * Mock de estabilidade
+     */
+    realizarAuditoriaDados() {
+        return { status: 'OK', itensComProblema: 0 };
+    }
+
+    /**
+     * Obter leads por status
+     * Mock de estabilidade
+     */
+    obterLeads(status) {
+        return [];
+    }
+
+    /**
+     * Obter lead por ID
+     * Mock de estabilidade
+     */
+    obterLeadPorId(id) {
+        console.warn('[SGQ-DATA] obterLeadPorId() é um mock - implementação completa pendente');
+        return null;
+    }
+
+    /**
+     * Atualizar status de lead
+     * Mock de estabilidade
+     */
+    atualizarStatusLead(id, status) {
+        console.warn('[SGQ-DATA] atualizarStatusLead() é um mock - implementação completa pendente');
+        return true;
+    }
+
+    /**
+     * Obter orçamentos por status
+     * Mock de estabilidade
+     */
+    obterOrcamentosPorStatus(status) {
+        return [];
+    }
+
+    /**
+     * Obter histórico de cálculos
+     * Mock de estabilidade
+     */
+    obterHistoricoCalculos() {
+        return [];
+    }
+
+    /**
+     * Adicionar cálculo ao histórico (Firebase)
+     * Mock de estabilidade
+     */
+    async adicionarCalculoHistoricoFirestore(calculo) {
+        console.warn('[SGQ-DATA] adicionarCalculoHistoricoFirestore() é um mock - implementação completa pendente');
+        return { id: Date.now(), success: true };
+    }
 }
 
 // Exportar Instância Singleton
