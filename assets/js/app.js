@@ -451,7 +451,7 @@ function alterarTema(novoTema) {
  */
 async function carregarSelectEspacos() {
     const select = document.getElementById('espaco');
-    const salas = await dataManager.obterSalas();
+    const salas = await dataManager.obterEspacos();
     
     select.innerHTML = '<option value="">-- Selecione um espaço --</option>';
     
@@ -645,7 +645,7 @@ function validarHorarios() {
  */
 async function carregarTabelaEspacos() {
     const tbody = document.getElementById('espacos-body');
-    const salas = await dataManager.obterSalas();
+    const salas = await dataManager.obterEspacos();
     
     tbody.innerHTML = '';
     
@@ -670,7 +670,7 @@ async function carregarTabelaEspacos() {
  */
 async function carregarTabelaCustos() {
     const tbody = document.getElementById('costs-body');
-    const salas = await dataManager.obterSalas();
+    const salas = await dataManager.obterEspacos();
     const multiplicadores = dataManager.obterMultiplicadoresTurno();
     
     tbody.innerHTML = '';
@@ -2216,7 +2216,7 @@ function salvarCustoSala(id) {
  * Salva todos os custos de uma vez (ASYNC)
  */
 async function salvarTodosCustos() {
-    const salas = await dataManager.obterSalas();
+    const salas = await dataManager.obterEspacos();
     let atualizado = false;
     
     salas.forEach(sala => {

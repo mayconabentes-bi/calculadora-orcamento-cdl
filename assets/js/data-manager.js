@@ -147,7 +147,8 @@ class DataManager {
             }));
         } catch (error) {
             console.error('[SGQ-DATA] Erro crítico ao buscar espaços:', error);
-            throw error;
+            // Retorna array vazio em vez de lançar erro para evitar crash da UI
+            return [];
         }
     }
 
