@@ -557,29 +557,33 @@ function irParaStep(step) {
 }
 
 /**
- * Carregar espaços do DataManager
+ * Carregar espaços do DataManager (CORRIGIDO v5.2.1)
+ * SGQ-SECURITY: Implementação Assíncrona Segura
  */
 async function carregarEspacos() {
     try {
+        // [FIX] Adicionado await para resolver a Promise do Firestore/Mock
         const salas = await dataManager.obterSalas();
-        const selectEspaco = document.getElementById('espaco');
         
+        const selectEspaco = document.getElementById('espaco');
         selectEspaco.innerHTML = '<option value="">Selecione um espaço...</option>';
         
-        // Proteção adicional caso o retorno seja nulo
-        if (Array.isArray(salas)) {
+        // [FIX] Validação defensiva antes de iterar
+        if (Array.isArray(salas) && salas.length > 0) {
             salas.forEach(sala => {
                 const option = document.createElement('option');
                 option.value = sala.id;
                 option.textContent = `${sala.unidade} - ${sala.nome} (Cap: ${sala.capacidade} pessoas)`;
                 selectEspaco.appendChild(option);
             });
+            console.log('[SGQ-SECURITY] Espaços carregados com sucesso:', salas.length);
+        } else {
+            console.warn('[SGQ-SECURITY] Nenhum espaço disponível ou formato inválido.');
+            selectEspaco.innerHTML += '<option disabled>Indisponível no momento</option>';
         }
-        
-        console.log('[SGQ-SECURITY] Espaços carregados com sucesso');
     } catch (error) {
-        console.error('[SGQ-SECURITY] Erro ao carregar espaços:', error);
-        mostrarNotificacao('Erro ao carregar espaços disponíveis');
+        console.error('[SGQ-SECURITY] Erro crítico ao carregar espaços:', error);
+        mostrarNotificacao('Erro de conexão ao carregar espaços.');
     }
 }
 
