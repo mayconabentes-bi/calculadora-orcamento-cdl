@@ -224,9 +224,13 @@ async function performHealthCheck() {
     results.collections.configuracoes = configuracoesResult;
     
     // Verificar se todas as coleções têm dados
-    if (espacosResult.count === 0 || extrasResult.count === 0 || !configuracoesResult.exists) {
+    const hasEspacosError = espacosResult.error || espacosResult.count === 0;
+    const hasExtrasError = extrasResult.error || extrasResult.count === 0;
+    const hasConfigError = configuracoesResult.error || !configuracoesResult.exists;
+    
+    if (hasEspacosError || hasExtrasError || hasConfigError) {
       allChecksPass = false;
-      console.log('⚠️  Algumas coleções estão vazias ou ausentes');
+      console.log('⚠️  Algumas coleções estão vazias, ausentes ou com erros');
       console.log('💡 Ação recomendada: Execute npm run seed:database para popular o banco');
       console.log('');
     }
@@ -268,13 +272,28 @@ async function performHealthCheck() {
     console.log(`   ${results.firebase ? '✅' : '❌'} Conectividade Firebase`);
     
     if (results.collections.espacos) {
-      console.log(`   ${results.collections.espacos.count > 0 ? '✅' : '⚠️ '} Coleção 'espacos': ${results.collections.espacos.count} documentos`);
+      const espacosStatus = results.collections.espacos.error ? '❌' : 
+                            results.collections.espacos.count > 0 ? '✅' : '⚠️ ';
+      const espacosInfo = results.collections.espacos.error ? 
+                          `Erro: ${results.collections.espacos.error}` :
+                          `${results.collections.espacos.count} documentos`;
+      console.log(`   ${espacosStatus} Coleção 'espacos': ${espacosInfo}`);
     }
     if (results.collections.extras) {
-      console.log(`   ${results.collections.extras.count > 0 ? '✅' : '⚠️ '} Coleção 'extras': ${results.collections.extras.count} documentos`);
+      const extrasStatus = results.collections.extras.error ? '❌' : 
+                           results.collections.extras.count > 0 ? '✅' : '⚠️ ';
+      const extrasInfo = results.collections.extras.error ? 
+                         `Erro: ${results.collections.extras.error}` :
+                         `${results.collections.extras.count} documentos`;
+      console.log(`   ${extrasStatus} Coleção 'extras': ${extrasInfo}`);
     }
     if (results.collections.configuracoes) {
-      console.log(`   ${results.collections.configuracoes.exists ? '✅' : '⚠️ '} Configurações: ${results.collections.configuracoes.exists ? 'Configuradas' : 'Ausentes'}`);
+      const configStatus = results.collections.configuracoes.error ? '❌' :
+                           results.collections.configuracoes.exists ? '✅' : '⚠️ ';
+      const configInfo = results.collections.configuracoes.error ?
+                         `Erro: ${results.collections.configuracoes.error}` :
+                         results.collections.configuracoes.exists ? 'Configuradas' : 'Ausentes';
+      console.log(`   ${configStatus} Configurações: ${configInfo}`);
     }
     console.log('');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -288,10 +307,6 @@ async function performHealthCheck() {
 
 // Executar o health check
 performHealthCheck()
-  .then(() => {
-    const successTimestamp = new Date().toISOString();
-    console.log(`[HEALTH-CHECK] ${successTimestamp} - Script finalizado`);
-  })
   .catch((error) => {
     const fatalTimestamp = new Date().toISOString();
     console.error(`[HEALTH-CHECK] ${fatalTimestamp} - ❌ Erro fatal não tratado: ${error.message}`);
