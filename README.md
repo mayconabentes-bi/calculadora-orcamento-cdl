@@ -62,6 +62,7 @@ npm run validate:all    # Valida todo o ambiente (acesso + role + SGQ)
 ```bash
 npm run setup:user      # Criar/sincronizar usuário desenvolvedor
 npm run setup:users     # Registo em massa de utilizadores CDL
+npm run seed:database   # Popular Firestore com dados operacionais padrão
 npm run verify:auth     # Verificar configuração de autenticação
 npm run verify:security # Auditoria SGQ (RBAC + Resiliência)
 ```
