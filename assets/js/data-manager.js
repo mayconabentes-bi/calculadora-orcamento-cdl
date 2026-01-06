@@ -132,16 +132,26 @@ class DataManager {
      * @returns {Promise<Array>} Lista de espaços
      */
     async obterEspacos() {
+        // Verifica se db está disponível
+        if (!db) {
+            console.warn('[SGQ-DATA] Firebase não inicializado. Usando Mock de segurança.');
+            return this._getMockEspacos();
+        }
+
         try {
             // Timeout de 5s para não travar a UI se o Firebase estiver lento
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout Firebase')), 5000)
-            );
+            let timeoutId;
+            const timeoutPromise = new Promise((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error('Timeout Firebase')), 5000);
+            });
 
             // Tenta buscar do Firestore
             const fetchPromise = getDocs(collection(db, this.collections.ESPACOS));
             
             const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
+            
+            // Limpar timeout se fetch foi bem-sucedido
+            clearTimeout(timeoutId);
             
             if (snapshot.empty) {
                 console.warn('[SGQ-DATA] Banco vazio. Usando Mock de segurança.');
