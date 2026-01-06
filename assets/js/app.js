@@ -2666,52 +2666,8 @@ async function exportarPDFSuperintendenciaComLoading() {
         // Usar PDFService com dados do último cálculo
         PDFService.exportarPDFSuperintendencia(ultimoCalculoRealizado);
     } finally {
-            </div>
-            
-            <div class="pdf-section">
-                <h2>Informações do Espaço</h2>
-                <table class="pdf-table">
-                    <tr><td>Espaço:</td><td>${sala.unidade} - ${sala.nome}</td></tr>
-                    <tr><td>Capacidade:</td><td>${sala.capacidade} pessoas</td></tr>
-                    <tr><td>Área:</td><td>${sala.area} m²</td></tr>
-                </table>
-            </div>
-            
-            <div class="pdf-section">
-                <h2>Detalhes do Contrato</h2>
-                <table class="pdf-table">
-                    <tr><td>Duração:</td><td>${calculo.duracao} ${calculo.duracaoTipo || 'meses'}</td></tr>
-                    <tr><td>Dias:</td><td>${diasSelecionadosTexto}</td></tr>
-                    ${horarioTexto}
-                    <tr><td>Total de horas:</td><td>${resultado.horasTotais.toFixed(1)}h</td></tr>
-                </table>
-            </div>
-            
-            <div class="pdf-section">
-                <h2>Valores</h2>
-                <table class="pdf-table">
-                    <tr><td>Valor por hora:</td><td>R$ ${CoreUtils.formatarMoeda(resultado.valorPorHora)}</td></tr>
-                    <tr><td>Desconto aplicado:</td><td>${resultado.descontoPercent.toFixed(0)}%</td></tr>
-                    <tr><td>Economia:</td><td>R$ ${CoreUtils.formatarMoeda(resultado.economia)}</td></tr>
-                    <tr style="font-size: 1.2em; font-weight: bold; background: #f3f4f6;">
-                        <td>VALOR TOTAL:</td>
-                        <td>R$ ${CoreUtils.formatarMoeda(resultado.valorFinal)}</td>
-                    </tr>
-                </table>
-            </div>
-            
-            <div class="pdf-footer">
-                <p><strong>CDL Manaus - Câmara de Dirigentes Lojistas</strong></p>
-                <p>Proposta gerada em: ${calculo.data}</p>
-                <p>Esta proposta tem validade de 30 dias</p>
-            </div>
-        </div>
-    `;
-    
-    // Exibir e imprimir
-    printSection.style.display = 'block';
-    window.print();
-    printSection.style.display = 'none';
+        esconderLoading();
+    }
 }
 
 // ========== HISTÓRICO & CONVERSÃO ==========
