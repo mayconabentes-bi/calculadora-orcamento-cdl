@@ -447,11 +447,11 @@ function alterarTema(novoTema) {
 // ========== CARREGAMENTO DE DADOS NA INTERFACE ==========
 
 /**
- * Carrega o select de espaços
+ * Carrega o select de espaços (ASYNC)
  */
-function carregarSelectEspacos() {
+async function carregarSelectEspacos() {
     const select = document.getElementById('espaco');
-    const salas = dataManager.obterSalas();
+    const salas = await dataManager.obterSalas();
     
     select.innerHTML = '<option value="">-- Selecione um espaço --</option>';
     
@@ -641,11 +641,11 @@ function validarHorarios() {
 // ========== FIM GERENCIAMENTO DE HORÁRIOS ==========
 
 /**
- * Carrega a tabela de espaços
+ * Carrega a tabela de espaços (ASYNC)
  */
-function carregarTabelaEspacos() {
+async function carregarTabelaEspacos() {
     const tbody = document.getElementById('espacos-body');
-    const salas = dataManager.obterSalas();
+    const salas = await dataManager.obterSalas();
     
     tbody.innerHTML = '';
     
@@ -666,11 +666,11 @@ function carregarTabelaEspacos() {
 }
 
 /**
- * Carrega a tabela de custos por espaço
+ * Carrega a tabela de custos por espaço (ASYNC)
  */
-function carregarTabelaCustos() {
+async function carregarTabelaCustos() {
     const tbody = document.getElementById('costs-body');
-    const salas = dataManager.obterSalas();
+    const salas = await dataManager.obterSalas();
     const multiplicadores = dataManager.obterMultiplicadoresTurno();
     
     tbody.innerHTML = '';
@@ -2213,10 +2213,10 @@ function salvarCustoSala(id) {
 }
 
 /**
- * Salva todos os custos de uma vez
+ * Salva todos os custos de uma vez (ASYNC)
  */
-function salvarTodosCustos() {
-    const salas = dataManager.obterSalas();
+async function salvarTodosCustos() {
+    const salas = await dataManager.obterSalas();
     let atualizado = false;
     
     salas.forEach(sala => {
@@ -2231,7 +2231,7 @@ function salvarTodosCustos() {
     });
     
     if (atualizado) {
-        carregarSelectEspacos();
+        await carregarSelectEspacos();
         mostrarNotificacao('Todos os custos foram atualizados!');
     }
 }
