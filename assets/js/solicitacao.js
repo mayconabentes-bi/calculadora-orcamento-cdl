@@ -561,17 +561,20 @@ function irParaStep(step) {
  */
 async function carregarEspacos() {
     try {
-        const salas = dataManager.obterSalas();
+        const salas = await dataManager.obterSalas();
         const selectEspaco = document.getElementById('espaco');
         
         selectEspaco.innerHTML = '<option value="">Selecione um espaço...</option>';
         
-        salas.forEach(sala => {
-            const option = document.createElement('option');
-            option.value = sala.id;
-            option.textContent = `${sala.unidade} - ${sala.nome} (Cap: ${sala.capacidade} pessoas)`;
-            selectEspaco.appendChild(option);
-        });
+        // Proteção adicional caso o retorno seja nulo
+        if (Array.isArray(salas)) {
+            salas.forEach(sala => {
+                const option = document.createElement('option');
+                option.value = sala.id;
+                option.textContent = `${sala.unidade} - ${sala.nome} (Cap: ${sala.capacidade} pessoas)`;
+                selectEspaco.appendChild(option);
+            });
+        }
         
         console.log('[SGQ-SECURITY] Espaços carregados com sucesso');
     } catch (error) {
