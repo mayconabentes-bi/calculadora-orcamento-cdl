@@ -875,9 +875,10 @@ function configurarEventListeners() {
     // Horários
     document.getElementById('adicionar-horario').addEventListener('click', () => adicionarNovoHorario());
     
-    // --- CORREÇÃO FINAL v5.2.1: Exportação de PDF ---
+    // PDF Export Event Listeners Configuration
     
     // 1. Botão Superintendência (Com Loading)
+    // Supports fallback IDs: 'exportar-pdf-super' (primary), 'btn-exportar-pdf' (legacy)
     const btnExportarPdfSuper = document.getElementById('exportar-pdf-super') || document.getElementById('btn-exportar-pdf');
     if (btnExportarPdfSuper) {
         // Usa a função assíncrona que gerencia o spinner
@@ -885,6 +886,7 @@ function configurarEventListeners() {
     }
 
     // 2. Botão Cliente (Wrapper Seguro)
+    // Supports fallback IDs: 'exportar-pdf-cliente' (primary), 'btn-orcamento-cliente' (legacy)
     const btnExportarPdfCliente = document.getElementById('exportar-pdf-cliente') || document.getElementById('btn-orcamento-cliente');
     if (btnExportarPdfCliente) {
         btnExportarPdfCliente.addEventListener('click', exportarPDFClienteComLoading);
@@ -894,6 +896,7 @@ function configurarEventListeners() {
     const btnImprimir = document.getElementById('imprimir');
     if (btnImprimir) {
         btnImprimir.addEventListener('click', async () => {
+            // Check if a calculation has been performed (ultimoCalculoRealizado is set in calcularOrcamento)
             if (!ultimoCalculoRealizado) {
                 mostrarNotificacao('Realize um cálculo antes de imprimir.', 'aviso');
                 return;
