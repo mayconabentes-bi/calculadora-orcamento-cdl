@@ -15,6 +15,7 @@
     "setup:user": "node setup-developer-user.js",
     "setup:users": "node setup-users-cdl.js",
     "seed:database": "node scripts/seed_database.js",
+    "health:check": "node scripts/system_health_check.js",
     "verify:auth": "node verify-auth-setup.js",
     "verify:security": "node verify-sgq-security.js",
     "validate:all": "bash validar-recomendacoes.sh",
