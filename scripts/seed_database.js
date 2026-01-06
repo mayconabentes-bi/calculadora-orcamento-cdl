@@ -20,8 +20,7 @@ require('dotenv').config();
 const admin = require('firebase-admin');
 const { getFirebaseCredentials } = require('../firebase-key-handler');
 
-const timestamp = new Date().toISOString();
-console.log(`[SEED-DB] ${timestamp} - Script de seeding iniciado`);
+console.log(`[SEED-DB] ${new Date().toISOString()} - Script de seeding iniciado`);
 
 // Validação rigorosa de variáveis de ambiente obrigatórias
 const requiredEnvVars = [
@@ -29,7 +28,7 @@ const requiredEnvVars = [
   'FIREBASE_CLIENT_EMAIL'
 ];
 
-console.log(`[SEED-DB] ${timestamp} - 🔐 Verificando configuração de segurança (Arquitetura Gemini)...`);
+console.log(`[SEED-DB] ${new Date().toISOString()} - 🔐 Verificando configuração de segurança (Arquitetura Gemini)...`);
 console.log('');
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -43,8 +42,7 @@ if (!hasBase64Key && !hasLegacyKey) {
 }
 
 if (missingVars.length > 0) {
-  const errorTimestamp = new Date().toISOString();
-  console.error(`[SEED-DB] ${errorTimestamp} - ❌ ERRO CRÍTICO: Variáveis de ambiente obrigatórias não configuradas`);
+  console.error(`[SEED-DB] ${new Date().toISOString()} - ❌ ERRO CRÍTICO: Variáveis de ambiente obrigatórias não configuradas`);
   console.error('');
   console.error('Variáveis ausentes:');
   missingVars.forEach(varName => {
@@ -72,14 +70,12 @@ try {
     credential: admin.credential.cert(credential)
   });
 
-  const initTimestamp = new Date().toISOString();
-  console.log(`[SEED-DB] ${initTimestamp} - ✅ Firebase Admin inicializado via variáveis de ambiente`);
+  console.log(`[SEED-DB] ${new Date().toISOString()} - ✅ Firebase Admin inicializado via variáveis de ambiente`);
   console.log(`   Project: ${credential.projectId}`);
   console.log(`   Service Account: ${credential.clientEmail}`);
   console.log('');
 } catch (error) {
-  const errorTimestamp = new Date().toISOString();
-  console.error(`[SEED-DB] ${errorTimestamp} - ❌ Erro ao inicializar Firebase Admin: ${error.message}`);
+  console.error(`[SEED-DB] ${new Date().toISOString()} - ❌ Erro ao inicializar Firebase Admin: ${error.message}`);
   console.error('');
   console.error('💡 Dicas de troubleshooting:');
   console.error('   - Verifique o formato da FIREBASE_PRIVATE_KEY_BASE64 (Base64 válido)');
