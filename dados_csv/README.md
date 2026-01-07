@@ -41,9 +41,17 @@ Planilha com dados de infraestrutura.
 
 ⚠️ **Importante:** O arquivo CSV deve:
 - Usar vírgula (`,`) como separador
+- **Usar aspas duplas (`"`) ao redor de todos os campos** para evitar problemas com vírgulas e caracteres especiais
 - Ter codificação UTF-8
 - Pular a primeira linha (título) - a segunda linha deve ser o cabeçalho
 - Valores monetários no formato brasileiro (ex: "R$ 1.200,50")
+
+**Exemplo de formato correto:**
+```csv
+Título da Planilha - SIMULADOR 220H
+"Unidade","Espaço","Cap.","Área (m²)","Custo Op. Base","Turno: Manhã (x1,00)","Turno: Tarde (x1,15)","Turno: Noite (x1,40)","Itens Considerados (Qtd)"
+"CDL Centro","Auditório Principal","200","150","R$ 180,00","R$ 180,00","R$ 207,00","R$ 252,00","Cadeiras e Projetor"
+```
 
 ## 📊 Executar Importação
 

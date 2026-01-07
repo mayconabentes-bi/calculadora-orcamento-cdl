@@ -101,12 +101,19 @@ async function importar() {
         try {
             const csvContent = fs.readFileSync(pathSimulador, 'utf-8');
             
-            // Pula linha 1 (título) e usa linha 2 como header
+            // Configuração do parser CSV:
+            // - from_line: 2 - Pula linha 1 (título da planilha) e usa linha 2 como header
+            // - relax_column_count: true - Permite variação no número de colunas
+            // Este formato corresponde ao padrão da planilha CDL onde:
+            //   Linha 1: "Título da Planilha - SIMULADOR 220H"
+            //   Linha 2: Cabeçalhos das colunas
+            //   Linha 3+: Dados
             const records = parse(csvContent, { 
                 columns: true, 
                 from_line: 2, 
                 skip_empty_lines: true, 
-                trim: true 
+                trim: true,
+                relax_column_count: true
             });
 
             console.log(`[CSV-IMPORT] 📋 Total de registros encontrados: ${records.length}`);
@@ -164,13 +171,16 @@ async function importar() {
         console.error('');
     }
 
-    // --- IMPORTAR INFRAESTRUTURA (INFRA) - Opcional ---
+    // --- IMPORTAR INFRAESTRUTURA (INFRA) - Futuro ---
+    // O arquivo infra.csv pode ser usado para importar dados adicionais
+    // de infraestrutura quando houver necessidade. Por enquanto, apenas
+    // detectamos sua presença para referência futura.
     const pathInfra = path.join(__dirname, '../dados_csv/infra.csv');
     
     if (fs.existsSync(pathInfra)) {
-        console.log('[CSV-IMPORT] 📂 Arquivo infra.csv encontrado (processamento futuro)');
+        console.log('[CSV-IMPORT] 📂 Arquivo infra.csv encontrado');
+        console.log('[CSV-IMPORT] ℹ️  Processamento de infra.csv será implementado conforme necessidade');
         console.log('');
-        // TODO: Implementar lógica de importação de infraestrutura se necessário
     }
 
     // --- COMMIT ---
