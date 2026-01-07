@@ -509,7 +509,10 @@ class DataManager {
         return {
             margemMinima: 15.0, // 15%
             lucroAlvo: 30.0,    // 30%
-            custoFixoDiario: 50.0
+            custoFixoDiario: 50.0,
+            exibirAlertaViabilidade: true,
+            exibirClassificacaoRisco: true,
+            exibirEstruturaCustos: true
         };
     }
 
@@ -531,7 +534,15 @@ class DataManager {
         try {
             // Conversão simples para CSV
             const headers = Object.keys(historico[0]).join(',');
-            const rows = historico.map(row => Object.values(row).map(v => `"${v}"`).join(','));
+            const rows = historico.map(row => 
+                Object.values(row).map(v => {
+                    // Handle nested objects and arrays
+                    if (typeof v === 'object' && v !== null) {
+                        return `"${JSON.stringify(v).replace(/"/g, '""')}"`;
+                    }
+                    return `"${String(v).replace(/"/g, '""')}"`;
+                }).join(',')
+            );
             const csvContent = [headers, ...rows].join("\n");
             
             return csvContent;
