@@ -409,9 +409,16 @@ class DataManager {
         try {
             const extras = this.obterExtras();
             
-            // Gerar ID único (timestamp + random)
+            // Gerar ID único com collision detection
+            let novoId;
+            let attempts = 0;
+            do {
+                novoId = Date.now() + Math.floor(Math.random() * 10000);
+                attempts++;
+            } while (extras.some(e => e.id === novoId) && attempts < 10);
+            
             const novoExtra = {
-                id: Date.now() + Math.floor(Math.random() * 1000),
+                id: novoId,
                 nome: extra.nome,
                 custo: parseFloat(extra.custo)
             };
@@ -442,10 +449,17 @@ class DataManager {
                 return false;
             }
             
+            // Parse cost before merging to ensure correct type
+            const dadosAtualizados = {
+                ...dados
+            };
+            if (dados.custo !== undefined) {
+                dadosAtualizados.custo = parseFloat(dados.custo);
+            }
+            
             extras[index] = {
                 ...extras[index],
-                ...dados,
-                custo: parseFloat(dados.custo)
+                ...dadosAtualizados
             };
             
             localStorage.setItem('extras_v5', JSON.stringify(extras));
