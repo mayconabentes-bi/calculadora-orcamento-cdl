@@ -2186,7 +2186,7 @@ async function adicionarNovoEspaco() {
         custoBase: 0
     };
     
-    dataManager.adicionarSala(novaSala);
+    await dataManager.adicionarSala(novaSala);
     
     // Limpar campos
     document.getElementById('novo-espaco-nome').value = '';
@@ -2220,7 +2220,7 @@ async function editarSala(id) {
     const area = prompt('Área (m²):', sala.area);
     if (area === null) return;
     
-    dataManager.atualizarSala(id, {
+    await dataManager.atualizarSala(id, {
         nome: nome.trim(),
         unidade: unidade.trim(),
         capacidade: parseInt(capacidade),
@@ -2241,7 +2241,7 @@ async function removerSala(id) {
         return;
     }
     
-    dataManager.removerSala(id);
+    await dataManager.removerSala(id);
     await carregarTabelaEspacos();
     await carregarSelectEspacos();
     

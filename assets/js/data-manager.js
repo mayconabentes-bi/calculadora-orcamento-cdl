@@ -307,8 +307,7 @@ class DataManager {
             return true;
         } catch (error) {
             console.error('[SGQ-DATA] Erro ao remover sala:', error);
-            // Em modo mock, apenas retorna true para não travar a UI
-            return true;
+            throw error;
         }
     }
 
