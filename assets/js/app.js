@@ -3020,6 +3020,13 @@ window.limparFormulario = function() {
     console.warn('[App] limparFormulario não implementado - função stub');
 };
 
+// Gestão de Salas (Admin)
+window.editarSala = editarSala;
+window.removerSala = removerSala;
+window.adicionarNovoEspaco = adicionarNovoEspaco;
+
+console.log('[App] Funções de gestão de salas exportadas.');
+
 // Funções de Tabs (se houver chamadas no HTML)
 window.abrirTab = function(tabName) {
     console.log('[App] abrirTab chamado para:', tabName);
