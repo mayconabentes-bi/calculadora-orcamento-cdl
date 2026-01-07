@@ -510,6 +510,9 @@ async function bootstrapDashboard() {
         }
         await dashboardController.inicializar();
         
+        // Exportar para window para acesso de outros módulos
+        window.dashboardController = dashboardController;
+        
         // Configurar event listeners para área restrita
         configurarAreaRestrita();
         
@@ -529,6 +532,10 @@ async function bootstrapDashboard() {
             dashboardController = new DashboardController();
         }
         await dashboardController.inicializar();
+        
+        // Exportar para window para acesso de outros módulos
+        window.dashboardController = dashboardController;
+        
         configurarAreaRestrita();
     }
 }
@@ -550,6 +557,9 @@ function atualizarDashboard() {
         dashboardController.atualizar();
     }
 }
+
+// Exportar função para window para acesso de outros módulos
+window.atualizarDashboard = atualizarDashboard;
 
 /**
  * Configura os event listeners para a área restrita da superintendência
