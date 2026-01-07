@@ -256,11 +256,12 @@ class DataManager {
 
     /**
      * Adiciona uma nova sala ao Firestore
+     * @returns {Promise<string>} ID da sala criada
      */
     async adicionarSala(sala) {
         try {
             console.log('[SGQ-DATA] Adicionando sala:', sala);
-            if (!db) return { id: 'mock-sala-' + Date.now() }; // Fallback
+            if (!db) return 'mock-sala-' + Date.now(); // Fallback retorna string
             
             // Adiciona timestamp
             const payload = { ...sala, atualizadoEm: new Date().toISOString() };

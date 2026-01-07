@@ -2203,6 +2203,8 @@ async function adicionarNovoEspaco() {
 
 /**
  * Edita um espaço existente
+ * Nota: obterSalaPorId é usado apenas para pré-preencher os prompts;
+ * os dados atuais são fornecidos pelo usuário via prompt()
  */
 async function editarSala(id) {
     const sala = dataManager.obterSalaPorId(id);
