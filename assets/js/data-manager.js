@@ -376,11 +376,123 @@ class DataManager {
 
     /**
      * Retorna lista de itens extras
-     * Mock de estabilidade - retorna array vazio até implementação completa
      * @returns {Array} Lista de extras
      */
     obterExtras() {
-        return [];
+        try {
+            const extrasData = localStorage.getItem('extras_v5');
+            if (!extrasData) return [];
+            const extras = JSON.parse(extrasData);
+            return Array.isArray(extras) ? extras : [];
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao obter extras:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Retorna um extra por ID
+     * @param {number|string} id - ID do extra
+     * @returns {Object|undefined} Extra encontrado ou undefined
+     */
+    obterExtraPorId(id) {
+        const extras = this.obterExtras();
+        return extras.find(e => e.id === id);
+    }
+
+    /**
+     * Adiciona um novo item extra
+     * @param {Object} extra - Objeto com nome e custo do extra
+     * @returns {Object} Extra criado com ID
+     */
+    adicionarExtra(extra) {
+        try {
+            const extras = this.obterExtras();
+            
+            // Gerar ID único com collision detection
+            let novoId;
+            let attempts = 0;
+            do {
+                novoId = Date.now() + Math.floor(Math.random() * 10000);
+                attempts++;
+            } while (extras.some(e => e.id === novoId) && attempts < 10);
+            
+            const novoExtra = {
+                id: novoId,
+                nome: extra.nome,
+                custo: parseFloat(extra.custo)
+            };
+            
+            extras.push(novoExtra);
+            localStorage.setItem('extras_v5', JSON.stringify(extras));
+            
+            console.log('[SGQ-DATA] Extra adicionado:', novoExtra);
+            return novoExtra;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao adicionar extra:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza um extra existente
+     * @param {number|string} id - ID do extra
+     * @param {Object} dados - Dados a atualizar
+     * @returns {boolean} True se atualizado com sucesso
+     */
+    atualizarExtra(id, dados) {
+        try {
+            const extras = this.obterExtras();
+            const index = extras.findIndex(e => e.id === id);
+            
+            if (index === -1) {
+                return false;
+            }
+            
+            // Parse cost before merging to ensure correct type
+            const dadosAtualizados = {
+                ...dados
+            };
+            if (dados.custo !== undefined) {
+                dadosAtualizados.custo = parseFloat(dados.custo);
+            }
+            
+            extras[index] = {
+                ...extras[index],
+                ...dadosAtualizados
+            };
+            
+            localStorage.setItem('extras_v5', JSON.stringify(extras));
+            console.log('[SGQ-DATA] Extra atualizado:', extras[index]);
+            return true;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao atualizar extra:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Remove um extra
+     * @param {number|string} id - ID do extra
+     * @returns {boolean} True se removido com sucesso
+     */
+    removerExtra(id) {
+        try {
+            const extras = this.obterExtras();
+            const index = extras.findIndex(e => e.id === id);
+            
+            if (index === -1) {
+                return false;
+            }
+            
+            extras.splice(index, 1);
+            localStorage.setItem('extras_v5', JSON.stringify(extras));
+            console.log('[SGQ-DATA] Extra removido:', id);
+            return true;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao remover extra:', error);
+            return false;
+        }
     }
 
     /**
@@ -618,6 +730,76 @@ class DataManager {
         } catch (error) {
             console.error('[SGQ-DATA] Erro na exportação:', error);
             return null;
+        }
+    }
+
+    /**
+     * Calcula a classificação de risco operacional
+     * Baseado no percentual de custos variáveis e margem líquida
+     * @param {Object} resultado - Resultado do cálculo de orçamento
+     * @param {boolean} calculoIncompleto - Se true, força ALTO RISCO (dados faltantes)
+     * @returns {Object} Objeto com nivel, cor, bgColor, borderColor e percentual
+     */
+    calcularClassificacaoRisco(resultado, calculoIncompleto = false) {
+        try {
+            // Se cálculo usou fallbacks, sempre retorna ALTO RISCO
+            if (calculoIncompleto) {
+                return {
+                    nivel: 'ALTO',
+                    cor: '#dc2626',
+                    bgColor: '#fee2e2',
+                    borderColor: '#fca5a5',
+                    percentual: 100 // Indica risco máximo por dados incompletos
+                };
+            }
+
+            // Calcular custos variáveis (mão de obra + extras)
+            const custoVariavel = resultado.custoMaoObraTotal + (resultado.custoExtras || 0);
+            const percentualCustoVariavel = (custoVariavel / resultado.valorFinal) * 100;
+            
+            // Calcular margem líquida
+            const margemLiquida = ((resultado.valorFinal - resultado.subtotalSemMargem) / resultado.valorFinal) * 100;
+            
+            // Classificação baseada em percentual de custos variáveis e margem
+            let nivel, cor, bgColor, borderColor;
+            
+            if (percentualCustoVariavel > 60 || margemLiquida < 0) {
+                // ALTO RISCO: Custos variáveis > 60% ou margem negativa
+                nivel = 'ALTO';
+                cor = '#dc2626';      // Vermelho
+                bgColor = '#fee2e2';
+                borderColor = '#fca5a5';
+            } else if (percentualCustoVariavel >= 40 || margemLiquida < 5) {
+                // MÉDIO RISCO: Custos variáveis entre 40-60% ou margem < 5%
+                nivel = 'MÉDIO';
+                cor = '#d97706';      // Amarelo/Laranja
+                bgColor = '#fef3c7';
+                borderColor = '#fcd34d';
+            } else {
+                // BAIXO RISCO: Custos variáveis < 40% e margem >= 5%
+                nivel = 'BAIXO';
+                cor = '#16a34a';      // Verde
+                bgColor = '#dcfce7';
+                borderColor = '#86efac';
+            }
+            
+            return {
+                nivel,
+                cor,
+                bgColor,
+                borderColor,
+                percentual: percentualCustoVariavel
+            };
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao calcular classificação de risco:', error);
+            // Em caso de erro, retorna ALTO RISCO por segurança
+            return {
+                nivel: 'ALTO',
+                cor: '#dc2626',
+                bgColor: '#fee2e2',
+                borderColor: '#fca5a5',
+                percentual: 0
+            };
         }
     }
 }
