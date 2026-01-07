@@ -504,15 +504,12 @@ class DataManager {
      * Obtém configurações de viabilidade financeira
      * Necessário para: exibirAlertaViabilidade() no app.js
      */
-    async obterConfiguracoesBI() {
+    obterConfiguracoesBI() {
         // Retorna valores padrão para o cálculo de alertas
         return {
             margemMinima: 15.0, // 15%
             lucroAlvo: 30.0,    // 30%
-            custoFixoDiario: 50.0,
-            exibirAlertaViabilidade: true,
-            exibirClassificacaoRisco: true,
-            exibirEstruturaCustos: true
+            custoFixoDiario: 50.0
         };
     }
 
@@ -520,33 +517,27 @@ class DataManager {
      * Exporta o histórico para CSV
      * Necessário para: Botão "Exportar Dados" na aba Configurações
      */
-    async exportarHistoricoCSV() {
+    exportarHistoricoCSV() {
         console.log('[SGQ-DATA] Iniciando exportação de CSV...');
-        try {
-            const dados = await this.obterHistoricoOrcamentos(1000);
-            
-            if (dados.length === 0) {
-                alert('Sem dados para exportar.');
-                return;
-            }
+        
+        // Obter histórico do localStorage ou mock
+        const historico = this.obterHistoricoCalculos();
+        
+        if (historico.length === 0) {
+            console.warn('[SGQ-DATA] Nenhum dado disponível para exportar');
+            return null;
+        }
 
+        try {
             // Conversão simples para CSV
-            const headers = Object.keys(dados[0]).join(',');
-            const rows = dados.map(row => Object.values(row).map(v => `"${v}"`).join(','));
-            const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+            const headers = Object.keys(historico[0]).join(',');
+            const rows = historico.map(row => Object.values(row).map(v => `"${v}"`).join(','));
+            const csvContent = [headers, ...rows].join("\n");
             
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "historico_orcamentos.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            return true;
+            return csvContent;
         } catch (error) {
             console.error('[SGQ-DATA] Erro na exportação:', error);
-            return false;
+            return null;
         }
     }
 }
