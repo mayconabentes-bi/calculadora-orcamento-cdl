@@ -103,6 +103,7 @@ async function importar() {
             
             // Configuração do parser CSV:
             // - from_line: 2 - Pula linha 1 (título da planilha) e usa linha 2 como header
+            // - delimiter: ';' - Usa ponto e vírgula (padrão Excel português)
             // - relax_column_count: true - Permite variação no número de colunas
             // Este formato corresponde ao padrão da planilha CDL onde:
             //   Linha 1: "Título da Planilha - SIMULADOR 220H"
@@ -113,6 +114,7 @@ async function importar() {
                 from_line: 2, 
                 skip_empty_lines: true, 
                 trim: true,
+                delimiter: ';',
                 relax_column_count: true
             });
 
