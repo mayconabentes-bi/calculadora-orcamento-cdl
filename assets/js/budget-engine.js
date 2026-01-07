@@ -1,7 +1,8 @@
 /* =================================================================
-   BUDGET ENGINE - Motor de Cálculo de Orçamentos v5.2.0 - Refactored
+   BUDGET ENGINE - Motor de Cálculo de Orçamentos v5.2.6 - Hotfix
    Inteligência financeira desacoplada da interface do usuário
    Módulo ES6 puro - Padrão ES Modules
+   HOTFIX: Usar valores exatos de turno do CSV para eliminar erro de ~3%
    ================================================================= */
 
 /**
@@ -21,6 +22,62 @@ class BudgetEngine {
      */
     constructor(dataManager) {
         this.dataManager = dataManager;
+    }
+
+    /**
+     * Calcula o custo base respeitando a Tabela Oficial da CDL
+     * HOTFIX v5.2.6: Usa valores exatos do CSV para eliminar erro de ~3%
+     * @param {Object} sala - Objeto da sala (com custoManha, custoTarde, custoNoite importados do CSV)
+     * @param {number} horas - Duração em horas
+     * @param {string} turno - 'manha', 'tarde', 'noite' ou 'integral'
+     * @returns {number} Custo total para o período
+     */
+    calcularCustoBase(sala, horas, turno) {
+        // 1. Normalização do turno para casar com as chaves do objeto (manha, tarde, noite)
+        const turnoKey = turno ? turno.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : 'manha';
+        
+        let custoHora = 0;
+
+        // 2. LÓGICA DE PRECEDÊNCIA (A Correção do Erro de 3%)
+        // Mapear turnoKey para os campos flat do CSV (custoManha, custoTarde, custoNoite)
+        const custoTurnoMap = {
+            'manha': sala.custoManha,
+            'tarde': sala.custoTarde,
+            'noite': sala.custoNoite,
+            'integral': sala.custoManha // Para integral, usa valor base manhã
+        };
+
+        // Se a sala tem o preço do turno vindo do CSV, usa ele.
+        // Se não, usa o custoBase genérico com multiplicador.
+        const custoEspecifico = custoTurnoMap[turnoKey];
+        
+        if (custoEspecifico && custoEspecifico > 0) {
+            custoHora = custoEspecifico;
+            console.log(`[Engine] Usando preço específico CSV para ${turnoKey}: R$ ${custoHora}/h`);
+        } else {
+            // Fallback (apenas se o CSV falhar)
+            const base = sala.custoBase || 0;
+            const mult = this.obterMultiplicadorTurno(turnoKey);
+            custoHora = base * mult;
+            console.warn(`[Engine] Usando cálculo genérico (Fallback): R$ ${base} x ${mult}`);
+        }
+
+        // 3. Cálculo Final
+        return custoHora * horas;
+    }
+
+    /**
+     * Auxiliar para Fallback - Retorna multiplicador de turno
+     * HOTFIX v5.2.6: Valores padrão da CDL
+     * @param {string} turno - 'manha', 'tarde', 'noite'
+     * @returns {number} Multiplicador do turno
+     */
+    obterMultiplicadorTurno(turno) {
+        switch(turno) {
+            case 'tarde': return 1.15;
+            case 'noite': return 1.40;
+            default: return 1.00; // Manhã
+        }
     }
 
     /**
@@ -256,10 +313,10 @@ class BudgetEngine {
 }
 
 // ========== ES6 MODULE EXPORT ==========
-// Exportação ES Modules padrão v5.2.0
+// Exportação ES Modules padrão v5.2.6
 export default BudgetEngine;
 
-// Para compatibilidade com scripts legados (não-módulos) - v5.2.0
+// Para compatibilidade com scripts legados (não-módulos) - v5.2.6
 // Mantido para compatibilidade durante transição
 if (typeof window !== 'undefined') {
     window.BudgetEngine = BudgetEngine;
