@@ -495,6 +495,69 @@ class DataManager {
             atual: 0
         };
     }
+
+    // =========================================================================
+    // MÓDULO BI & RELATÓRIOS (HOTFIX v5.2.4)
+    // =========================================================================
+
+    /**
+     * Obtém configurações de viabilidade financeira
+     * Necessário para: exibirAlertaViabilidade() no app.js
+     */
+    obterConfiguracoesBI() {
+        // Retorna valores padrão para o cálculo de alertas
+        return {
+            margemMinima: 15.0, // 15%
+            lucroAlvo: 30.0,    // 30%
+            custoFixoDiario: 50.0,
+            exibirAlertaViabilidade: true,
+            exibirClassificacaoRisco: true,
+            exibirEstruturaCustos: true
+        };
+    }
+
+    /**
+     * Exporta o histórico para CSV
+     * Necessário para: Botão "Exportar Dados" na aba Configurações
+     */
+    exportarHistoricoCSV() {
+        console.log('[SGQ-DATA] Iniciando exportação de CSV...');
+        
+        // Obter histórico do localStorage ou mock
+        const historico = this.obterHistoricoCalculos();
+        
+        if (historico.length === 0) {
+            console.warn('[SGQ-DATA] Nenhum dado disponível para exportar');
+            return null;
+        }
+
+        try {
+            // Validate first element is an object
+            if (typeof historico[0] !== 'object' || historico[0] === null) {
+                console.error('[SGQ-DATA] Formato de dados inválido para exportação');
+                return null;
+            }
+            
+            // Conversão para CSV com RFC 4180 compliance
+            const headers = Object.keys(historico[0]).join(',');
+            const rows = historico.map(row => 
+                Object.values(row).map(v => {
+                    // Handle nested objects and arrays
+                    if (typeof v === 'object' && v !== null) {
+                        return `"${JSON.stringify(v).replace(/"/g, '""')}"`;
+                    }
+                    return `"${String(v).replace(/"/g, '""')}"`;
+                }).join(',')
+            );
+            // Use CRLF line terminator for RFC 4180 compliance
+            const csvContent = [headers, ...rows].join("\r\n");
+            
+            return csvContent;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro na exportação:', error);
+            return null;
+        }
+    }
 }
 
 // Exportar Instância Singleton
