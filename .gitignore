@@ -98,3 +98,8 @@ coverage/
 playwright-report/
 test-results/
 *.lcov
+
+# CSV data uploads (user-specific)
+dados_csv/*
+!dados_csv/README.md
+*.csv

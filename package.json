@@ -20,7 +20,8 @@
     "verify:security": "node verify-sgq-security.js",
     "validate:all": "bash validar-recomendacoes.sh",
     "seed:database": "node scripts/seed_database.js",
-    "health:check": "node scripts/system_health_check.js"
+    "health:check": "node scripts/system_health_check.js",
+    "import:csv": "node scripts/importar_planilha_cdl.js"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
@@ -30,6 +31,7 @@
     "jest-environment-jsdom": "^29.7.0"
   },
   "dependencies": {
+    "csv-parse": "^5.5.3",
     "dotenv": "^17.2.3"
   }
 }
