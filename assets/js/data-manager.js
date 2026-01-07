@@ -495,6 +495,60 @@ class DataManager {
             atual: 0
         };
     }
+
+    // =========================================================================
+    // MÓDULO BI & RELATÓRIOS (HOTFIX v5.2.4)
+    // =========================================================================
+
+    /**
+     * Obtém configurações de viabilidade financeira
+     * Necessário para: exibirAlertaViabilidade() no app.js
+     */
+    async obterConfiguracoesBI() {
+        // Retorna valores padrão para o cálculo de alertas
+        return {
+            margemMinima: 15.0, // 15%
+            lucroAlvo: 30.0,    // 30%
+            custoFixoDiario: 50.0,
+            exibirAlertaViabilidade: true,
+            exibirClassificacaoRisco: true,
+            exibirEstruturaCustos: true
+        };
+    }
+
+    /**
+     * Exporta o histórico para CSV
+     * Necessário para: Botão "Exportar Dados" na aba Configurações
+     */
+    async exportarHistoricoCSV() {
+        console.log('[SGQ-DATA] Iniciando exportação de CSV...');
+        try {
+            const dados = await this.obterHistoricoOrcamentos(1000);
+            
+            if (dados.length === 0) {
+                alert('Sem dados para exportar.');
+                return;
+            }
+
+            // Conversão simples para CSV
+            const headers = Object.keys(dados[0]).join(',');
+            const rows = dados.map(row => Object.values(row).map(v => `"${v}"`).join(','));
+            const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "historico_orcamentos.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            return true;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro na exportação:', error);
+            return false;
+        }
+    }
 }
 
 // Exportar Instância Singleton
