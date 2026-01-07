@@ -2186,7 +2186,7 @@ async function adicionarNovoEspaco() {
         custoBase: 0
     };
     
-    dataManager.adicionarSala(novaSala);
+    await dataManager.adicionarSala(novaSala);
     
     // Limpar campos
     document.getElementById('novo-espaco-nome').value = '';
@@ -2203,6 +2203,8 @@ async function adicionarNovoEspaco() {
 
 /**
  * Edita um espaço existente
+ * Nota: obterSalaPorId é usado apenas para pré-preencher os prompts;
+ * os dados atuais são fornecidos pelo usuário via prompt()
  */
 async function editarSala(id) {
     const sala = dataManager.obterSalaPorId(id);
@@ -2220,7 +2222,7 @@ async function editarSala(id) {
     const area = prompt('Área (m²):', sala.area);
     if (area === null) return;
     
-    dataManager.atualizarSala(id, {
+    await dataManager.atualizarSala(id, {
         nome: nome.trim(),
         unidade: unidade.trim(),
         capacidade: parseInt(capacidade),
@@ -2241,7 +2243,7 @@ async function removerSala(id) {
         return;
     }
     
-    dataManager.removerSala(id);
+    await dataManager.removerSala(id);
     await carregarTabelaEspacos();
     await carregarSelectEspacos();
     
@@ -3019,6 +3021,13 @@ window.copiarResumo = function() {
 window.limparFormulario = function() {
     console.warn('[App] limparFormulario não implementado - função stub');
 };
+
+// Gestão de Salas (Admin)
+window.editarSala = editarSala;
+window.removerSala = removerSala;
+window.adicionarNovoEspaco = adicionarNovoEspaco;
+
+console.log('[App] Funções de gestão de salas exportadas.');
 
 // Funções de Tabs (se houver chamadas no HTML)
 window.abrirTab = function(tabName) {

@@ -9,7 +9,7 @@
 import { 
     db, auth, 
     collection, addDoc, getDocs, updateDoc, setDoc, getDoc, doc, 
-    query, where, orderBy, limit, Timestamp,
+    query, where, orderBy, limit, Timestamp, deleteDoc,
     onAuthStateChanged
 } from './firebase-config.js';
 
@@ -247,6 +247,68 @@ class DataManager {
         } catch (error) {
             console.error('[SGQ-DATA] Erro ao buscar clientes:', error);
             return [];
+        }
+    }
+
+    // =========================================================================
+    // GESTÃO DE ESPAÇOS (ADMIN CRUD) - HOTFIX v5.2.5
+    // =========================================================================
+
+    /**
+     * Adiciona uma nova sala ao Firestore
+     * @returns {Promise<string>} ID da sala criada
+     */
+    async adicionarSala(sala) {
+        try {
+            console.log('[SGQ-DATA] Adicionando sala:', sala);
+            if (!db) return 'mock-sala-' + Date.now(); // Fallback retorna string
+            
+            // Adiciona timestamp
+            const payload = { ...sala, atualizadoEm: new Date().toISOString() };
+            const docRef = await addDoc(collection(db, this.collections.ESPACOS), payload);
+            
+            console.log('[SGQ-DATA] Sala adicionada com ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao adicionar sala:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza uma sala existente (substitui o mock existente)
+     */
+    async atualizarSala(id, dados) {
+        try {
+            console.log('[SGQ-DATA] Atualizando sala:', id, dados);
+            if (!db) return true;
+
+            const docRef = doc(db, this.collections.ESPACOS, id);
+            await updateDoc(docRef, { ...dados, atualizadoEm: new Date().toISOString() });
+            
+            console.log('[SGQ-DATA] Sala atualizada com sucesso:', id);
+            return true;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao atualizar sala:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Remove uma sala do Firestore
+     */
+    async removerSala(id) {
+        try {
+            console.log('[SGQ-DATA] Removendo sala:', id);
+            if (!db) return true;
+
+            await deleteDoc(doc(db, this.collections.ESPACOS, id));
+            
+            console.log('[SGQ-DATA] Sala removida com sucesso:', id);
+            return true;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao remover sala:', error);
+            throw error;
         }
     }
 

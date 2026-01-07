@@ -10,7 +10,7 @@ import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.
 import { 
     getFirestore, collection, addDoc, getDocs, 
     updateDoc, setDoc, doc, query, where, getDoc, 
-    orderBy, limit, Timestamp 
+    orderBy, limit, Timestamp, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { 
     getAuth, onAuthStateChanged, signOut 
@@ -62,7 +62,7 @@ export {
     
     // Métodos Firestore
     collection, addDoc, getDocs, updateDoc, setDoc, doc, 
-    query, where, getDoc, orderBy, limit, Timestamp,
+    query, where, getDoc, orderBy, limit, Timestamp, deleteDoc,
     
     // Métodos Auth
     onAuthStateChanged, signOut
