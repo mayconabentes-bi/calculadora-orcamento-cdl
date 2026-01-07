@@ -20,6 +20,137 @@ let modoVisualizacaoHistorico = 'convertidos'; // 'convertidos' ou 'pipeline'
 // Instância do Motor de Cálculo de Orçamentos
 let budgetEngine = null;
 
+// ========== IMPORT INTEGRITY GATE (SGQ-SECURITY) ==========
+/**
+ * [SGQ-SECURITY] Verificador de Integridade de Importação
+ * Valida o preenchimento de alto nível e corrige inconsistências em tempo real.
+ * Baseado em Programação Defensiva e regras do Axioma v5.2.0
+ */
+const ImportIntegrityGate = {
+    // Lista de campos obrigatórios para garantir Inteligência de Margem
+    requiredFields: ['clienteNome', 'espacoId', 'horariosSolicitados', 'diasSemanaSelecionados'],
+
+    /**
+     * Valida um lead antes da importação
+     * @param {Object} lead - Lead a ser validado
+     * @returns {Object} { valid: boolean, errors: Array<string> }
+     */
+    validate(lead) {
+        console.group('🛡️ Auditoria de Importação SGQ');
+        const errors = [];
+
+        // Validar campos obrigatórios
+        this.requiredFields.forEach(field => {
+            // Usar nome do lead como clienteNome (compatibilidade)
+            const fieldToCheck = field === 'clienteNome' ? (lead.clienteNome || lead.nome) : lead[field];
+            
+            if (!fieldToCheck && fieldToCheck !== 0) {
+                errors.push(`Campo ausente: ${field}`);
+            }
+        });
+
+        // Verificação de lógica de fim de semana (Rigor Analítico)
+        const hasWeekend = lead.diasSemanaSelecionados?.some(d => d === 0 || d === 6);
+        if (hasWeekend && (!lead.quantidadeFuncionarios || lead.quantidadeFuncionarios < 3)) {
+            console.warn('[SGQ] Correção aplicada: Mínimo de 3 funcionários para fim de semana.');
+            lead.quantidadeFuncionarios = 3; // Auto-correção
+        }
+
+        console.groupEnd();
+        return { valid: errors.length === 0, errors };
+    },
+
+    /**
+     * Garante que o DOM receba todos os dados sanitizados
+     * @param {Object} lead - Lead a ser sincronizado com a UI
+     * @returns {boolean} True se sincronização foi bem-sucedida
+     */
+    syncUI(lead) {
+        try {
+            // Preencher campos básicos
+            const clienteNomeEl = document.getElementById('cliente-nome');
+            if (clienteNomeEl) {
+                clienteNomeEl.value = lead.nome || lead.clienteNome || '';
+            }
+
+            const clienteContatoEl = document.getElementById('cliente-contato');
+            if (clienteContatoEl) {
+                clienteContatoEl.value = lead.telefone || lead.email || '';
+            }
+
+            const dataEventoEl = document.getElementById('data-evento');
+            if (dataEventoEl && lead.dataEvento) {
+                dataEventoEl.value = lead.dataEvento;
+            }
+            
+            // Sincronização de múltiplos horários
+            if (Array.isArray(lead.horariosSolicitados) && lead.horariosSolicitados.length > 0) {
+                // Limpar horários atuais
+                horarios = [];
+                horariosCount = 0;
+                
+                // Adicionar horários do lead
+                lead.horariosSolicitados.forEach((h) => {
+                    const id = horariosCount++;
+                    horarios.push({
+                        id: id,
+                        inicio: h.inicio,
+                        fim: h.fim
+                    });
+                });
+                
+                // Renderizar horários na UI
+                if (typeof renderizarHorarios === 'function') {
+                    renderizarHorarios();
+                }
+            }
+            
+            // Sincronizar dias da semana
+            if (Array.isArray(lead.diasSemanaSelecionados)) {
+                const mapeamentoDias = {
+                    0: 'dia-dom',
+                    1: 'dia-seg',
+                    2: 'dia-ter',
+                    3: 'dia-qua',
+                    4: 'dia-qui',
+                    5: 'dia-sex',
+                    6: 'dia-sab'
+                };
+                
+                // Desmarcar todos primeiro
+                Object.values(mapeamentoDias).forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) checkbox.checked = false;
+                });
+                
+                // Marcar dias selecionados
+                lead.diasSemanaSelecionados.forEach(dia => {
+                    const checkboxId = mapeamentoDias[dia];
+                    if (checkboxId) {
+                        const checkbox = document.getElementById(checkboxId);
+                        if (checkbox) checkbox.checked = true;
+                    }
+                });
+            }
+            
+            // Sincronizar espaço
+            if (lead.espacoId) {
+                const espacoEl = document.getElementById('espaco');
+                if (espacoEl) {
+                    espacoEl.value = lead.espacoId;
+                    // Disparar evento change para atualizar informações da sala
+                    espacoEl.dispatchEvent(new Event('change'));
+                }
+            }
+            
+            return true;
+        } catch (e) {
+            console.error('[SGQ] Erro na sincronização de UI:', e);
+            return false;
+        }
+    }
+};
+
 // ========== SVG ICONS ==========
 const ICONS = {
     edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>',
@@ -1066,42 +1197,35 @@ async function carregarLeadsNoModal() {
 /**
  * Importa um lead selecionado e preenche os dados do cliente
  * [SGQ-SECURITY] Autopreenchimento com mapeamento correto de campos + Cálculo Automatizado
+ * Utiliza ImportIntegrityGate para validação e correção
  * @param {number} leadId - ID do lead a ser importado
  */
 function importarLeadSelecionado(leadId) {
     const lead = dataManager.obterLeadPorId(leadId);
     
     if (!lead) {
-        mostrarNotificacao('[SGQ-SECURITY] Lead não encontrado!');
+        mostrarNotificacao('[SGQ-SECURITY] Lead não encontrado!', 'erro');
         return;
     }
 
     console.log('[SGQ-SECURITY] Importando lead:', lead.id, '-', lead.nome);
     console.log('[SGQ-SECURITY] Dados do lead:', lead);
 
-    // [SGQ-SECURITY] Preencher campos corretos: #cliente-nome, #cliente-contato, #data-evento, #espaco
-    document.getElementById('cliente-nome').value = lead.nome || '';
+    // [SGQ-SECURITY] VALIDAÇÃO E CORREÇÃO via ImportIntegrityGate
+    const auditResult = ImportIntegrityGate.validate(lead);
     
-    // Priorizar telefone, mas pode usar email se telefone não estiver disponível
-    const contato = lead.telefone || lead.email || '';
-    document.getElementById('cliente-contato').value = contato;
-    
-    // Preencher data do evento se disponível
-    if (lead.dataEvento) {
-        document.getElementById('data-evento').value = lead.dataEvento;
-        
-        // [SGQ-SECURITY] Verificar se é fim de semana e aplicar trava
-        verificarTravaFimDeSemana();
+    if (!auditResult.valid) {
+        console.warn('[SGQ-SECURITY] Erros de validação encontrados:', auditResult.errors);
+        // Mesmo com erros, permite importação parcial
+        mostrarNotificacao(`⚠️ Lead importado com avisos: ${auditResult.errors.join(', ')}`, 'aviso', 6000);
     }
+
+    // Usar syncUI do ImportIntegrityGate para preencher a interface
+    const syncSuccess = ImportIntegrityGate.syncUI(lead);
     
-    // Preencher seletor de espaço se disponível
-    if (lead.espacoId) {
-        const espacoSelect = document.getElementById('espaco');
-        if (espacoSelect) {
-            espacoSelect.value = lead.espacoId;
-            // Disparar evento change para atualizar informações da sala
-            espacoSelect.dispatchEvent(new Event('change'));
-        }
+    if (!syncSuccess) {
+        mostrarNotificacao('[SGQ-SECURITY] Erro ao sincronizar dados com a interface!', 'erro');
+        return;
     }
     
     // [SGQ-SECURITY] NOVOS CAMPOS: Duração do Contrato
@@ -1117,77 +1241,16 @@ function importarLeadSelecionado(leadId) {
         }
     }
     
-    // [SGQ-SECURITY] NOVOS CAMPOS: Dias da Semana
-    if (lead.diasSemanaSelecionados && Array.isArray(lead.diasSemanaSelecionados)) {
-        // Primeiro, desmarcar todos os checkboxes
-        const todosCheckboxes = ['dia-seg', 'dia-ter', 'dia-qua', 'dia-qui', 'dia-sex', 'dia-sab', 'dia-dom'];
-        todosCheckboxes.forEach(id => {
-            const checkbox = document.getElementById(id);
-            if (checkbox) {
-                checkbox.checked = false;
-            }
-        });
-        
-        // Marcar apenas os dias selecionados
-        const mapeamentoDias = {
-            0: 'dia-dom',
-            1: 'dia-seg',
-            2: 'dia-ter',
-            3: 'dia-qua',
-            4: 'dia-qui',
-            5: 'dia-sex',
-            6: 'dia-sab'
-        };
-        
-        lead.diasSemanaSelecionados.forEach(dia => {
-            const checkboxId = mapeamentoDias[dia];
-            if (checkboxId) {
-                const checkbox = document.getElementById(checkboxId);
-                if (checkbox) {
-                    checkbox.checked = true;
-                }
-            }
-        });
-        
-        console.log('[SGQ-SECURITY] Dias da semana marcados:', lead.diasSemanaSelecionados);
-    }
-    
-    // [SGQ-SECURITY] NOVOS CAMPOS: Horários - Suporte a múltiplos horários
-    if (lead.horariosSolicitados && Array.isArray(lead.horariosSolicitados) && lead.horariosSolicitados.length > 0) {
-        // Limpar horários atuais da calculadora administrativa
-        console.log('[SGQ-SECURITY] Limpando horários atuais da calculadora');
-        horarios = [];
-        horariosCount = 0;
-        
-        // Iterar sobre o array horariosSolicitados do lead
-        console.log('[SGQ-SECURITY] Sincronizando múltiplos horários solicitados:', lead.horariosSolicitados.length);
-        
-        lead.horariosSolicitados.forEach((horario, index) => {
-            // Chamar a função existente adicionarNovoHorario(inicio, fim) para cada item do lead
-            adicionarNovoHorario(horario.inicio, horario.fim);
-            console.log(`[SGQ-SECURITY] Horário ${index + 1} importado:`, horario.inicio, '-', horario.fim);
-        });
-        
-        console.log('[SGQ-SECURITY] Total de horários importados:', lead.horariosSolicitados.length);
-    } else if (lead.horarioInicio || lead.horarioFim) {
-        // Fallback para formato antigo (único horário)
-        console.log('[SGQ-SECURITY] Usando formato de horário legado (único horário)');
-        
-        // Limpar horários atuais
-        horarios = [];
-        horariosCount = 0;
-        
-        // Adicionar o horário único
-        const inicio = lead.horarioInicio || '08:00';
-        const fim = lead.horarioFim || '17:00';
-        adicionarNovoHorario(inicio, fim);
-        
-        console.log('[SGQ-SECURITY] Horário único importado:', inicio, '-', fim);
+    // [SGQ-SECURITY] Verificar se é fim de semana e aplicar trava
+    if (lead.dataEvento) {
+        verificarTravaFimDeSemana();
     }
     
     // [SGQ-SECURITY] Atualizar status do lead para "EM_ATENDIMENTO" com log de transição
-    dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
-    console.log('[SGQ-SECURITY] Lead', leadId, 'transicionado para EM_ATENDIMENTO');
+    const statusUpdated = dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
+    if (statusUpdated) {
+        console.log('[SGQ-SECURITY] Lead', leadId, 'transicionado para EM_ATENDIMENTO');
+    }
     
     // Fechar modal
     fecharModalImportarLead();
@@ -1204,7 +1267,7 @@ function importarLeadSelecionado(leadId) {
         // Disparar função de cálculo
         calcularOrcamento();
         
-        mostrarNotificacao(`[SGQ-SECURITY] Lead "${lead.nome}" importado e calculado automaticamente!`, 5000);
+        mostrarNotificacao(`[SGQ-SECURITY] Lead "${lead.nome}" importado e calculado automaticamente!`, 'success', 5000);
     }, DELAY_CALCULO_AUTO_MS);
 }
 
@@ -3039,6 +3102,10 @@ window.abrirTab = function(tabName) {
         console.warn('[App] Tab não encontrada:', tabName);
     }
 };
+
+// Exportar ImportIntegrityGate para testes e uso externo
+window.ImportIntegrityGate = ImportIntegrityGate;
+window.calcularTotalHorasPorDia = calcularTotalHorasPorDia;
 
 console.log('[App] Funções globais exportadas para suporte a HTML legado.');
 
