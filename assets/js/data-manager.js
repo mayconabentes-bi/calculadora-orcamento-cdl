@@ -532,7 +532,13 @@ class DataManager {
         }
 
         try {
-            // Conversão simples para CSV
+            // Validate first element is an object
+            if (typeof historico[0] !== 'object' || historico[0] === null) {
+                console.error('[SGQ-DATA] Formato de dados inválido para exportação');
+                return null;
+            }
+            
+            // Conversão para CSV com RFC 4180 compliance
             const headers = Object.keys(historico[0]).join(',');
             const rows = historico.map(row => 
                 Object.values(row).map(v => {
@@ -543,7 +549,8 @@ class DataManager {
                     return `"${String(v).replace(/"/g, '""')}"`;
                 }).join(',')
             );
-            const csvContent = [headers, ...rows].join("\n");
+            // Use CRLF line terminator for RFC 4180 compliance
+            const csvContent = [headers, ...rows].join("\r\n");
             
             return csvContent;
         } catch (error) {
