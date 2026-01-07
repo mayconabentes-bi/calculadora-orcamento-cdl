@@ -1568,8 +1568,12 @@ function calcularOrcamento() {
     dataManager.adicionarCalculoHistorico(ultimoCalculoRealizado);
     
     // Atualizar dashboard se estiver inicializado
-    if (dashboardController) {
-        atualizarDashboard();
+    if (typeof dashboardController !== 'undefined' && dashboardController) {
+        dashboardController.atualizar();
+    } else if (typeof window.dashboardController !== 'undefined' && window.dashboardController) {
+        window.dashboardController.atualizar();
+    } else {
+        console.warn('[App] Dashboard controller não disponível para atualização automática.');
     }
     
     // Exibir resultados
@@ -2727,8 +2731,12 @@ async function exportarPDFClienteComLoading() {
                         mostrarNotificacao('PDF enviado e status atualizado!');
                         
                         // Atualizar dashboard se estiver inicializado
-                        if (dashboardController) {
-                            atualizarDashboard();
+                        if (typeof dashboardController !== 'undefined' && dashboardController) {
+                            dashboardController.atualizar();
+                        } else if (typeof window.dashboardController !== 'undefined' && window.dashboardController) {
+                            window.dashboardController.atualizar();
+                        } else {
+                            console.warn('[App] Dashboard controller não disponível para atualização automática.');
                         }
                     } catch (error) {
                         console.error('[SGQ-SECURITY] Erro ao atualizar status após envio:', error);
@@ -2924,8 +2932,12 @@ function alternarStatusVenda(id) {
         carregarTabelaHistorico();
         
         // Atualizar dashboard se estiver inicializado
-        if (dashboardController) {
-            atualizarDashboard();
+        if (typeof dashboardController !== 'undefined' && dashboardController) {
+            dashboardController.atualizar();
+        } else if (typeof window.dashboardController !== 'undefined' && window.dashboardController) {
+            window.dashboardController.atualizar();
+        } else {
+            console.warn('[App] Dashboard controller não disponível para atualização automática.');
         }
         
         if (novoStatus) {
@@ -2994,6 +3006,7 @@ window.importarLead = importarLeadSelecionado; // Alias para compatibilidade
 
 // Funções de Interface da Calculadora
 window.atualizarHorario = atualizarHorario;
+window.removerHorario = removerHorario;
 window.adicionarEquipamento = function() {
     console.warn('[App] adicionarEquipamento não implementado - função stub');
 };
