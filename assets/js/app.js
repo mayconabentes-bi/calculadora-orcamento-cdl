@@ -354,34 +354,17 @@ function carregarRetornoExecutivo() {
 }
 
 /**
- * Trata um lead - importa dados e muda status para EM_TRATAMENTO
+ * [SGQ-SECURITY] Trata um lead - usa ImportIntegrityGate para validação e correção
+ * Delega para importarLeadSelecionado para garantir qualidade de dados
  */
 function tratarLeadAgora(leadId) {
-    const lead = dataManager.obterLeadPorId(leadId);
+    console.log('[SGQ-SECURITY] tratarLeadAgora chamado para lead:', leadId);
     
-    if (!lead) {
-        mostrarNotificacao('Lead não encontrado!');
-        return;
-    }
+    // Usar função importarLeadSelecionado que implementa ImportIntegrityGate
+    importarLeadSelecionado(leadId);
     
-    // Preencher campos do cliente
-    document.getElementById('cliente-nome').value = lead.nome || '';
-    document.getElementById('cliente-contato').value = lead.telefone || lead.email || '';
-    
-    if (lead.dataEvento) {
-        document.getElementById('data-evento').value = lead.dataEvento;
-    }
-    
-    // Atualizar status para EM_TRATAMENTO
-    dataManager.atualizarStatusLead(leadId, 'EM_TRATAMENTO');
-    
-    // Scroll para o formulário
-    document.getElementById('cliente-nome').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    
-    // Recarregar centro de operações
+    // Recarregar centro de operações para atualizar contadores
     carregarCentroOperacoesComerciais();
-    
-    mostrarNotificacao(`Lead "${lead.nome}" em tratamento!`);
 }
 
 /**
@@ -3068,6 +3051,7 @@ function limparHistoricoConfirmacao() {
 window.abrirModalImportarLead = abrirModalImportarLead;
 window.fecharModalImportarLead = fecharModalImportarLead;
 window.importarLead = importarLeadSelecionado; // Alias para compatibilidade
+window.tratarLeadAgora = tratarLeadAgora; // [SGQ-SECURITY] Função de tratamento de lead com ImportIntegrityGate
 
 // Funções de Interface da Calculadora
 window.atualizarHorario = atualizarHorario;
