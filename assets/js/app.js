@@ -355,7 +355,15 @@ function carregarRetornoExecutivo() {
 
 /**
  * [SGQ-SECURITY] Trata um lead - usa ImportIntegrityGate para validação e correção
- * Delega para importarLeadSelecionado para garantir qualidade de dados
+ * 
+ * Delega para importarLeadSelecionado, que realiza:
+ * 1. Validação de campos obrigatórios (clienteNome, espacoId, horariosSolicitados, diasSemanaSelecionados)
+ * 2. Auto-correção de quantidade de funcionários para fim de semana (mínimo 3)
+ * 3. Sincronização de dados com a interface (UI)
+ * 4. Transição de status: LEAD_NOVO → EM_ATENDIMENTO
+ * 5. Disparo automático de cálculo de orçamento
+ * 
+ * @param {number} leadId - ID do lead a ser tratado
  */
 function tratarLeadAgora(leadId) {
     console.log('[SGQ-SECURITY] tratarLeadAgora chamado para lead:', leadId);
