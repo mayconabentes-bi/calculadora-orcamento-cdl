@@ -35,15 +35,19 @@
             color: white;
         }
 
-        /* Branding CDL - Logo Institucional */
+        /* Branding CDL - Logo Institucional (Ajustado para JFIF) */
         .cdl-main-logo {
             max-width: 180px;
             height: auto;
             margin-bottom: 20px;
-            /* Filtro para tornar a logo branca sobre o fundo azul */
-            filter: brightness(0) invert(1);
             display: inline-block;
             transition: transform 0.3s ease;
+            
+            /* REMOVIDO: filter: brightness(0) invert(1); */
+            /* O filtro foi removido para evitar que o fundo do JPEG vire um bloco branco sólido */
+            
+            /* Opcional: Adiciona uma leve sombra para separar do fundo azul, caso a logo seja escura */
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
         }
 
         .cdl-main-logo:hover {
@@ -360,7 +364,7 @@
     <div class="gateway-container">
         <!-- Header -->
         <div class="gateway-header">
-            <img src="assets/images/logo-cdl.png" alt="CDL Manaus" class="cdl-main-logo">
+            <img src="assets/images/cdl%20logo.jfif" alt="CDL Manaus" class="cdl-main-logo">
             <h1>Axioma: Inteligência de Margem</h1>
             <p>CDL/UTV - Sistema de Orçamentos</p>
         </div>
