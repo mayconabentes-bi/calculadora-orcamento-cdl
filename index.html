@@ -35,10 +35,19 @@
             color: white;
         }
 
-        .gateway-header img {
-            max-width: 200px;
+        /* Branding CDL - Logo Institucional */
+        .cdl-main-logo {
+            max-width: 180px;
+            height: auto;
             margin-bottom: 20px;
+            /* Filtro para tornar a logo branca sobre o fundo azul */
             filter: brightness(0) invert(1);
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .cdl-main-logo:hover {
+            transform: scale(1.05);
         }
 
         .gateway-header h1 {
@@ -351,7 +360,7 @@
     <div class="gateway-container">
         <!-- Header -->
         <div class="gateway-header">
-            <img src="assets/images/logo-cdl.png" alt="CDL Manaus Logo">
+            <img src="assets/images/logo-cdl.png" alt="CDL Manaus" class="cdl-main-logo">
             <h1>Axioma: Inteligência de Margem</h1>
             <p>CDL/UTV - Sistema de Orçamentos</p>
         </div>
