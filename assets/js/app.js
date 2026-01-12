@@ -233,14 +233,16 @@ function carregarCentroOperacoesComerciais() {
 
 /**
  * Carrega solicitações web (LEAD_NOVO)
+ * SGQ-SECURITY: Mudança para AWAIT para suportar busca assíncrona
  */
-function carregarSolicitacoesWeb() {
-    const leadsNovos = dataManager.obterLeads('LEAD_NOVO');
+async function carregarSolicitacoesWeb() {
     const badge = document.getElementById('badge-leads-novos');
     const lista = document.getElementById('lista-leads-novos');
     
     if (!badge || !lista) return;
     
+    // Mudança para AWAIT
+    const leadsNovos = await dataManager.obterLeads('LEAD_NOVO');
     badge.textContent = leadsNovos.length;
     
     if (leadsNovos.length === 0) {
@@ -268,7 +270,7 @@ function carregarSolicitacoesWeb() {
                     <div style="font-size: 0.85em; color: #6b7280; margin-top: 2px;">${lead.telefone || lead.email || 'Sem contato'}</div>
                     <div style="font-size: 0.8em; color: #9ca3af; margin-top: 2px;">📅 ${dataCriacao}</div>
                 </div>
-                <button class="btn-primary btn-success" onclick="tratarLeadAgora(${lead.id})" style="padding: 6px 12px; font-size: 0.85em; white-space: nowrap;">
+                <button class="btn-primary btn-success" onclick="tratarLeadAgora('${lead.id}')" style="padding: 6px 12px; font-size: 0.85em; white-space: nowrap;">
                     Tratar Agora
                 </button>
             </div>
@@ -355,23 +357,34 @@ function carregarRetornoExecutivo() {
 
 /**
  * [SGQ-SECURITY] Trata um lead - usa ImportIntegrityGate para validação e correção
+ * SGQ-SECURITY: Iniciando importação do lead com validação e disparo automático
  * 
- * Delega para importarLeadSelecionado, que realiza:
- * 1. Validação de campos obrigatórios (clienteNome, espacoId, horariosSolicitados, diasSemanaSelecionados)
- * 2. Auto-correção de quantidade de funcionários para fim de semana (mínimo 3)
- * 3. Sincronização de dados com a interface (UI)
- * 4. Transição de status: LEAD_NOVO → EM_ATENDIMENTO
- * 5. Disparo automático de cálculo de orçamento
+ * Realiza:
+ * 1. Busca assíncrona do lead por ID
+ * 2. Validação de campos obrigatórios (clienteNome, espacoId, horariosSolicitados, diasSemanaSelecionados)
+ * 3. Auto-correção de quantidade de funcionários para fim de semana (mínimo 3)
+ * 4. Sincronização de dados com a interface (UI)
+ * 5. Transição de status: LEAD_NOVO → EM_ATENDIMENTO
+ * 6. Disparo automático de cálculo de orçamento
  * 
- * @param {number} leadId - ID do lead a ser tratado
+ * @param {string} leadId - ID do lead a ser tratado (Firestore Doc ID)
  */
-function tratarLeadAgora(leadId) {
-    console.log('[SGQ-SECURITY] tratarLeadAgora chamado para lead:', leadId);
+async function tratarLeadAgora(leadId) {
+    console.log('[SGQ-SECURITY] Iniciando importação do lead:', leadId);
     
-    // Usar função importarLeadSelecionado que implementa ImportIntegrityGate
-    importarLeadSelecionado(leadId);
+    const lead = await dataManager.obterLeadPorId(leadId);
     
-    // Recarregar centro de operações para atualizar contadores
+    if (!lead) {
+        mostrarNotificacao('Lead não encontrado ou excluído.', 'erro');
+        return;
+    }
+
+    if (ImportIntegrityGate.syncUI(lead)) {
+        await dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
+        calcularOrcamento(); // Disparo automático da Inteligência de Margem
+        mostrarNotificacao(`Lead ${lead.nome} importado com sucesso!`);
+    }
+    
     carregarCentroOperacoesComerciais();
 }
 
@@ -1172,7 +1185,7 @@ async function carregarLeadsNoModal() {
             <td><strong>${cliente}</strong></td>
             <td>${espacoTexto}</td>
             <td style="white-space: nowrap;">
-                <button class="btn-primary btn-success" onclick="importarLeadSelecionado(${lead.id})" style="padding: 6px 12px; font-size: 0.85em;">
+                <button class="btn-primary btn-success" onclick="importarLeadSelecionado('${lead.id}')" style="padding: 6px 12px; font-size: 0.85em;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
@@ -1189,10 +1202,10 @@ async function carregarLeadsNoModal() {
  * Importa um lead selecionado e preenche os dados do cliente
  * [SGQ-SECURITY] Autopreenchimento com mapeamento correto de campos + Cálculo Automatizado
  * Utiliza ImportIntegrityGate para validação e correção
- * @param {number} leadId - ID do lead a ser importado
+ * @param {string} leadId - ID do lead a ser importado (Firestore Doc ID)
  */
-function importarLeadSelecionado(leadId) {
-    const lead = dataManager.obterLeadPorId(leadId);
+async function importarLeadSelecionado(leadId) {
+    const lead = await dataManager.obterLeadPorId(leadId);
     
     if (!lead) {
         mostrarNotificacao('[SGQ-SECURITY] Lead não encontrado!', 'erro');
@@ -1238,7 +1251,7 @@ function importarLeadSelecionado(leadId) {
     }
     
     // [SGQ-SECURITY] Atualizar status do lead para "EM_ATENDIMENTO" com log de transição
-    const statusUpdated = dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
+    const statusUpdated = await dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
     if (statusUpdated) {
         console.log('[SGQ-SECURITY] Lead', leadId, 'transicionado para EM_ATENDIMENTO');
     }
