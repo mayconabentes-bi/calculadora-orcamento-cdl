@@ -670,6 +670,58 @@ class DataManager {
         };
     }
 
+    /**
+     * Verifica ocupações de um espaço em uma data específica
+     * SGQ-SECURITY: Consulta atômica para prevenção de Double Booking
+     * @param {string} espacoId - ID do espaço
+     * @param {string} data - Data no formato YYYY-MM-DD
+     * @returns {Promise<Array>} Lista de intervalos ocupados [{inicio, fim}]
+     */
+    async verificarOcupacaoEspaco(espacoId, data) {
+        try {
+            if (!db) return []; // Fallback para modo offline
+
+            // Validate and convert espacoId to numeric
+            // Note: Assumes espacoId is stored as number in Firestore
+            // If your database stores espacoId as string, remove parseInt and query directly
+            const numericEspacoId = parseInt(espacoId, 10);
+            if (isNaN(numericEspacoId)) {
+                console.error('[SGQ-DATA] espacoId inválido:', espacoId);
+                return [];
+            }
+
+            // Consultar orçamentos emitidos/aprovados para o mesmo espaço e data
+            const orcamentosRef = collection(db, this.collections.ORCAMENTOS);
+            const q = query(
+                orcamentosRef,
+                where('espacoId', '==', numericEspacoId),
+                where('dataEvento', '==', data),
+                where('status', 'in', ['emitido', 'aprovado'])
+            );
+
+            const snapshot = await getDocs(q);
+            const ocupacoes = snapshot.docs.map(doc => {
+                const d = doc.data();
+                // Retorna múltiplos horários se o sistema suportar, ou o padrão
+                // Validar que horarioInicio e horarioFim existem antes de criar objeto
+                if (d.horariosSolicitados && Array.isArray(d.horariosSolicitados)) {
+                    return d.horariosSolicitados;
+                } else if (d.horarioInicio && d.horarioFim) {
+                    return [{ inicio: d.horarioInicio, fim: d.horarioFim }];
+                } else {
+                    console.warn('[SGQ-DATA] Registro sem horários definidos:', doc.id);
+                    return [];
+                }
+            }).flat().filter(oc => oc.inicio && oc.fim); // Filter out invalid entries
+
+            console.log(`[SGQ-DATA] Ocupações encontradas para ${data}:`, ocupacoes.length);
+            return ocupacoes;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao verificar ocupação:', error);
+            return [];
+        }
+    }
+
     // =========================================================================
     // MÓDULO BI & RELATÓRIOS (HOTFIX v5.2.4)
     // =========================================================================

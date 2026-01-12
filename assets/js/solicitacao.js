@@ -74,7 +74,7 @@ function removerHorarioSolicitacao(id) {
  * @param {string} campo - Campo a ser atualizado ('inicio' ou 'fim')
  * @param {string} valor - Novo valor do campo
  */
-function atualizarHorarioSolicitacao(id, campo, valor) {
+async function atualizarHorarioSolicitacao(id, campo, valor) {
     const horario = horariosSolicitados.find(h => h.id === id);
     if (horario) {
         horario[campo] = valor;
@@ -83,6 +83,13 @@ function atualizarHorarioSolicitacao(id, campo, valor) {
         salvarLeadShadow('horariosSolicitados', horariosSolicitados);
         
         console.log('[SGQ-SECURITY] Horário atualizado:', { id, campo, valor });
+        
+        // Validar conflitos se data e espaço estiverem selecionados
+        const data = document.getElementById('dataEvento')?.value;
+        const espacoId = document.getElementById('espaco')?.value;
+        if (data && espacoId) {
+            await atualizarPainelDisponibilidade();
+        }
     }
 }
 
@@ -170,6 +177,173 @@ window.removerHorarioSolicitacao = removerHorarioSolicitacao;
 window.atualizarHorarioSolicitacao = atualizarHorarioSolicitacao;
 
 // ========== FIM GESTÃO DE HORÁRIOS MÚLTIPLOS ==========
+
+// ========== PAINEL DE DISPONIBILIDADE (SGQ-SECURITY: DOUBLE BOOKING PREVENTION) ==========
+
+// Operating hours configuration
+const OPERATING_START_HOUR = 8;  // 08:00
+const OPERATING_END_HOUR = 22;   // 22:00
+
+/**
+ * Renderiza o Status Visual de Disponibilidade
+ * SGQ-SECURITY: Feedback visual para redução de viés de seleção do usuário
+ */
+async function atualizarPainelDisponibilidade() {
+    const dataElement = document.getElementById('dataEvento');
+    const espacoElement = document.getElementById('espaco');
+    const container = document.getElementById('disponibilidade-visual');
+
+    // Defensive programming: Check if elements exist
+    if (!container || !dataElement || !espacoElement) {
+        console.warn('[SGQ-SECURITY] Elementos de disponibilidade não encontrados');
+        return;
+    }
+    
+    const data = dataElement.value;
+    const espacoId = espacoElement.value;
+    
+    if (!data || !espacoId) {
+        container.innerHTML = `
+            <p style="margin: 0; font-size: 0.85em; color: #94a3b8; text-align: center;">
+                Selecione uma data e um espaço para ver a disponibilidade.
+            </p>
+        `;
+        return;
+    }
+
+    container.innerHTML = '<p style="font-size: 0.8em; color: #6b7280;">Consultando agenda...</p>';
+    
+    const ocupacoes = await dataManager.verificarOcupacaoEspaco(espacoId, data);
+    
+    // Criar Timeline de 08:00 às 22:00
+    container.innerHTML = `
+        <label style="display: block; margin-bottom: 10px; font-weight: 600; font-size: 0.9em;">
+            Status de Ocupação do Espaço para o dia ${data}:
+        </label>
+        <div class="timeline-disponibilidade" style="display: flex; height: 30px; background: #dcfce7; border-radius: 4px; overflow: hidden; border: 1px solid #86efac; position: relative;">
+            ${gerarBlocosOcupacao(ocupacoes)}
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.75em; color: #6b7280;">
+            <span>${OPERATING_START_HOUR}:00</span><span>12:00</span><span>17:00</span><span>${OPERATING_END_HOUR}:00</span>
+        </div>
+        <p id="conflito-aviso" style="display: none; color: #dc2626; font-size: 0.85em; margin-top: 8px; font-weight: 600;">
+            ⚠️ Atenção: O horário selecionado coincide com um agendamento existente!
+        </p>
+    `;
+
+    validarConflitoHorarios(ocupacoes);
+}
+
+/**
+ * Gera blocos visuais para horários ocupados
+ * @param {Array} ocupacoes - Lista de ocupações [{inicio, fim}]
+ * @returns {string} HTML dos blocos de ocupação
+ */
+function gerarBlocosOcupacao(ocupacoes) {
+    if (!Array.isArray(ocupacoes) || ocupacoes.length === 0) {
+        return '';
+    }
+    
+    const totalMinutos = (OPERATING_END_HOUR - OPERATING_START_HOUR) * 60; // Total operating minutes
+    return ocupacoes.map(oc => {
+        // Validate time format
+        if (!oc || typeof oc.inicio !== 'string' || typeof oc.fim !== 'string') {
+            console.warn('[SGQ-SECURITY] Formato de ocupação inválido:', oc);
+            return '';
+        }
+        
+        if (!oc.inicio.includes(':') || !oc.fim.includes(':')) {
+            console.warn('[SGQ-SECURITY] Formato de horário inválido:', oc);
+            return '';
+        }
+        
+        const [h1, m1] = oc.inicio.split(':').map(Number);
+        const [h2, m2] = oc.fim.split(':').map(Number);
+        
+        // Validate parsed numbers
+        if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) {
+            console.warn('[SGQ-SECURITY] Horários contêm valores não numéricos:', oc);
+            return '';
+        }
+        
+        const inicioRelativo = ((h1 - OPERATING_START_HOUR) * 60 + m1);
+        const duracao = ((h2 * 60 + m2) - (h1 * 60 + m1));
+        
+        const left = (inicioRelativo / totalMinutos) * 100;
+        const width = (duracao / totalMinutos) * 100;
+
+        return `<div style="position: absolute; left: ${left}%; width: ${width}%; height: 100%; background: #fee2e2; border-left: 2px solid #dc2626; border-right: 2px solid #dc2626;" title="Ocupado: ${oc.inicio} às ${oc.fim}"></div>`;
+    }).filter(html => html !== '').join('');
+}
+
+/**
+ * Valida se os horários selecionados entram em conflito com horários ocupados
+ * @param {Array} ocupacoes - Lista de ocupações [{inicio, fim}]
+ */
+function validarConflitoHorarios(ocupacoes) {
+    const avisoElement = document.getElementById('conflito-aviso');
+    if (!avisoElement || !Array.isArray(ocupacoes) || ocupacoes.length === 0) {
+        if (avisoElement) avisoElement.style.display = 'none';
+        return;
+    }
+    
+    let temConflito = false;
+    
+    // Verificar cada horário solicitado contra as ocupações
+    for (const horarioSolicitado of horariosSolicitados) {
+        // Validate time format
+        if (!horarioSolicitado.inicio || !horarioSolicitado.fim) {
+            continue;
+        }
+        
+        const [h1, m1] = horarioSolicitado.inicio.split(':').map(Number);
+        const [h2, m2] = horarioSolicitado.fim.split(':').map(Number);
+        
+        if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) {
+            continue;
+        }
+        
+        const solicitadoInicio = h1 * 60 + m1;
+        const solicitadoFim = h2 * 60 + m2;
+        
+        for (const ocupacao of ocupacoes) {
+            // Validate ocupacao format
+            if (!ocupacao.inicio || !ocupacao.fim) {
+                continue;
+            }
+            
+            const [oh1, om1] = ocupacao.inicio.split(':').map(Number);
+            const [oh2, om2] = ocupacao.fim.split(':').map(Number);
+            
+            if (isNaN(oh1) || isNaN(om1) || isNaN(oh2) || isNaN(om2)) {
+                continue;
+            }
+            
+            const ocupadoInicio = oh1 * 60 + om1;
+            const ocupadoFim = oh2 * 60 + om2;
+            
+            // Verificar sobreposição: (A.inicio < B.fim) && (A.fim > B.inicio)
+            // Business Rule: Touching boundaries (e.g., booking ending at 10:00 and another
+            // starting at 10:00) are allowed to support back-to-back bookings without gaps
+            if (solicitadoInicio < ocupadoFim && solicitadoFim > ocupadoInicio) {
+                temConflito = true;
+                break;
+            }
+        }
+        
+        if (temConflito) break;
+    }
+    
+    if (temConflito) {
+        avisoElement.style.display = 'block';
+        console.log('[SGQ-SECURITY] Conflito de horário detectado');
+    } else {
+        avisoElement.style.display = 'none';
+        console.log('[SGQ-SECURITY] Horários solicitados estão disponíveis');
+    }
+}
+
+// ========== FIM PAINEL DE DISPONIBILIDADE ==========
 
 /**
  * Função para exibir notificação
@@ -332,6 +506,8 @@ function setupShadowCapture() {
             if (valor) {
                 await salvarLeadShadow('dataEvento', valor);
                 console.log('[SGQ-SECURITY] Data do evento capturada:', valor);
+                // Atualizar painel de disponibilidade
+                await atualizarPainelDisponibilidade();
             }
             reiniciarTimerInatividade();
         });
@@ -348,6 +524,8 @@ function setupShadowCapture() {
                 const espacoNome = selectElement.options[selectElement.selectedIndex].text;
                 await salvarLeadShadow('espaco', espacoNome);
                 console.log('[SGQ-SECURITY] Espaço capturado:', espacoNome);
+                // Atualizar painel de disponibilidade
+                await atualizarPainelDisponibilidade();
             }
             reiniciarTimerInatividade();
         });
