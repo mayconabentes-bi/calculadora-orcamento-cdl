@@ -217,20 +217,31 @@ class DataManager {
 
     /**
      * Salva um Lead vindo da página pública (Solicitação)
+     * SGQ-SECURITY: Corrige o status para evitar mismatch e implementa UPSERT
      * Não requer autenticação do usuário (acesso público configurado nas regras)
+     * @param {Object} dadosLead - Dados do lead a serem salvos
+     * @returns {Promise<Object>} Objeto com id e firebaseId do lead salvo
      */
     async salvarLead(dadosLead) {
         try {
+            // Se já possui firebaseId, atualiza. Senão, cria novo.
+            if (dadosLead.firebaseId) {
+                const docRef = doc(db, this.collections.LEADS, dadosLead.firebaseId);
+                await updateDoc(docRef, { 
+                    ...dadosLead, 
+                    atualizadoEm: new Date().toISOString() 
+                });
+                return { id: dadosLead.firebaseId, firebaseId: dadosLead.firebaseId };
+            }
+
             const payload = {
                 ...dadosLead,
-                criadoEm: new Date().toISOString(),
                 timestamp: Timestamp.now(),
-                status: 'novo', // novo, em_analise, convertido, perdido
-                origem: 'web_form'
+                status: dadosLead.status || 'LEAD_NOVO' // Respeita o status vindo do form
             };
 
             const docRef = await addDoc(collection(db, this.collections.LEADS), payload);
-            return docRef.id;
+            return { id: docRef.id, firebaseId: docRef.id };
         } catch (error) {
             console.error('[SGQ-DATA] Erro ao salvar lead:', error);
             throw error;
@@ -548,29 +559,63 @@ class DataManager {
     }
 
     /**
-     * Obter leads por status
-     * Mock de estabilidade
+     * Busca leads por status com suporte a Async/Await
+     * SGQ-SECURITY: Filtro por status para integridade do funil
+     * @param {string} status - Status do lead (ex: 'LEAD_NOVO', 'EM_ATENDIMENTO')
+     * @returns {Promise<Array>} Lista de leads filtrados por status
      */
-    obterLeads(status) {
-        return [];
+    async obterLeads(status) {
+        try {
+            const q = query(
+                collection(db, this.collections.LEADS),
+                where('status', '==', status),
+                orderBy('timestamp', 'desc')
+            );
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao obter leads:', error);
+            return [];
+        }
     }
 
     /**
-     * Obter lead por ID
-     * Mock de estabilidade
+     * Recupera um lead específico por ID (Firestore Doc ID)
+     * SGQ-SECURITY: Busca individual para validação de importação
+     * @param {string} id - ID do documento do lead no Firestore
+     * @returns {Promise<Object|null>} Lead encontrado ou null
      */
-    obterLeadPorId(id) {
-        console.warn('[SGQ-DATA] obterLeadPorId() é um mock - implementação completa pendente');
-        return null;
+    async obterLeadPorId(id) {
+        try {
+            const docRef = doc(db, this.collections.LEADS, id);
+            const docSnap = await getDoc(docRef);
+            return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao obter lead por ID:', error);
+            return null;
+        }
     }
 
     /**
-     * Atualizar status de lead
-     * Mock de estabilidade
+     * Atualiza o status de um lead
+     * SGQ-SECURITY: Transição de status para controle do funil
+     * @param {string} id - ID do lead no Firestore
+     * @param {string} status - Novo status (ex: 'EM_ATENDIMENTO', 'CONVERTIDO')
+     * @returns {Promise<boolean>} True se atualizado com sucesso
      */
-    atualizarStatusLead(id, status) {
-        console.warn('[SGQ-DATA] atualizarStatusLead() é um mock - implementação completa pendente');
-        return true;
+    async atualizarStatusLead(id, status) {
+        try {
+            const docRef = doc(db, this.collections.LEADS, id);
+            await updateDoc(docRef, { 
+                status: status,
+                atualizadoEm: new Date().toISOString()
+            });
+            console.log(`[SGQ-DATA] Lead ${id} atualizado para status: ${status}`);
+            return true;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao atualizar status do lead:', error);
+            return false;
+        }
     }
 
     /**
