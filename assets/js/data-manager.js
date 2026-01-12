@@ -681,11 +681,18 @@ class DataManager {
         try {
             if (!db) return []; // Fallback para modo offline
 
+            // Validate espacoId
+            const numericEspacoId = parseInt(espacoId, 10);
+            if (isNaN(numericEspacoId)) {
+                console.error('[SGQ-DATA] espacoId inválido:', espacoId);
+                return [];
+            }
+
             // Consultar orçamentos emitidos/aprovados para o mesmo espaço e data
             const orcamentosRef = collection(db, this.collections.ORCAMENTOS);
             const q = query(
                 orcamentosRef,
-                where('espacoId', '==', parseInt(espacoId)),
+                where('espacoId', '==', numericEspacoId),
                 where('dataEvento', '==', data),
                 where('status', 'in', ['emitido', 'aprovado'])
             );
@@ -694,8 +701,16 @@ class DataManager {
             const ocupacoes = snapshot.docs.map(doc => {
                 const d = doc.data();
                 // Retorna múltiplos horários se o sistema suportar, ou o padrão
-                return d.horariosSolicitados || [{ inicio: d.horarioInicio, fim: d.horarioFim }];
-            }).flat();
+                // Validar que horarioInicio e horarioFim existem antes de criar objeto
+                if (d.horariosSolicitados && Array.isArray(d.horariosSolicitados)) {
+                    return d.horariosSolicitados;
+                } else if (d.horarioInicio && d.horarioFim) {
+                    return [{ inicio: d.horarioInicio, fim: d.horarioFim }];
+                } else {
+                    console.warn('[SGQ-DATA] Registro sem horários definidos:', doc.id);
+                    return [];
+                }
+            }).flat().filter(oc => oc.inicio && oc.fim); // Filter out invalid entries
 
             console.log(`[SGQ-DATA] Ocupações encontradas para ${data}:`, ocupacoes.length);
             return ocupacoes;

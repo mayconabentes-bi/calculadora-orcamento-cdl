@@ -185,11 +185,18 @@ window.atualizarHorarioSolicitacao = atualizarHorarioSolicitacao;
  * SGQ-SECURITY: Feedback visual para redução de viés de seleção do usuário
  */
 async function atualizarPainelDisponibilidade() {
-    const data = document.getElementById('dataEvento').value;
-    const espacoId = document.getElementById('espaco').value;
+    const dataElement = document.getElementById('dataEvento');
+    const espacoElement = document.getElementById('espaco');
     const container = document.getElementById('disponibilidade-visual');
 
-    if (!container) return;
+    // Defensive programming: Check if elements exist
+    if (!container || !dataElement || !espacoElement) {
+        console.warn('[SGQ-SECURITY] Elementos de disponibilidade não encontrados');
+        return;
+    }
+    
+    const data = dataElement.value;
+    const espacoId = espacoElement.value;
     
     if (!data || !espacoId) {
         container.innerHTML = `
@@ -229,10 +236,31 @@ async function atualizarPainelDisponibilidade() {
  * @returns {string} HTML dos blocos de ocupação
  */
 function gerarBlocosOcupacao(ocupacoes) {
+    if (!Array.isArray(ocupacoes) || ocupacoes.length === 0) {
+        return '';
+    }
+    
     const totalMinutos = (22 - 8) * 60; // Janela de 14 horas
     return ocupacoes.map(oc => {
+        // Validate time format
+        if (!oc || typeof oc.inicio !== 'string' || typeof oc.fim !== 'string') {
+            console.warn('[SGQ-SECURITY] Formato de ocupação inválido:', oc);
+            return '';
+        }
+        
+        if (!oc.inicio.includes(':') || !oc.fim.includes(':')) {
+            console.warn('[SGQ-SECURITY] Formato de horário inválido:', oc);
+            return '';
+        }
+        
         const [h1, m1] = oc.inicio.split(':').map(Number);
         const [h2, m2] = oc.fim.split(':').map(Number);
+        
+        // Validate parsed numbers
+        if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) {
+            console.warn('[SGQ-SECURITY] Horários contêm valores não numéricos:', oc);
+            return '';
+        }
         
         const inicioRelativo = ((h1 - 8) * 60 + m1);
         const duracao = ((h2 * 60 + m2) - (h1 * 60 + m1));
@@ -241,7 +269,7 @@ function gerarBlocosOcupacao(ocupacoes) {
         const width = (duracao / totalMinutos) * 100;
 
         return `<div style="position: absolute; left: ${left}%; width: ${width}%; height: 100%; background: #fee2e2; border-left: 2px solid #dc2626; border-right: 2px solid #dc2626;" title="Ocupado: ${oc.inicio} às ${oc.fim}"></div>`;
-    }).join('');
+    }).filter(html => html !== '').join('');
 }
 
 /**
@@ -250,24 +278,48 @@ function gerarBlocosOcupacao(ocupacoes) {
  */
 function validarConflitoHorarios(ocupacoes) {
     const avisoElement = document.getElementById('conflito-aviso');
-    if (!avisoElement) return;
+    if (!avisoElement || !Array.isArray(ocupacoes) || ocupacoes.length === 0) {
+        if (avisoElement) avisoElement.style.display = 'none';
+        return;
+    }
     
     let temConflito = false;
     
     // Verificar cada horário solicitado contra as ocupações
     for (const horarioSolicitado of horariosSolicitados) {
+        // Validate time format
+        if (!horarioSolicitado.inicio || !horarioSolicitado.fim) {
+            continue;
+        }
+        
         const [h1, m1] = horarioSolicitado.inicio.split(':').map(Number);
         const [h2, m2] = horarioSolicitado.fim.split(':').map(Number);
+        
+        if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) {
+            continue;
+        }
+        
         const solicitadoInicio = h1 * 60 + m1;
         const solicitadoFim = h2 * 60 + m2;
         
         for (const ocupacao of ocupacoes) {
+            // Validate ocupacao format
+            if (!ocupacao.inicio || !ocupacao.fim) {
+                continue;
+            }
+            
             const [oh1, om1] = ocupacao.inicio.split(':').map(Number);
             const [oh2, om2] = ocupacao.fim.split(':').map(Number);
+            
+            if (isNaN(oh1) || isNaN(om1) || isNaN(oh2) || isNaN(om2)) {
+                continue;
+            }
+            
             const ocupadoInicio = oh1 * 60 + om1;
             const ocupadoFim = oh2 * 60 + om2;
             
             // Verificar sobreposição: (A.inicio < B.fim) && (A.fim > B.inicio)
+            // Note: Using < and > (not <= and >=) means touching boundaries are allowed
             if (solicitadoInicio < ocupadoFim && solicitadoFim > ocupadoInicio) {
                 temConflito = true;
                 break;
