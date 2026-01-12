@@ -670,6 +670,41 @@ class DataManager {
         };
     }
 
+    /**
+     * Verifica ocupações de um espaço em uma data específica
+     * SGQ-SECURITY: Consulta atômica para prevenção de Double Booking
+     * @param {string} espacoId - ID do espaço
+     * @param {string} data - Data no formato YYYY-MM-DD
+     * @returns {Promise<Array>} Lista de intervalos ocupados [{inicio, fim}]
+     */
+    async verificarOcupacaoEspaco(espacoId, data) {
+        try {
+            if (!db) return []; // Fallback para modo offline
+
+            // Consultar orçamentos emitidos/aprovados para o mesmo espaço e data
+            const orcamentosRef = collection(db, this.collections.ORCAMENTOS);
+            const q = query(
+                orcamentosRef,
+                where('espacoId', '==', parseInt(espacoId)),
+                where('dataEvento', '==', data),
+                where('status', 'in', ['emitido', 'aprovado'])
+            );
+
+            const snapshot = await getDocs(q);
+            const ocupacoes = snapshot.docs.map(doc => {
+                const d = doc.data();
+                // Retorna múltiplos horários se o sistema suportar, ou o padrão
+                return d.horariosSolicitados || [{ inicio: d.horarioInicio, fim: d.horarioFim }];
+            }).flat();
+
+            console.log(`[SGQ-DATA] Ocupações encontradas para ${data}:`, ocupacoes.length);
+            return ocupacoes;
+        } catch (error) {
+            console.error('[SGQ-DATA] Erro ao verificar ocupação:', error);
+            return [];
+        }
+    }
+
     // =========================================================================
     // MÓDULO BI & RELATÓRIOS (HOTFIX v5.2.4)
     // =========================================================================
