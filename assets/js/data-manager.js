@@ -681,7 +681,9 @@ class DataManager {
         try {
             if (!db) return []; // Fallback para modo offline
 
-            // Validate espacoId
+            // Validate and convert espacoId to numeric
+            // Note: Assumes espacoId is stored as number in Firestore
+            // If your database stores espacoId as string, remove parseInt and query directly
             const numericEspacoId = parseInt(espacoId, 10);
             if (isNaN(numericEspacoId)) {
                 console.error('[SGQ-DATA] espacoId inválido:', espacoId);

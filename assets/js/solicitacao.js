@@ -180,6 +180,10 @@ window.atualizarHorarioSolicitacao = atualizarHorarioSolicitacao;
 
 // ========== PAINEL DE DISPONIBILIDADE (SGQ-SECURITY: DOUBLE BOOKING PREVENTION) ==========
 
+// Operating hours configuration
+const OPERATING_START_HOUR = 8;  // 08:00
+const OPERATING_END_HOUR = 22;   // 22:00
+
 /**
  * Renderiza o Status Visual de Disponibilidade
  * SGQ-SECURITY: Feedback visual para redução de viés de seleção do usuário
@@ -220,7 +224,7 @@ async function atualizarPainelDisponibilidade() {
             ${gerarBlocosOcupacao(ocupacoes)}
         </div>
         <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.75em; color: #6b7280;">
-            <span>08:00</span><span>12:00</span><span>17:00</span><span>22:00</span>
+            <span>${OPERATING_START_HOUR}:00</span><span>12:00</span><span>17:00</span><span>${OPERATING_END_HOUR}:00</span>
         </div>
         <p id="conflito-aviso" style="display: none; color: #dc2626; font-size: 0.85em; margin-top: 8px; font-weight: 600;">
             ⚠️ Atenção: O horário selecionado coincide com um agendamento existente!
@@ -240,7 +244,7 @@ function gerarBlocosOcupacao(ocupacoes) {
         return '';
     }
     
-    const totalMinutos = (22 - 8) * 60; // Janela de 14 horas
+    const totalMinutos = (OPERATING_END_HOUR - OPERATING_START_HOUR) * 60; // Total operating minutes
     return ocupacoes.map(oc => {
         // Validate time format
         if (!oc || typeof oc.inicio !== 'string' || typeof oc.fim !== 'string') {
@@ -262,7 +266,7 @@ function gerarBlocosOcupacao(ocupacoes) {
             return '';
         }
         
-        const inicioRelativo = ((h1 - 8) * 60 + m1);
+        const inicioRelativo = ((h1 - OPERATING_START_HOUR) * 60 + m1);
         const duracao = ((h2 * 60 + m2) - (h1 * 60 + m1));
         
         const left = (inicioRelativo / totalMinutos) * 100;
@@ -319,7 +323,8 @@ function validarConflitoHorarios(ocupacoes) {
             const ocupadoFim = oh2 * 60 + om2;
             
             // Verificar sobreposição: (A.inicio < B.fim) && (A.fim > B.inicio)
-            // Note: Using < and > (not <= and >=) means touching boundaries are allowed
+            // Business Rule: Touching boundaries (e.g., booking ending at 10:00 and another
+            // starting at 10:00) are allowed to support back-to-back bookings without gaps
             if (solicitadoInicio < ocupadoFim && solicitadoFim > ocupadoInicio) {
                 temConflito = true;
                 break;
