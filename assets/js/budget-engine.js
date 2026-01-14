@@ -313,6 +313,18 @@ class BudgetEngine {
             console.log('[TB.PREM.06] Sistema de comissões desativado');
         }
         
+        // [SGQ-SECURITY] Segurança Margem: Verificar prejuízo
+        // Detecta orçamentos com margem negativa (prejuízo) e sinaliza para revisão
+        // Ação requerida: Revisar margem, custos ou descontos antes de aprovar o orçamento
+        // Este alerta não bloqueia o cálculo, mas deve ser considerado na decisão de aprovação
+        const alertaPrejuizo = lucroLiquidoReal < 0;
+        
+        if (alertaPrejuizo) {
+            console.warn('[SGQ-SECURITY] ⚠️ ALERTA DE PREJUÍZO: Lucro Líquido Real negativo detectado!');
+            console.warn(`[SGQ-SECURITY] Lucro Líquido Real: R$ ${lucroLiquidoReal.toFixed(2)}`);
+            console.warn('[SGQ-SECURITY] Ação requerida: Revisar margem, custos ou descontos antes de enviar ao cliente');
+        }
+        
         // GARANTIA FINAL: Assegurar que todos os valores retornados são numéricos válidos
         return {
             horasTotais: horasTotais ?? 0,
@@ -349,7 +361,9 @@ class BudgetEngine {
             valorComissaoGestao: valorComissaoGestao ?? 0,
             totalComissoes: totalComissoes ?? 0,
             lucroLiquidoReal: lucroLiquidoReal ?? 0,
-            percentualComissaoTotal: ((taxasComissao?.vendaDireta ?? 0) + (taxasComissao?.gestaoUTV ?? 0)) * 100
+            percentualComissaoTotal: ((taxasComissao?.vendaDireta ?? 0) + (taxasComissao?.gestaoUTV ?? 0)) * 100,
+            // [SGQ-SECURITY] Segurança Margem
+            alertaPrejuizo
         };
     }
 }
