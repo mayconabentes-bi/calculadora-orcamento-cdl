@@ -101,42 +101,32 @@ describe('Axioma v5.3.0 - Commission Calculations', () => {
 });
 
 describe('Axioma v5.3.0 - Volume Discount', () => {
-    test('should apply 5% discount for contracts > 3 days', () => {
-        const duracaoEmDias = 5;
+    // Helper function to calculate volume discount
+    const calcularDescontoVolume = (duracaoEmDias) => {
         let descontoVolume = 0;
-        
         if (duracaoEmDias > 7) {
             descontoVolume = 0.10;
         } else if (duracaoEmDias > 3) {
             descontoVolume = 0.05;
         }
-        
+        return descontoVolume;
+    };
+    
+    test('should apply 5% discount for contracts > 3 days', () => {
+        const duracaoEmDias = 5;
+        const descontoVolume = calcularDescontoVolume(duracaoEmDias);
         expect(descontoVolume).toBe(0.05);
     });
     
     test('should apply 10% discount for contracts > 7 days', () => {
         const duracaoEmDias = 10;
-        let descontoVolume = 0;
-        
-        if (duracaoEmDias > 7) {
-            descontoVolume = 0.10;
-        } else if (duracaoEmDias > 3) {
-            descontoVolume = 0.05;
-        }
-        
+        const descontoVolume = calcularDescontoVolume(duracaoEmDias);
         expect(descontoVolume).toBe(0.10);
     });
     
     test('should apply no discount for contracts <= 3 days', () => {
         const duracaoEmDias = 2;
-        let descontoVolume = 0;
-        
-        if (duracaoEmDias > 7) {
-            descontoVolume = 0.10;
-        } else if (duracaoEmDias > 3) {
-            descontoVolume = 0.05;
-        }
-        
+        const descontoVolume = calcularDescontoVolume(duracaoEmDias);
         expect(descontoVolume).toBe(0);
     });
 });

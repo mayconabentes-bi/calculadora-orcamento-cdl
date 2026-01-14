@@ -408,13 +408,11 @@ class DataManager {
             
             // Verificar se os novos ativos já existem, senão adicionar
             const extrasArray = Array.isArray(extras) ? extras : [];
-            const novosAtivos = [
-                { id: 6, nome: "Projetor Full HD", custo: 150.00 },
-                { id: 7, nome: "Painel de LED", custo: 800.00 }
-            ];
+            const dadosPadrao = this.obterDadosPadrao();
+            const novosAtivosDefault = dadosPadrao.extras.filter(e => e.id >= 6); // IDs 6 e 7 são novos
             
             let atualizado = false;
-            novosAtivos.forEach(novoAtivo => {
+            novosAtivosDefault.forEach(novoAtivo => {
                 if (!extrasArray.find(e => e.id === novoAtivo.id)) {
                     extrasArray.push(novoAtivo);
                     atualizado = true;
