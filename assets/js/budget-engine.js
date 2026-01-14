@@ -277,6 +277,39 @@ class BudgetEngine {
         const totalCustosFuncionarios = (custoMaoObraTotal ?? 0) + (custoValeTransporte ?? 0) + 
                                         (custoTransporteApp ?? 0) + (custoRefeicao ?? 0);
         
+        // =========================================================================
+        // [TB.PREM.06] CÁLCULO DE COMISSIONAMENTO - AXIOMA v5.2.0
+        // Sistema de incentivo: 8% Venda Direta + 2% Gestão = 10% total
+        // =========================================================================
+        
+        // Obter taxas de comissão configuradas
+        const taxasComissao = this.dataManager.obterTaxasComissao();
+        
+        // Calcular comissões sobre o valor final (após margem e desconto)
+        let valorComissaoVendedor = 0;
+        let valorComissaoGestao = 0;
+        let totalComissoes = 0;
+        let lucroLiquidoReal = 0;
+        
+        if (taxasComissao.ativo) {
+            valorComissaoVendedor = valorFinal * taxasComissao.vendaDireta;
+            valorComissaoGestao = valorFinal * taxasComissao.gestaoUTV;
+            totalComissoes = valorComissaoVendedor + valorComissaoGestao;
+            
+            // Lucro Líquido Real: Valor Final - Custos Totais - Comissões
+            lucroLiquidoReal = valorFinal - subtotalSemMargem - totalComissoes;
+            
+            console.log('[TB.PREM.06] Comissões calculadas:');
+            console.log(`  - Vendedor (${(taxasComissao.vendaDireta * 100).toFixed(1)}%): R$ ${valorComissaoVendedor.toFixed(2)}`);
+            console.log(`  - Gestão UTV (${(taxasComissao.gestaoUTV * 100).toFixed(1)}%): R$ ${valorComissaoGestao.toFixed(2)}`);
+            console.log(`  - Total Comissões (10%): R$ ${totalComissoes.toFixed(2)}`);
+            console.log(`  - Lucro Líquido Real: R$ ${lucroLiquidoReal.toFixed(2)}`);
+        } else {
+            // Se comissões desativadas, lucro líquido = margem
+            lucroLiquidoReal = valorFinal - subtotalSemMargem;
+            console.log('[TB.PREM.06] Sistema de comissões desativado');
+        }
+        
         // GARANTIA FINAL: Assegurar que todos os valores retornados são numéricos válidos
         return {
             horasTotais: horasTotais ?? 0,
@@ -307,7 +340,13 @@ class BudgetEngine {
             descontoPercent: (descontoFinal ?? 0) * 100,
             quantidadeFuncionarios: (funcionariosAtivos ?? []).length,
             totalCustosFuncionarios: totalCustosFuncionarios ?? 0,
-            detalhamentoFuncionarios: detalhamentoFuncionarios ?? []
+            detalhamentoFuncionarios: detalhamentoFuncionarios ?? [],
+            // [TB.PREM.06] Campos de comissionamento
+            valorComissaoVendedor: valorComissaoVendedor ?? 0,
+            valorComissaoGestao: valorComissaoGestao ?? 0,
+            totalComissoes: totalComissoes ?? 0,
+            lucroLiquidoReal: lucroLiquidoReal ?? 0,
+            percentualComissaoTotal: ((taxasComissao?.vendaDireta ?? 0) + (taxasComissao?.gestaoUTV ?? 0)) * 100
         };
     }
 }
