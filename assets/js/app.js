@@ -1782,7 +1782,7 @@ function exibirResultados(resultado, calculoIncompleto = false) {
         const comissoesPercentElement = document.getElementById('comissoes-percent');
         
         if (valorComissoesElement) {
-            valorComissoesElement.textContent = `-R$ ${CoreUtils.formatarMoeda(resultado.totalComissoes)}`;
+            valorComissoesElement.textContent = `-${CoreUtils.formatarMoeda(resultado.totalComissoes)}`;
         }
         
         if (comissoesPercentElement && resultado.percentualComissaoTotal) {

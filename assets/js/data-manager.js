@@ -877,7 +877,7 @@ class DataManager {
                 nivel = 'BAIXO';
                 cor = '#16a34a';      // Verde
                 bgColor = '#dcfce7';
-                borderColor: '#86efac';
+                borderColor = '#86efac';
             }
             
             return {

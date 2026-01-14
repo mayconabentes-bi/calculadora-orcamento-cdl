@@ -47,7 +47,7 @@ describe('TB.PREM.06 - Comissionamento', () => {
             let valorComissaoVendedor = 0;
             let valorComissaoGestao = 0;
             let totalComissoes = 0;
-            let lucroLiquidoReal = 0;
+            let lucroLiquidoReal = valorFinal - subtotalSemMargem; // Default: sem comissões
 
             if (taxasComissao.ativo) {
                 valorComissaoVendedor = valorFinal * taxasComissao.vendaDireta;
@@ -222,38 +222,23 @@ describe('TB.PREM.06 - Comissionamento', () => {
 
         test('Deve não calcular comissões se sistema desativado', () => {
             // Mock com sistema desativado
-            mockDataManager.obterTaxasComissao.mockReturnValueOnce({
-                vendaDireta: 0.08,
-                gestaoUTV: 0.02,
-                ativo: false // Desativado
-            });
+            const mockDataManagerDesativado = {
+                obterTaxasComissao: jest.fn(() => ({
+                    vendaDireta: 0.08,
+                    gestaoUTV: 0.02,
+                    ativo: false // Desativado
+                })),
+                obterFuncionariosAtivos: jest.fn(() => []),
+                obterMultiplicadoresTurno: jest.fn(() => ({
+                    manha: 1.0,
+                    tarde: 1.15,
+                    noite: 1.40
+                })),
+                obterExtras: jest.fn(() => [])
+            };
 
             // Criar nova engine com o mock atualizado
-            const engineDesativado = new MockBudgetEngine(mockDataManager);
-            engineDesativado.calcularValores = function(params) {
-                const subtotalSemMargem = 1000;
-                const margem = params.margem || 0.20;
-                const valorMargem = subtotalSemMargem * margem;
-                const valorFinal = subtotalSemMargem + valorMargem;
-
-                const taxasComissao = this.dataManager.obterTaxasComissao();
-                
-                let totalComissoes = 0;
-                let lucroLiquidoReal = valorFinal - subtotalSemMargem;
-
-                if (taxasComissao.ativo) {
-                    // Não deve entrar aqui
-                    totalComissoes = valorFinal * 0.10;
-                    lucroLiquidoReal = valorFinal - subtotalSemMargem - totalComissoes;
-                }
-
-                return {
-                    valorFinal,
-                    totalComissoes,
-                    lucroLiquidoReal,
-                    subtotalSemMargem
-                };
-            };
+            const engineDesativado = new MockBudgetEngine(mockDataManagerDesativado);
 
             const resultado = engineDesativado.calcularValores({ margem: 0.20 });
             
@@ -276,25 +261,47 @@ describe('TB.PREM.06 - Comissionamento', () => {
         });
 
         test('Deve calcular corretamente com valores altos', () => {
-            // Simular orçamento grande
-            const engineGrande = new MockBudgetEngine(mockDataManager);
-            engineGrande.calcularValores = function(params) {
-                const subtotalSemMargem = 50000; // R$ 50.000,00
-                const margem = params.margem || 0.20;
-                const valorFinal = subtotalSemMargem * (1 + margem);
-                
-                const taxasComissao = this.dataManager.obterTaxasComissao();
-                const totalComissoes = valorFinal * 0.10;
-                const lucroLiquidoReal = valorFinal - subtotalSemMargem - totalComissoes;
-
-                return {
-                    subtotalSemMargem,
-                    valorFinal,
-                    totalComissoes,
-                    lucroLiquidoReal
-                };
+            // Mock com valores simplificados para orçamento grande
+            const mockDataManagerGrande = {
+                obterTaxasComissao: jest.fn(() => ({
+                    vendaDireta: 0.08,
+                    gestaoUTV: 0.02,
+                    ativo: true
+                })),
+                obterFuncionariosAtivos: jest.fn(() => []),
+                obterMultiplicadoresTurno: jest.fn(() => ({
+                    manha: 1.0,
+                    tarde: 1.15,
+                    noite: 1.40
+                })),
+                obterExtras: jest.fn(() => [])
             };
 
+            // Criar engine com custo base maior
+            class MockBudgetEngineGrande extends MockBudgetEngine {
+                calcularValores(params) {
+                    const subtotalSemMargem = 50000; // R$ 50.000,00
+                    const margem = params.margem || 0.20;
+                    const valorMargem = subtotalSemMargem * margem;
+                    const subtotalComMargem = subtotalSemMargem + valorMargem;
+                    const desconto = params.desconto || 0;
+                    const valorDesconto = subtotalComMargem * desconto;
+                    const valorFinal = subtotalComMargem - valorDesconto;
+
+                    const taxasComissao = this.dataManager.obterTaxasComissao();
+                    const totalComissoes = valorFinal * 0.10;
+                    const lucroLiquidoReal = valorFinal - subtotalSemMargem - totalComissoes;
+
+                    return {
+                        subtotalSemMargem,
+                        valorFinal,
+                        totalComissoes,
+                        lucroLiquidoReal
+                    };
+                }
+            }
+
+            const engineGrande = new MockBudgetEngineGrande(mockDataManagerGrande);
             const resultado = engineGrande.calcularValores({ margem: 0.20 });
             
             // Valor Final = 50000 * 1.20 = R$ 60.000,00
