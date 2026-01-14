@@ -387,14 +387,44 @@ class DataManager {
 
     /**
      * Retorna lista de itens extras
+     * AXIOMA v5.3.0: Inicializa extras padrão se não existirem (incluindo novos ativos)
      * @returns {Array} Lista de extras
      */
     obterExtras() {
         try {
             const extrasData = localStorage.getItem('extras_v5');
-            if (!extrasData) return [];
+            if (!extrasData) {
+                // Inicializar com dados padrão na primeira execução
+                const dadosPadrao = this.obterDadosPadrao();
+                const extrasDefault = dadosPadrao.extras || [];
+                if (extrasDefault.length > 0) {
+                    localStorage.setItem('extras_v5', JSON.stringify(extrasDefault));
+                    console.log('[SGQ-DATA] Extras inicializados com dados padrão (v5.3.0)');
+                    return extrasDefault;
+                }
+                return [];
+            }
             const extras = JSON.parse(extrasData);
-            return Array.isArray(extras) ? extras : [];
+            
+            // Verificar se os novos ativos já existem, senão adicionar
+            const extrasArray = Array.isArray(extras) ? extras : [];
+            const dadosPadrao = this.obterDadosPadrao();
+            const novosAtivosDefault = dadosPadrao.extras.filter(e => e.id >= 6); // IDs 6 e 7 são novos
+            
+            let atualizado = false;
+            novosAtivosDefault.forEach(novoAtivo => {
+                if (!extrasArray.find(e => e.id === novoAtivo.id)) {
+                    extrasArray.push(novoAtivo);
+                    atualizado = true;
+                    console.log(`[SGQ-DATA] Novo ativo adicionado: ${novoAtivo.nome} (v5.3.0)`);
+                }
+            });
+            
+            if (atualizado) {
+                localStorage.setItem('extras_v5', JSON.stringify(extrasArray));
+            }
+            
+            return extrasArray;
         } catch (error) {
             console.error('[SGQ-DATA] Erro ao obter extras:', error);
             return [];
@@ -907,20 +937,40 @@ class DataManager {
     /**
      * Retorna as configurações padrão do sistema
      * Inclui taxas de comissionamento conforme TB.PREM.06
-     * @returns {Object} Configurações do sistema
+     * AXIOMA v5.3.0: Unificação de métodos e inclusão de todos os dados padrão
+     * @returns {Object} Configurações completas do sistema
      */
     obterDadosPadrao() {
         return {
+            salas: [],  // Salas gerenciadas via Firestore
+            funcionarios: [],  // Funcionários gerenciados via localStorage ou Firestore
+            multiplicadores: {
+                manha: 1.0,
+                tarde: 1.15,
+                noite: 1.40
+            },
             configuracoes: {
                 comissoes: {
-                    vendaDireta: 0.08,  // 8% para o vendedor
-                    gestaoUTV: 0.02,    // 2% para gestão
+                    vendaDireta: 0.08,  // 8% para o vendedor (TB.PREM.06)
+                    gestaoUTV: 0.02,    // 2% para gestão (TB.PREM.06)
                     ativo: true         // Sistema de comissões ativo
                 },
                 margemMinima: 15.0,
                 lucroAlvo: 30.0,
-                custoFixoDiario: 50.0
-            }
+                custoFixoDiario: 50.0,
+                exibirAlertaViabilidade: true,
+                exibirClassificacaoRisco: true,
+                exibirEstruturaCustos: true
+            },
+            extras: [
+                { id: 1, nome: "Projetor Multimídia", custo: 80.00 },
+                { id: 2, nome: "Sistema de Som", custo: 120.00 },
+                { id: 3, nome: "Microfone sem Fio", custo: 40.00 },
+                { id: 4, nome: "Flipchart", custo: 30.00 },
+                { id: 5, nome: "Coffee Break", custo: 200.00 },
+                { id: 6, nome: "Projetor Full HD", custo: 150.00 },  // Novo ativo - Axioma v5.3.0
+                { id: 7, nome: "Painel de LED", custo: 800.00 }  // Novo ativo - Axioma v5.3.0
+            ]
         };
     }
 

@@ -1589,6 +1589,44 @@ function calcularOrcamento() {
         return;
     }
     
+    // [SGQ-SECURITY] TRAVA INQUEBRÁVEL DE FIM DE SEMANA - Axioma v5.3.0
+    // Verificar se há dias de fim de semana selecionados ou se a data é fim de semana
+    const temFimDeSemana = diasSelecionados.some(dia => dia === 0 || dia === 6);
+    let dataEhFimDeSemana = false;
+    
+    if (dataEventoValida) {
+        const dataEventoObj = new Date(dataEventoValida + 'T00:00:00');
+        const diaSemana = dataEventoObj.getDay();
+        dataEhFimDeSemana = (diaSemana === 0 || diaSemana === 6);
+    }
+    
+    if (temFimDeSemana || dataEhFimDeSemana) {
+        // Contar funcionários ativos
+        const funcionariosAtivos = dataManager.obterFuncionariosAtivos();
+        const qtdFuncionariosAtivos = funcionariosAtivos.length;
+        
+        console.log('[SGQ-SECURITY] Transação Financeira: Evento de fim de semana detectado');
+        console.log(`[SGQ-SECURITY] Funcionários ativos: ${qtdFuncionariosAtivos}/3 (mínimo obrigatório)`);
+        
+        if (qtdFuncionariosAtivos < 3) {
+            alert('❌ [SGQ-SECURITY] TRAVA DE FIM DE SEMANA ATIVADA\n\n' +
+                  'Para eventos realizados em sábados ou domingos, é OBRIGATÓRIO ter pelo menos 3 funcionários de suporte por normas de segurança.\n\n' +
+                  `Funcionários ativos atualmente: ${qtdFuncionariosAtivos}\n` +
+                  'Mínimo necessário: 3\n\n' +
+                  'Por favor, ative mais funcionários na aba "Configurações" antes de calcular o orçamento.');
+            
+            // Redirecionar para aba de configurações
+            const configTab = document.querySelector('.tab-btn[data-tab="config"]');
+            if (configTab) {
+                configTab.click();
+            }
+            
+            return; // BLOQUEIA o cálculo
+        }
+        
+        console.log('[SGQ-SECURITY] Trava de fim de semana satisfeita. Prosseguindo com cálculo.');
+    }
+    
     // 5. VALIDAÇÃO DE HORÁRIOS
     if (!validarHorarios()) {
         alert('❌ Por favor, corrija os horários antes de calcular.');
