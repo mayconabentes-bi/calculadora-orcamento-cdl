@@ -278,7 +278,7 @@ class BudgetEngine {
                                         (custoTransporteApp ?? 0) + (custoRefeicao ?? 0);
         
         // =========================================================================
-        // [TB.PREM.06] CÁLCULO DE COMISSIONAMENTO - AXIOMA v5.2.0
+        // [TB.PREM.06] CÁLCULO DE COMISSIONAMENTO - AXIOMA v5.3.0
         // Sistema de incentivo: 8% Venda Direta + 2% Gestão = 10% total
         // =========================================================================
         
@@ -299,11 +299,14 @@ class BudgetEngine {
             // Lucro Líquido Real: Valor Final - Custos Totais - Comissões
             lucroLiquidoReal = valorFinal - subtotalSemMargem - totalComissoes;
             
+            // [SGQ-SECURITY] Log detalhado de transação financeira
+            console.log('[SGQ-SECURITY] Transação Financeira: Calculando comissões conforme TB.PREM.06');
             console.log('[TB.PREM.06] Comissões calculadas:');
             console.log(`  - Vendedor (${(taxasComissao.vendaDireta * 100).toFixed(1)}%): R$ ${valorComissaoVendedor.toFixed(2)}`);
             console.log(`  - Gestão UTV (${(taxasComissao.gestaoUTV * 100).toFixed(1)}%): R$ ${valorComissaoGestao.toFixed(2)}`);
             console.log(`  - Total Comissões (10%): R$ ${totalComissoes.toFixed(2)}`);
             console.log(`  - Lucro Líquido Real: R$ ${lucroLiquidoReal.toFixed(2)}`);
+            console.log(`[SGQ-SECURITY] Valor Final: R$ ${valorFinal.toFixed(2)} | Custos: R$ ${subtotalSemMargem.toFixed(2)} | Comissões: R$ ${totalComissoes.toFixed(2)} | Lucro Real: R$ ${lucroLiquidoReal.toFixed(2)}`);
         } else {
             // Se comissões desativadas, lucro líquido = margem
             lucroLiquidoReal = valorFinal - subtotalSemMargem;
