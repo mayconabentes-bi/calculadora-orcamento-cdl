@@ -877,7 +877,7 @@ class DataManager {
                 nivel = 'BAIXO';
                 cor = '#16a34a';      // Verde
                 bgColor = '#dcfce7';
-                borderColor = '#86efac';
+                borderColor: '#86efac';
             }
             
             return {
@@ -898,6 +898,48 @@ class DataManager {
                 percentual: 0
             };
         }
+    }
+
+    // =========================================================================
+    // MÓDULO DE COMISSIONAMENTO (TB.PREM.06) - AXIOMA v5.2.0
+    // =========================================================================
+
+    /**
+     * Retorna as configurações padrão do sistema
+     * Inclui taxas de comissionamento conforme TB.PREM.06
+     * @returns {Object} Configurações do sistema
+     */
+    obterDadosPadrao() {
+        return {
+            configuracoes: {
+                comissoes: {
+                    vendaDireta: 0.08,  // 8% para o vendedor
+                    gestaoUTV: 0.02,    // 2% para gestão
+                    ativo: true         // Sistema de comissões ativo
+                },
+                margemMinima: 15.0,
+                lucroAlvo: 30.0,
+                custoFixoDiario: 50.0
+            }
+        };
+    }
+
+    /**
+     * Retorna as taxas de comissionamento configuradas
+     * TB.PREM.06: 8% Venda Direta + 2% Gestão UTV = 10% total
+     * @returns {Object} Objeto com vendaDireta, gestaoUTV e ativo
+     */
+    obterTaxasComissao() {
+        const dadosPadrao = this.obterDadosPadrao();
+        const taxas = dadosPadrao.configuracoes.comissoes;
+        
+        console.log('[SGQ-DATA] Taxas de comissão obtidas:', taxas);
+        
+        return {
+            vendaDireta: taxas.vendaDireta ?? 0.08,
+            gestaoUTV: taxas.gestaoUTV ?? 0.02,
+            ativo: taxas.ativo ?? true
+        };
     }
 }
 

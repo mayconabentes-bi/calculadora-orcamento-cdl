@@ -1745,6 +1745,64 @@ function exibirResultados(resultado, calculoIncompleto = false) {
     document.getElementById('valor-desconto').textContent = CoreUtils.formatarMoeda(resultado.valorDesconto);
     document.getElementById('valor-final').textContent = CoreUtils.formatarMoeda(resultado.valorFinal);
     
+    // =========================================================================
+    // [TB.PREM.06] EXIBIÇÃO DE COMISSIONAMENTO - AXIOMA v5.2.0
+    // =========================================================================
+    
+    // Exibir comissões se disponíveis no resultado
+    if (resultado.totalComissoes && resultado.totalComissoes > 0) {
+        // Criar ou atualizar linha de comissões após valor final
+        let comissoesLine = document.getElementById('comissoes-line');
+        
+        if (!comissoesLine) {
+            // Criar elemento dinamicamente se não existir
+            const valorFinalElement = document.getElementById('valor-final');
+            if (valorFinalElement && valorFinalElement.parentElement && valorFinalElement.parentElement.parentElement) {
+                const valorFinalRow = valorFinalElement.parentElement.parentElement;
+                
+                comissoesLine = document.createElement('div');
+                comissoesLine.id = 'comissoes-line';
+                comissoesLine.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid #e5e7eb; margin-top: 8px; font-size: 0.9em; color: #6b7280;';
+                
+                comissoesLine.innerHTML = `
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                        <span style="font-size: 0.85em;" title="Comissionamento: 8% Venda Direta + 2% Gestão UTV">💰</span>
+                        Ded. Variáveis (<span id="comissoes-percent">10</span>%):
+                    </span>
+                    <strong id="valor-comissoes" style="color: #d97706;">-R$ 0,00</strong>
+                `;
+                
+                // Inserir após a linha do valor final
+                valorFinalRow.parentNode.insertBefore(comissoesLine, valorFinalRow.nextSibling);
+            }
+        }
+        
+        // Atualizar valores de comissões
+        const valorComissoesElement = document.getElementById('valor-comissoes');
+        const comissoesPercentElement = document.getElementById('comissoes-percent');
+        
+        if (valorComissoesElement) {
+            valorComissoesElement.textContent = `-R$ ${CoreUtils.formatarMoeda(resultado.totalComissoes)}`;
+        }
+        
+        if (comissoesPercentElement && resultado.percentualComissaoTotal) {
+            comissoesPercentElement.textContent = resultado.percentualComissaoTotal.toFixed(0);
+        }
+        
+        // Exibir o elemento se estava oculto
+        if (comissoesLine) {
+            comissoesLine.style.display = 'flex';
+        }
+        
+        // [SGQ-SECURITY] Log de auditoria de comissionamento
+        console.log('[SGQ-SECURITY] Comissões calculadas para simulação:');
+        console.log(`  - Vendedor (8%): R$ ${resultado.valorComissaoVendedor.toFixed(2)}`);
+        console.log(`  - Gestão UTV (2%): R$ ${resultado.valorComissaoGestao.toFixed(2)}`);
+        console.log(`  - Total (10%): R$ ${resultado.totalComissoes.toFixed(2)}`);
+        console.log(`  - Lucro Líquido Real: R$ ${resultado.lucroLiquidoReal.toFixed(2)}`);
+        console.log(`  - Margem Real após Comissões: ${((resultado.lucroLiquidoReal / resultado.valorFinal) * 100).toFixed(2)}%`);
+    }
+    
     // Mostrar botão de enviar para aprovação
     const btnAprovacaoContainer = document.getElementById('btn-aprovacao-container');
     if (btnAprovacaoContainer) {
