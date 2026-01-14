@@ -313,6 +313,14 @@ class BudgetEngine {
             console.log('[TB.PREM.06] Sistema de comissões desativado');
         }
         
+        // [SGQ-SECURITY] Segurança Margem: Verificar prejuízo
+        const alertaPrejuizo = lucroLiquidoReal < 0;
+        
+        if (alertaPrejuizo) {
+            console.warn('[SGQ-SECURITY] ⚠️ ALERTA DE PREJUÍZO: Lucro Líquido Real negativo detectado!');
+            console.warn(`[SGQ-SECURITY] Lucro Líquido Real: R$ ${lucroLiquidoReal.toFixed(2)}`);
+        }
+        
         // GARANTIA FINAL: Assegurar que todos os valores retornados são numéricos válidos
         return {
             horasTotais: horasTotais ?? 0,
@@ -349,7 +357,9 @@ class BudgetEngine {
             valorComissaoGestao: valorComissaoGestao ?? 0,
             totalComissoes: totalComissoes ?? 0,
             lucroLiquidoReal: lucroLiquidoReal ?? 0,
-            percentualComissaoTotal: ((taxasComissao?.vendaDireta ?? 0) + (taxasComissao?.gestaoUTV ?? 0)) * 100
+            percentualComissaoTotal: ((taxasComissao?.vendaDireta ?? 0) + (taxasComissao?.gestaoUTV ?? 0)) * 100,
+            // [SGQ-SECURITY] Segurança Margem
+            alertaPrejuizo: alertaPrejuizo
         };
     }
 }

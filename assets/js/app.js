@@ -168,6 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 async function inicializarAplicacao() {
     try {
+        console.log('[SGQ-SECURITY] Sistema Axioma v5.3.0: Integridade financeira e de interface');
         mostrarLoading(); // Bloqueia UI enquanto carrega
         
         budgetEngine = new BudgetEngine(dataManager);
