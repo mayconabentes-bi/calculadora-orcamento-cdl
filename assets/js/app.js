@@ -83,25 +83,35 @@ const ImportIntegrityGate = {
                 dataEventoEl.value = lead.dataEvento;
             }
             
-            // Sincronização de múltiplos horários
+            // [SGQ-SECURITY] Sincronização de múltiplos horários - REFATORADO
+            // Limpar todos os horários extras atuais na calculadora administrativa
+            horarios = [];
+            horariosCount = 0;
+            
+            // Processar horariosSolicitados se existir (novo formato)
             if (Array.isArray(lead.horariosSolicitados) && lead.horariosSolicitados.length > 0) {
-                // Limpar horários atuais
-                horarios = [];
-                horariosCount = 0;
-                
-                // Adicionar horários do lead
+                // Iterar sobre cada horário e chamar adicionarNovoHorario
                 lead.horariosSolicitados.forEach((h) => {
-                    const id = horariosCount++;
-                    horarios.push({
-                        id: id,
-                        inicio: h.inicio,
-                        fim: h.fim
-                    });
+                    if (h.inicio && h.fim) {
+                        adicionarNovoHorario(h.inicio, h.fim);
+                    }
                 });
-                
-                // Renderizar horários na UI
-                if (typeof renderizarHorarios === 'function') {
-                    renderizarHorarios();
+            } 
+            // Fallback para leads antigos sem horariosSolicitados
+            else if (lead.horarioInicio && lead.horarioFim) {
+                adicionarNovoHorario(lead.horarioInicio, lead.horarioFim);
+            }
+            // Garantir ao menos um horário padrão se nada foi fornecido
+            else {
+                adicionarNovoHorario('08:00', '17:00');
+            }
+            
+            // [SGQ-SECURITY] Sincronização de duração do contrato
+            if (lead.duracaoContrato) {
+                const duracaoInput = document.getElementById('duracao');
+                if (duracaoInput) {
+                    duracaoInput.value = lead.duracaoContrato;
+                    console.log('[SGQ-SECURITY] Duração do contrato sincronizada:', lead.duracaoContrato);
                 }
             }
             
@@ -381,12 +391,32 @@ async function tratarLeadAgora(leadId) {
         return;
     }
 
+    // [SGQ-SECURITY] VALIDAÇÃO E CORREÇÃO via ImportIntegrityGate
+    const auditResult = ImportIntegrityGate.validate(lead);
+    
+    if (!auditResult.valid) {
+        console.warn('[SGQ-SECURITY] Erros de validação encontrados:', auditResult.errors);
+        // Mesmo com erros, permite importação parcial
+        mostrarNotificacao(`⚠️ Lead importado com avisos: ${auditResult.errors.join(', ')}`, 'aviso', 6000);
+    }
+
+    // Usar syncUI do ImportIntegrityGate para preencher a interface
     if (ImportIntegrityGate.syncUI(lead)) {
+        // Atualizar status do lead para "EM_ATENDIMENTO"
         await dataManager.atualizarStatusLead(leadId, 'EM_ATENDIMENTO');
-        calcularOrcamento(); // Disparo automático da Inteligência de Margem
+        
+        // Disparar cálculo automático da Inteligência de Margem
+        setTimeout(() => {
+            console.log('[SGQ-SECURITY] Importação concluída e cálculo recalculado para o lead:', leadId);
+            calcularOrcamento();
+        }, DELAY_CALCULO_AUTO_MS);
+        
         mostrarNotificacao(`Lead ${lead.nome} importado com sucesso!`);
+    } else {
+        mostrarNotificacao('Erro ao sincronizar dados do lead com a interface.', 'erro');
     }
     
+    // Recarregar centro de operações para atualizar contadores
     carregarCentroOperacoesComerciais();
 }
 
@@ -1234,19 +1264,6 @@ async function importarLeadSelecionado(leadId) {
         return;
     }
     
-    // [SGQ-SECURITY] NOVOS CAMPOS: Duração do Contrato
-    if (lead.duracaoContrato) {
-        const duracaoInput = document.getElementById('duracao');
-        const duracaoTipoSelect = document.getElementById('duracao-tipo');
-        if (duracaoInput) {
-            duracaoInput.value = lead.duracaoContrato;
-            console.log('[SGQ-SECURITY] Duração do contrato preenchida:', lead.duracaoContrato, 'dias');
-        }
-        if (duracaoTipoSelect) {
-            duracaoTipoSelect.value = DURACAO_TIPO_PADRAO; // Sempre em dias
-        }
-    }
-    
     // [SGQ-SECURITY] Verificar se é fim de semana e aplicar trava
     if (lead.dataEvento) {
         verificarTravaFimDeSemana();
@@ -1267,7 +1284,8 @@ async function importarLeadSelecionado(leadId) {
     // [SGQ-SECURITY] DISPARO AUTOMÁTICO DO CÁLCULO
     // Aguardar um pequeno delay para garantir que todos os campos foram preenchidos
     setTimeout(() => {
-        console.log('[SGQ-SECURITY] Cálculo automatizado aplicado via importação de lead - ID:', leadId);
+        console.log('[SGQ-SECURITY] Importação concluída e cálculo recalculado para o lead:', leadId);
+        console.log('[SGQ-SECURITY] Cliente:', lead.nome || lead.clienteNome);
         console.log('[SGQ-SECURITY] Timestamp:', new Date().toISOString());
         
         // Disparar função de cálculo
