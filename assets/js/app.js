@@ -109,9 +109,16 @@ const ImportIntegrityGate = {
             // [SGQ-SECURITY] Sincronização de duração do contrato
             if (lead.duracaoContrato) {
                 const duracaoInput = document.getElementById('duracao');
+                const duracaoTipoSelect = document.getElementById('duracao-tipo');
+                
                 if (duracaoInput) {
                     duracaoInput.value = lead.duracaoContrato;
                     console.log('[SGQ-SECURITY] Duração do contrato sincronizada:', lead.duracaoContrato);
+                }
+                
+                // Sempre define como "dias" (padrão do sistema)
+                if (duracaoTipoSelect) {
+                    duracaoTipoSelect.value = 'dias';
                 }
             }
             
