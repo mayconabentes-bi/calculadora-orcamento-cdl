@@ -126,7 +126,9 @@ async function importar() {
                 if (!row['Unidade'] || !row['Espaço'] || row['Unidade'] === 'Unidade') continue;
 
                 const id = gerarId(row['Unidade'], row['Espaço']);
-                const custoBase = limparMoeda(row['Custo Op. Base']);
+                // AXIOMA v5.3.0: Usar valor NOTURNO como custoBase (valor mais alto/conservador)
+                const custoNoite = limparMoeda(row['Turno: Noite (x1,40)']);
+                const custoBase = custoNoite; // Sincronização com valor NOTURNO do simulador
 
                 // Verifica integridade
                 if (!custoBase || custoBase === 0) {
@@ -143,17 +145,18 @@ async function importar() {
                     capacidade: parseInt(row['Cap.']) || 0,
                     area: row['Área (m²)'] || '',
                     
-                    // DADOS FINANCEIROS CRÍTICOS
+                    // DADOS FINANCEIROS CRÍTICOS - AXIOMA v5.3.0
+                    // custoBase agora reflete o valor NOTURNO (mais conservador)
                     custoBase: custoBase,
                     
                     // Multiplicadores da Planilha
                     custoManha: limparMoeda(row['Turno: Manhã (x1,00)']),
                     custoTarde: limparMoeda(row['Turno: Tarde (x1,15)']),
-                    custoNoite: limparMoeda(row['Turno: Noite (x1,40)']),
+                    custoNoite: custoNoite,
                     
                     itensInclusos: row['Itens Considerados (Qtd)'] || '',
                     atualizadoEm: new Date().toISOString(),
-                    origem: 'CSV Import - Codespaces',
+                    origem: 'CSV Import - Codespaces - Axioma v5.3.0',
                     ativo: true
                 }, { merge: true });
 
